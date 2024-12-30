@@ -25,28 +25,33 @@ export default function ProjectsPage() {
   }, [orgId]);
 
   if (loading) {
-    return <div className="p-4">Loading projects...</div>;
+    return <div className="p-6 text-gray-700">Loading projects...</div>;
   }
 
   return (
-    <main className="p-4">
-      <h1 className="text-xl mb-4">Projects under Org {orgId}</h1>
+    <main className="p-6 space-y-6">
+      <h1 className="text-2xl font-bold text-gray-800">Projects under Org {orgId}</h1>
 
-      <div className="mb-4">
+      <div>
         <Link
           href={`/dashboard/organizations/${orgId}/projects/new`}
-          className="bg-black text-white px-4 py-2 rounded hover:bg-neutral-800"
+          className="inline-block px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition"
         >
           Create New Project
         </Link>
       </div>
 
-      {projects.length === 0 && <p>No projects found. Create one!</p>}
+      {projects.length === 0 && (
+        <p className="text-gray-700">No projects found. Create one!</p>
+      )}
 
-      <ul className="space-y-2">
+      <ul className="space-y-4">
         {projects.map((p) => (
-          <li key={p.id} className="border p-2 rounded">
-            <p className="font-semibold text-lg">{p.name || p.id}</p>
+          <li
+            key={p.id}
+            className="border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition"
+          >
+            <p className="font-semibold text-lg text-gray-900">{p.name || p.id}</p>
             {p.status && <p className="text-sm text-gray-600">Status: {p.status}</p>}
             {p.mainProjectId && (
               <p className="text-sm text-gray-500">Sub-project of: {p.mainProjectId}</p>

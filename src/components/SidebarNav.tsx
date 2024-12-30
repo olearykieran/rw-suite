@@ -1,4 +1,3 @@
-// src/components/SidebarNav.tsx
 "use client";
 
 import { useState } from "react";
@@ -10,13 +9,16 @@ import {
   UserGroupIcon,
   Cog6ToothIcon,
 } from "@heroicons/react/24/outline";
+import { useUserProfile } from "@/hooks/useUserProfile"; // <--- from the custom hook above
 
 export default function SidebarNav() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Instead of "your-org", we link to /dashboard/organizations for the org listing
-  // Then user picks an org and sees that org's projects
+  // Real user profile from Firestore
+  const { profile, loading, error } = useUserProfile();
+
+  // Navigation items
   const navItems = [
     {
       name: "Dashboard",
@@ -30,7 +32,7 @@ export default function SidebarNav() {
     },
     {
       name: "Vendors",
-      href: "/dashboard/vendors", // or /dashboard/organizations for vendor listing if you prefer
+      href: "/dashboard/vendors",
       icon: <UserGroupIcon className="h-5 w-5" />,
     },
     {
@@ -113,8 +115,14 @@ export default function SidebarNav() {
             isCollapsed ? "opacity-0 w-0" : "opacity-100 w-auto"
           }`}
         >
-          <div className="font-semibold">John Doe</div>
-          <div className="text-neutral-500">PM / Admin</div>
+          {loading && <div className="text-xs text-gray-400">Loading…</div>}
+          {error && <div className="text-xs text-red-500">{error}</div>}
+          {!loading && !error && profile && (
+            <>
+              <div className="font-semibold">{profile.displayName}</div>
+              <div className="text-neutral-500">{profile.role || "No role set"}</div>
+            </>
+          )}
         </div>
       </div>
     </aside>

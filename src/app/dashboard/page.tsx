@@ -1,5 +1,4 @@
 // src/app/dashboard/page.tsx
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -16,24 +15,24 @@ export default function DashboardHomePage() {
     if (user) {
       setWelcome(`Welcome to RW Suite, ${user.email}!`);
 
-      // Check if there's a selectedProjectId in local storage
-      const selectedProjectId = localStorage.getItem("selectedProjectId");
-      const selectedOrgId = localStorage.getItem("selectedOrgId");
+      // If you want to check for sub-project instead:
+      const orgId = localStorage.getItem("selectedOrgId");
+      const projectId = localStorage.getItem("selectedProjectId");
+      const subProjectId = localStorage.getItem("selectedSubProjectId");
 
-      if (selectedProjectId && selectedOrgId) {
-        // redirect to that project
+      if (orgId && projectId && subProjectId) {
         router.replace(
-          `/dashboard/organizations/${selectedOrgId}/projects/${selectedProjectId}`
+          `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`
         );
       }
     }
   }, [user, router]);
 
   return (
-    <section className="space-y-4">
-      <h1 className="text-2xl font-bold">{welcome}</h1>
-      <p className="text-neutral-600">
-        This is your main dashboard. From here, you can view your organizations, manage
+    <section className="space-y-6 p-6">
+      <h1 className="text-3xl font-bold text-gray-800">{welcome}</h1>
+      <p className="text-gray-700 leading-relaxed">
+        This is your main dashboard. From here, you can view organizations, manage
         projects, check RFIs, submittals, finances, and more.
       </p>
     </section>

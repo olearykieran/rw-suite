@@ -1,3 +1,5 @@
+// src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/page.tsx
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -25,13 +27,12 @@ export default function SubProjectsPage() {
         );
         const mainSnap = await getDoc(mainProjectRef);
         if (!mainSnap.exists()) {
-          setError("Main project not found");
+          setError("Main project not found.");
           setLoading(false);
           return;
         }
         setMainProjectName(mainSnap.data().name || projectId);
 
-        // fetch subprojects
         const subprojectsRef = collection(mainProjectRef, "subprojects");
         const snap = await getDocs(subprojectsRef);
         const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -46,12 +47,11 @@ export default function SubProjectsPage() {
     fetchData();
   }, [orgId, projectId]);
 
-  if (loading) return <div className="p-4">Loading sub-projects...</div>;
-  if (error) return <div className="p-4 text-red-600">{error}</div>;
+  if (loading) return <div className="p-6 text-gray-700">Loading projects...</div>;
+  if (error) return <div className="p-6 text-red-600">{error}</div>;
 
   return (
-    <main className="p-4">
-      {/* Back to Main Project */}
+    <main className="p-6 space-y-6">
       <Link
         href={`/dashboard/organizations/${orgId}/projects/${projectId}`}
         className="text-blue-600 underline"
@@ -59,20 +59,25 @@ export default function SubProjectsPage() {
         &larr; Back to {mainProjectName}
       </Link>
 
-      <h1 className="text-xl font-bold mt-4">Sub-Projects of {mainProjectName}</h1>
+      <h1 className="text-2xl font-bold text-gray-800">
+        Projects within {mainProjectName}
+      </h1>
 
-      {subProjects.length === 0 && <p>No sub-projects found.</p>}
+      {subProjects.length === 0 && <p className="text-gray-700">No projects found.</p>}
 
-      <ul className="mt-4 space-y-3">
+      <ul className="space-y-4">
         {subProjects.map((sp) => (
-          <li key={sp.id} className="border p-3 rounded">
-            <h3 className="font-semibold">{sp.name}</h3>
-            <p>Status: {sp.status || "active"}</p>
+          <li
+            key={sp.id}
+            className="border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition"
+          >
+            <h3 className="font-semibold text-lg text-gray-900">{sp.name}</h3>
+            <p className="text-sm text-gray-600">Status: {sp.status || "active"}</p>
             <Link
               href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${sp.id}`}
               className="text-blue-600 hover:underline text-sm mt-2 inline-block"
             >
-              Open Sub-Project
+              Open Project
             </Link>
           </li>
         ))}

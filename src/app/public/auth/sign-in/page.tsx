@@ -1,4 +1,4 @@
-// src/app/(public)/auth/sign-in/page.tsx
+// src/app/public/auth/sign-in/page.tsx
 
 "use client";
 

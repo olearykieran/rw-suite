@@ -27,20 +27,22 @@ export default function OrganizationDetailPage() {
   }, [params.orgId]);
 
   if (loading) {
-    return <div className="p-4">Loading organization...</div>;
+    return <div className="p-6 text-gray-700">Loading organization...</div>;
   }
   if (!org) {
-    return <div className="p-4">Organization not found.</div>;
+    return <div className="p-6 text-red-600">Organization not found.</div>;
   }
 
   return (
-    <main className="p-4">
-      <h1 className="text-xl mb-4">Organization: {org.name || org.id}</h1>
-      <p>Additional org details can go here.</p>
+    <main className="p-6 space-y-6">
+      <h1 className="text-2xl font-bold text-gray-800">
+        Organization: {org.name || org.id}
+      </h1>
+      <p className="text-gray-700">Additional organization details can go here...</p>
 
       <Link
         href={`/dashboard/organizations/${org.id}/projects`}
-        className="mt-4 inline-block underline text-blue-600"
+        className="inline-block px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition"
       >
         View Projects
       </Link>

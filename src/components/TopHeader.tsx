@@ -1,7 +1,7 @@
 // src/components/TopHeader.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebaseConfig";
 import { UserIcon, BellIcon } from "@heroicons/react/24/outline";
@@ -10,6 +10,28 @@ export default function TopHeader() {
   const [user] = useAuthState(auth);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
+  // Track the currently selected sub-project name (if any)
+  const [subProjectName, setSubProjectName] = useState("");
+
+  // On mount, read from localStorage if we have "selectedSubProjectName"
+  useEffect(() => {
+    const storedName = localStorage.getItem("selectedSubProjectName");
+    if (storedName) {
+      setSubProjectName(storedName);
+    }
+
+    // Add a "storage" event listener for changes from other tabs/routes
+    // This fires whenever localStorage is updated in the same domain
+    function handleStorage(event: StorageEvent) {
+      if (event.key === "selectedSubProjectName") {
+        setSubProjectName(event.newValue || "");
+      }
+    }
+
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
+
   const handleSignOut = async () => {
     await auth.signOut();
   };
@@ -17,8 +39,12 @@ export default function TopHeader() {
   return (
     <header className="w-full border-b border-neutral-200 bg-white h-14 flex items-center px-4 justify-between">
       {/* Left side (page title) */}
-      <div>
+      <div className="flex items-center gap-4">
         <h2 className="text-lg font-semibold">RW Suite Dashboard</h2>
+        {/* If a sub-project name is present, show it to the right */}
+        {subProjectName && (
+          <span className="text-sm text-gray-600">| {subProjectName}</span>
+        )}
       </div>
 
       {/* Right side (notification bell, user icon) */}
@@ -26,8 +52,6 @@ export default function TopHeader() {
         {/* Notification Bell */}
         <button className="relative p-1 rounded hover:bg-neutral-100">
           <BellIcon className="h-6 w-6 text-neutral-600" />
-          {/* If you want a small dot to indicate notifications, you could do: 
-              <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full" /> */}
         </button>
 
         {/* User icon / avatar */}

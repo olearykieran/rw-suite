@@ -32,7 +32,7 @@ export default function InvitesPage() {
   // Check if the user is PM or owner in this org
   useEffect(() => {
     if (!user) {
-      router.replace("/(public)/auth/sign-in");
+      router.replace("/public/auth/sign-in");
       return;
     }
     checkMemberRole();
