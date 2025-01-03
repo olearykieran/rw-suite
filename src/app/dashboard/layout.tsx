@@ -1,5 +1,3 @@
-// src/app/dashboard/layout.tsx
-
 "use client";
 
 import { ReactNode, useEffect, useState } from "react";
@@ -46,7 +44,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }
 
   if (loading || !orgCheckDone) {
-    return <div className="p-6 text-gray-700">Loading your account...</div>;
+    return <div className="p-6 text-[var(--foreground)]">Loading your account...</div>;
   }
 
   if (orgIds.length === 0) {
@@ -61,13 +59,22 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-gray-100 text-gray-900">
-      {/* Sidebar */}
+    <div className="flex h-screen w-full overflow-hidden">
+      {/* 
+        Sidebar is hidden on mobile due to the
+        `hidden sm:flex` class inside SidebarNav
+      */}
       <SidebarNav />
 
-      {/* Main Content */}
+      {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
+        {/* 
+          The TopHeader includes the mobile hamburger for opening 
+          the mobile drawer (MobileNavDrawer). 
+        */}
         <TopHeader />
+
+        {/* Main page content */}
         <main className="flex-1 p-6 overflow-y-auto">{children}</main>
       </div>
     </div>

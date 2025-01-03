@@ -1,11 +1,19 @@
 // src/app/layout.tsx
+
 import "./globals.css";
-import { Inter } from "next/font/google";
+import { Poppins, Space_Grotesk } from "next/font/google";
 import { ReactNode } from "react";
 
-const inter = Inter({
+const poppins = Poppins({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-poppins",
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-space-grotesk",
 });
 
 export const metadata = {
@@ -16,7 +24,22 @@ export const metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-neutral-50 text-neutral-900`}>
+      <head>
+        {/* 
+          Add your meta viewport here 
+        */}
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      </head>
+
+      <body
+        className={`
+          ${poppins.variable} 
+          ${spaceGrotesk.variable}
+          bg-[var(--background)] 
+          text-[var(--foreground)]
+          min-h-screen
+        `}
+      >
         {children}
       </body>
     </html>

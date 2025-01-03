@@ -1,9 +1,16 @@
+// src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/blueprints/page.tsx
+
 "use client";
 
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { fetchAllBlueprints } from "@/lib/services/BlueprintService";
+
+// Shared UI
+import { PageContainer } from "@/components/ui/PageContainer";
+import { Card } from "@/components/ui/Card";
+import { GrayButton } from "@/components/ui/GrayButton";
 
 export default function BlueprintListPage() {
   const { orgId, projectId, subProjectId } = useParams() as {
@@ -32,46 +39,61 @@ export default function BlueprintListPage() {
     load();
   }, [orgId, projectId, subProjectId]);
 
-  if (loading) return <div className="p-4">Loading Blueprints...</div>;
-  if (error) return <div className="p-4 text-red-600">{error}</div>;
+  if (loading) {
+    return <div className="p-6">Loading Blueprints...</div>;
+  }
+  if (error) {
+    return <div className="p-6 text-red-600">{error}</div>;
+  }
 
   return (
-    <main className="p-4 space-y-4">
-      {/* Back link -> consistent style */}
+    <PageContainer>
+      {/* Back link */}
       <Link
         href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`}
-        className="text-blue-600 underline"
+        className="
+          text-sm font-medium text-blue-600 underline 
+          hover:text-blue-700 dark:text-blue-400 
+          dark:hover:text-blue-300 transition-colors
+        "
       >
         &larr; Back to Subproject
       </Link>
 
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-start sm:items-center flex-col sm:flex-row gap-2">
         <h1 className="text-2xl font-bold">Blueprints</h1>
         <Link
           href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/blueprints/new`}
-          className="bg-black text-white px-4 py-2 rounded hover:bg-neutral-800"
         >
-          Upload Blueprint
+          <GrayButton>Upload Blueprint</GrayButton>
         </Link>
       </div>
 
       {blueprints.length === 0 ? (
-        <p>No blueprints found.</p>
+        <p className="text-sm text-neutral-600 dark:text-neutral-300">
+          No blueprints found.
+        </p>
       ) : (
-        <ul className="space-y-2">
-          {blueprints.map((bp) => (
-            <li key={bp.id} className="border rounded p-3">
-              <p className="font-medium">{bp.title}</p>
-              <Link
-                href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/blueprints/${bp.id}`}
-                className="text-blue-600 underline text-sm"
-              >
-                View
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <Card>
+          <ul className="space-y-2">
+            {blueprints.map((bp) => (
+              <li key={bp.id} className="border rounded p-3">
+                <p className="font-medium">{bp.title}</p>
+                <Link
+                  href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/blueprints/${bp.id}`}
+                  className="
+                    text-blue-600 underline text-sm
+                    hover:text-blue-700
+                    dark:text-blue-400 dark:hover:text-blue-300
+                  "
+                >
+                  View
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
       )}
-    </main>
+    </PageContainer>
   );
 }

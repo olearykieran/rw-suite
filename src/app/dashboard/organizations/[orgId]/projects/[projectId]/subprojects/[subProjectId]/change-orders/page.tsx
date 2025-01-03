@@ -1,9 +1,15 @@
 // src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/change-orders/page.tsx
+
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+
+import { PageContainer } from "@/components/ui/PageContainer";
+import { Card } from "@/components/ui/Card";
+import { GrayButton } from "@/components/ui/GrayButton";
+
 import {
   fetchAllChangeOrders,
   deleteChangeOrder,
@@ -21,10 +27,13 @@ export default function ChangeOrderListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // (Optional) Pagination or filtering states here, e.g.:
+  // const [filterStatus, setFilterStatus] = useState("all");
+  // etc.
+
   useEffect(() => {
     async function load() {
       try {
-        if (!orgId || !projectId || !subProjectId) return;
         setLoading(true);
         const data = await fetchAllChangeOrders(orgId, projectId, subProjectId);
         setChangeOrders(data);
@@ -35,76 +44,103 @@ export default function ChangeOrderListPage() {
         setLoading(false);
       }
     }
-    load();
+    if (orgId && projectId && subProjectId) {
+      load();
+    }
   }, [orgId, projectId, subProjectId]);
 
+  // Deleting a record
   async function handleDelete(coId: string) {
     try {
       await deleteChangeOrder(orgId, projectId, subProjectId, coId);
-      setChangeOrders((prev) => prev.filter((c) => c.id !== coId));
+      setChangeOrders((prev) => prev.filter((co) => co.id !== coId));
     } catch (err: any) {
       console.error("Delete change order error:", err);
       setError("Failed to delete change order.");
     }
   }
 
-  if (loading) return <div className="p-4">Loading Change Orders...</div>;
-  if (error) return <div className="p-4 text-red-600">{error}</div>;
+  if (loading) {
+    return <div className="p-6 text-sm">Loading Change Orders...</div>;
+  }
+  if (error) {
+    return <div className="p-6 text-red-600">{error}</div>;
+  }
 
   return (
-    <main className="p-4 space-y-4">
-      <Link
-        href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`}
-        className="text-blue-600 underline"
-      >
-        &larr; Back to Sub-Project
-      </Link>
-
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Change Orders</h1>
+    <PageContainer>
+      {/* Back link to sub-project */}
+      <div className="flex items-center justify-between">
         <Link
-          href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/change-orders/new`}
-          className="bg-black text-white px-4 py-2 rounded hover:bg-neutral-800"
+          href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`}
+          className="
+            text-sm font-medium text-blue-600 underline
+            hover:text-blue-700 dark:text-blue-400
+            dark:hover:text-blue-300 transition-colors
+          "
         >
-          Create Change Order
+          &larr; Back to Sub-Project
         </Link>
       </div>
 
+      {/* Title + Create button */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mt-4">
+        <h1 className="text-2xl font-bold">Change Orders</h1>
+        <Link
+          href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/change-orders/new`}
+        >
+          <GrayButton>Create Change Order</GrayButton>
+        </Link>
+      </div>
+
+      {/* (Optional) If you want filter/pagination, do like the RFI approach:
+          <Card> 
+            <h2 className="text-lg font-semibold">Filter or Sort</h2>
+            ...
+          </Card>
+      */}
+
       {changeOrders.length === 0 ? (
-        <p>No change orders found. Create one!</p>
+        <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-2">
+          No change orders found. Create one!
+        </p>
       ) : (
-        <ul className="space-y-3">
+        <div className="space-y-3 mt-4">
           {changeOrders.map((co) => (
-            <li
-              key={co.id}
-              className="border p-3 rounded flex justify-between items-center"
-            >
+            <Card key={co.id} className="flex justify-between items-center">
               <div>
                 <p className="font-semibold">{co.title}</p>
                 {co.costImpact !== undefined && (
-                  <p className="text-sm text-gray-600">
-                    Cost Impact: ${co.costImpact.toLocaleString()}
-                  </p>
+                  <p className="text-sm">Cost Impact: ${co.costImpact.toFixed(2)}</p>
                 )}
+                {co.scheduleImpact !== undefined && (
+                  <p className="text-sm">Schedule Impact: {co.scheduleImpact} day(s)</p>
+                )}
+                {co.status && <p className="text-sm">Status: {co.status}</p>}
               </div>
-              <div className="flex gap-4">
+              <div className="flex gap-3">
                 <Link
                   href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/change-orders/${co.id}`}
-                  className="text-blue-600 underline text-sm"
+                  className="
+                    text-blue-600 underline text-sm
+                    hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300
+                  "
                 >
                   View
                 </Link>
-                <button
+                <GrayButton
                   onClick={() => handleDelete(co.id)}
-                  className="text-sm text-red-600 underline"
+                  className="text-xs bg-red-600 hover:bg-red-700"
                 >
                   Delete
-                </button>
+                </GrayButton>
               </div>
-            </li>
+            </Card>
           ))}
-        </ul>
+        </div>
       )}
-    </main>
+
+      {/* (Optional) If you want pagination (like RFI), do it here. */}
+    </PageContainer>
   );
 }

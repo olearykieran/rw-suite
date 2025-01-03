@@ -153,15 +153,12 @@ export default function ImageAnnotatorWithZoom({
       <div className="mb-2 flex gap-2">
         <button
           onClick={zoomOut}
-          className="bg-gray-300 px-3 py-1 rounded hover:bg-gray-400 text-sm"
+          className=" px-3 py-1 rounded hover:bg-gray-400 text-sm"
         >
           -
         </button>
         <span className="text-sm px-1">Zoom: {(scale * 100).toFixed(0)}%</span>
-        <button
-          onClick={zoomIn}
-          className="bg-gray-300 px-3 py-1 rounded hover:bg-gray-400 text-sm"
-        >
+        <button onClick={zoomIn} className=" px-3 py-1 rounded hover:bg-gray-400 text-sm">
           +
         </button>
       </div>
@@ -310,10 +307,7 @@ export default function ImageAnnotatorWithZoom({
             >
               Add Pin
             </button>
-            <button
-              className="bg-gray-200 px-2 py-1 rounded text-sm"
-              onClick={handleCancelNewPin}
-            >
+            <button className=" px-2 py-1 rounded text-sm" onClick={handleCancelNewPin}>
               Cancel
             </button>
           </div>
@@ -391,10 +385,7 @@ export default function ImageAnnotatorWithZoom({
             >
               Save
             </button>
-            <button
-              className="bg-gray-200 px-2 py-1 rounded text-sm"
-              onClick={handleCancelEditPin}
-            >
+            <button className=" px-2 py-1 rounded text-sm" onClick={handleCancelEditPin}>
               Cancel
             </button>
             <button

@@ -1,9 +1,15 @@
 // src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/meeting-minutes/page.tsx
+
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+
+import { PageContainer } from "@/components/ui/PageContainer";
+import { Card } from "@/components/ui/Card";
+import { GrayButton } from "@/components/ui/GrayButton";
+
 import {
   fetchAllMeetings,
   MeetingMinutesDoc,
@@ -20,6 +26,8 @@ export default function MeetingMinutesListPage() {
   const [meetings, setMeetings] = useState<MeetingMinutesDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // (Optional) Pagination/filter states here
 
   useEffect(() => {
     async function load() {
@@ -48,65 +56,78 @@ export default function MeetingMinutesListPage() {
     }
   }
 
-  if (loading) return <div className="p-4">Loading meeting minutes...</div>;
-  if (error) return <div className="p-4 text-red-600">{error}</div>;
+  if (loading) {
+    return <div className="p-6 text-sm">Loading meeting minutes...</div>;
+  }
+  if (error) {
+    return <div className="p-6 text-red-600">{error}</div>;
+  }
 
   return (
-    <main className="p-4 space-y-4">
-      <Link
-        href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`}
-        className="text-blue-600 underline"
-      >
-        &larr; Back to Subproject
-      </Link>
+    <PageContainer>
+      {/* Back link */}
+      <div className="flex items-center justify-between">
+        <Link
+          href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`}
+          className="
+            text-sm font-medium text-blue-600 underline 
+            hover:text-blue-700 dark:text-blue-400 
+            dark:hover:text-blue-300 transition-colors
+          "
+        >
+          &larr; Back to Sub-Project
+        </Link>
+      </div>
 
-      <div className="flex justify-between items-center">
+      {/* Title + Create button */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mt-4">
         <h1 className="text-2xl font-bold">Meeting Minutes</h1>
         <Link
           href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/meeting-minutes/new`}
-          className="bg-black text-white px-4 py-2 rounded hover:bg-neutral-800"
         >
-          Create Meeting
+          <GrayButton>Create Meeting</GrayButton>
         </Link>
       </div>
 
       {meetings.length === 0 ? (
-        <p>No meeting records yet. Create one!</p>
+        <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-2">
+          No meeting records yet. Create one!
+        </p>
       ) : (
-        <ul className="space-y-3">
+        <div className="space-y-3 mt-4">
           {meetings.map((m) => (
-            <li
-              key={m.id}
-              className="border p-3 rounded flex justify-between items-center"
-            >
+            <Card key={m.id} className="flex justify-between items-center">
               <div>
                 <p className="font-semibold">
                   {m.title || "Untitled"}{" "}
                   {m.date ? `(${new Date(m.date).toLocaleDateString()})` : ""}
                 </p>
-                <p className="text-sm text-gray-600">
-                  Attendees: {m.attendees?.join(", ") || "None"}
-                </p>
+                <p className="text-sm">Attendees: {m.attendees?.join(", ") || "None"}</p>
               </div>
-
               <div className="flex gap-4">
                 <Link
                   href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/meeting-minutes/${m.id}`}
-                  className="text-blue-600 underline text-sm"
+                  className="
+                    text-blue-600 underline text-sm
+                    hover:text-blue-700 dark:text-blue-400
+                    dark:hover:text-blue-300
+                  "
                 >
                   View
                 </Link>
-                <button
+                <GrayButton
                   onClick={() => handleDelete(m.id)}
-                  className="text-red-600 underline text-sm"
+                  className="text-xs bg-red-600 hover:bg-red-700"
                 >
                   Delete
-                </button>
+                </GrayButton>
               </div>
-            </li>
+            </Card>
           ))}
-        </ul>
+        </div>
       )}
-    </main>
+
+      {/* (Optional) Add pagination or filtering logic here */}
+    </PageContainer>
   );
 }

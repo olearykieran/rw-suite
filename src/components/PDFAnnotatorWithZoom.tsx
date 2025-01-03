@@ -208,14 +208,14 @@ export default function PDFAnnotatorWithZoom({
       <div className="mb-2 flex gap-2">
         <button
           onClick={handleZoomOut}
-          className="bg-gray-300 px-3 py-1 rounded hover:bg-gray-400 text-sm"
+          className=" px-3 py-1 rounded hover:bg-gray-400 text-sm"
         >
           -
         </button>
         <span className="text-sm px-1">Zoom: {(scale * 100).toFixed(0)}%</span>
         <button
           onClick={handleZoomIn}
-          className="bg-gray-300 px-3 py-1 rounded hover:bg-gray-400 text-sm"
+          className=" px-3 py-1 rounded hover:bg-gray-400 text-sm"
         >
           +
         </button>
@@ -309,7 +309,7 @@ export default function PDFAnnotatorWithZoom({
                 </div>
               )}
 
-              <p className="text-sm text-gray-500 mt-1 text-center">
+              <p className="text-sm mt-1 text-center">
                 Page {pageNum} of {numPages}
               </p>
             </div>
@@ -388,10 +388,7 @@ export default function PDFAnnotatorWithZoom({
             >
               Add Pin
             </button>
-            <button
-              className="bg-gray-200 px-2 py-1 rounded text-sm"
-              onClick={handleCancelNewPin}
-            >
+            <button className=" px-2 py-1 rounded text-sm" onClick={handleCancelNewPin}>
               Cancel
             </button>
           </div>
@@ -469,10 +466,7 @@ export default function PDFAnnotatorWithZoom({
             >
               Save
             </button>
-            <button
-              className="bg-gray-200 px-2 py-1 rounded text-sm"
-              onClick={handleCancelEditPin}
-            >
+            <button className=" px-2 py-1 rounded text-sm" onClick={handleCancelEditPin}>
               Cancel
             </button>
             <button

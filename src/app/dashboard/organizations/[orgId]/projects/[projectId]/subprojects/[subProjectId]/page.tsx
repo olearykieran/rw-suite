@@ -1,5 +1,3 @@
-// src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/page.tsx
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -8,7 +6,6 @@ import { doc, getDoc } from "firebase/firestore";
 import { firestore } from "@/lib/firebaseConfig";
 import Link from "next/link";
 
-/** Define an interface for your sub-project doc shape. */
 interface SubProjectDoc {
   id: string;
   name?: string;
@@ -46,13 +43,10 @@ export default function SubProjectOverview() {
           return;
         }
 
-        // Merge snapshot data into our SubProjectDoc
         const subProjData: SubProjectDoc = {
           id: subSnap.id,
           ...(subSnap.data() as Omit<SubProjectDoc, "id">),
         };
-
-        // Update local state
         setSubProject(subProjData);
 
         // Compare old vs. new subProject name
@@ -64,16 +58,15 @@ export default function SubProjectOverview() {
         localStorage.setItem("selectedProjectId", projectId);
         localStorage.setItem("selectedSubProjectId", subProjectId);
 
-        // If sub-project name changed, set it and do a FULL BROWSER RELOAD
+        // If sub-project name changed, set it and do a full reload
         if (oldName !== newName) {
           localStorage.setItem("selectedSubProjectName", newName);
 
-          // Hard reload forces the entire page to refresh,
-          // so TopHeader re-mounts & sees updated localStorage immediately
+          // Hard reload so the updated name shows in TopHeader immediately
           window.location.assign(
             `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`
           );
-          return; // Stop execution here, because we've triggered a reload
+          return;
         }
 
         // Fetch main project name
@@ -101,48 +94,84 @@ export default function SubProjectOverview() {
   }
 
   if (loading) {
-    return <div className="p-6 text-gray-700">Loading sub-project...</div>;
+    return <div className="p-6 text-sm">Loading sub-project...</div>;
   }
   if (error) {
     return <div className="p-6 text-red-600">{error}</div>;
   }
   if (!subProject) {
-    return <div className="p-6 text-gray-700">No sub-project found.</div>;
+    return <div className="p-6">No sub-project found.</div>;
   }
 
   return (
-    <main className="p-6 space-y-6">
-      <Link
-        href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects`}
-        className="text-blue-600 underline"
-      >
-        &larr; Back to Sub-Projects of {mainProjectName}
-      </Link>
-
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-800">
-          Sub-Project: {subProject.name}
-        </h1>
-        <button
-          onClick={handleDeselectSubProject}
-          className="bg-gray-200 px-4 py-2 rounded text-sm hover:bg-gray-300 transition"
+    <div className="w-full max-w-5xl mx-auto px-4 py-6 space-y-8">
+      {/* Back link */}
+      <div className="flex items-center justify-between">
+        <Link
+          href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects`}
+          className="
+            text-sm font-medium text-blue-600 underline
+            hover:text-blue-700 dark:text-blue-400
+            dark:hover:text-blue-300 transition-colors
+          "
         >
-          Deselect
-        </button>
+          &larr; Back to Sub-Projects of {mainProjectName}
+        </Link>
       </div>
 
-      <p className="text-gray-700">Status: {subProject.status}</p>
+      {/* Sub-Project Header */}
+      <div
+        className="
+          bg-white dark:bg-neutral-900
+          border border-neutral-200 dark:border-neutral-800
+          rounded-lg p-6 space-y-4
+        "
+      >
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">
+            Sub-Project: {subProject.name || subProjectId}
+          </h1>
+          <button
+            onClick={handleDeselectSubProject}
+            className="
+              bg-gray-300 text-black
+              hover:bg-gray-400
+              dark:bg-gray-700 dark:text-white
+              dark:hover:bg-gray-600
+              transition-colors
+              px-4 py-2 rounded text-sm
+            "
+          >
+            Deselect
+          </button>
+        </div>
+        <p className="text-sm">
+          <strong>Status:</strong> {subProject.status || "N/A"}
+        </p>
+      </div>
 
-      <div className="border-t mt-4 pt-4">
-        <h2 className="text-xl font-semibold text-gray-800 mb-3">Sub-Project Features</h2>
+      {/* Sub-Project Features */}
+      <div
+        className="
+          bg-white dark:bg-neutral-900
+          border border-neutral-200 dark:border-neutral-800
+          rounded-lg p-6 space-y-4
+        "
+      >
+        <h2 className="text-xl font-semibold">Sub-Project Features</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* RFIs */}
           <Link
             href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/rfis`}
-            className="block border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition"
+            className="
+              bg-white dark:bg-neutral-900
+              border border-neutral-200 dark:border-neutral-800
+              rounded p-4 shadow-sm hover:shadow-md
+              transition
+            "
           >
-            <h3 className="font-bold mb-1 text-gray-900">RFIs</h3>
-            <p className="text-sm text-gray-600">
+            <h3 className="font-bold mb-1">RFIs</h3>
+            <p className="text-sm">
               Create, distribute, and track Requests for Information.
             </p>
           </Link>
@@ -150,63 +179,85 @@ export default function SubProjectOverview() {
           {/* Submittals */}
           <Link
             href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/submittals`}
-            className="block border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition"
+            className="
+              bg-white dark:bg-neutral-900
+              border border-neutral-200 dark:border-neutral-800
+              rounded p-4 shadow-sm hover:shadow-md
+              transition
+            "
           >
-            <h3 className="font-bold mb-1 text-gray-900">Submittals</h3>
-            <p className="text-sm text-gray-600">
-              Create, distribute, and track Submittals.
-            </p>
+            <h3 className="font-bold mb-1">Submittals</h3>
+            <p className="text-sm">Create, distribute, and track Submittals.</p>
           </Link>
 
           {/* Blueprints */}
           <Link
             href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/blueprints`}
-            className="block border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition"
+            className="
+              bg-white dark:bg-neutral-900
+              border border-neutral-200 dark:border-neutral-800
+              rounded p-4 shadow-sm hover:shadow-md
+              transition
+            "
           >
-            <h3 className="font-bold mb-1 text-gray-900">Blueprints</h3>
-            <p className="text-sm text-gray-600">
-              Create, distribute, and track Blueprints.
-            </p>
+            <h3 className="font-bold mb-1">Blueprints</h3>
+            <p className="text-sm">Create, distribute, and track Blueprints.</p>
           </Link>
 
           {/* Tasks */}
           <Link
             href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/tasks`}
-            className="block border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition"
+            className="
+              bg-white dark:bg-neutral-900
+              border border-neutral-200 dark:border-neutral-800
+              rounded p-4 shadow-sm hover:shadow-md
+              transition
+            "
           >
-            <h3 className="font-bold mb-1 text-gray-900">Tasks & Scheduling</h3>
-            <p className="text-sm text-gray-600">Create, distribute, and track Tasks.</p>
+            <h3 className="font-bold mb-1">Tasks & Scheduling</h3>
+            <p className="text-sm">Create, distribute, and track Tasks.</p>
           </Link>
 
           {/* Finances */}
           <Link
             href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/finances`}
-            className="block border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition"
+            className="
+              bg-white dark:bg-neutral-900
+              border border-neutral-200 dark:border-neutral-800
+              rounded p-4 shadow-sm hover:shadow-md
+              transition
+            "
           >
-            <h3 className="font-bold mb-1 text-gray-900">Finances</h3>
-            <p className="text-sm text-gray-600">
-              Create, distribute, and track Finances.
-            </p>
+            <h3 className="font-bold mb-1">Finances</h3>
+            <p className="text-sm">Create, distribute, and track Finances.</p>
           </Link>
 
           {/* Change Orders */}
           <Link
             href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/change-orders`}
-            className="block border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition"
+            className="
+              bg-white dark:bg-neutral-900
+              border border-neutral-200 dark:border-neutral-800
+              rounded p-4 shadow-sm hover:shadow-md
+              transition
+            "
           >
-            <h3 className="font-bold mb-1 text-gray-900">Change Orders</h3>
-            <p className="text-sm text-gray-600">
-              Track changes to scope, costs, or schedule.
-            </p>
+            <h3 className="font-bold mb-1">Change Orders</h3>
+            <p className="text-sm">Track changes to scope, costs, or schedule.</p>
           </Link>
 
           {/* Daily Reports */}
           <Link
             href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/daily-reports`}
-            className="block border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition"
+            className="
+              bg-white dark:bg-neutral-900
+              border border-neutral-200 dark:border-neutral-800
+              rounded p-4 shadow-sm hover:shadow-md
+              transition
+            "
           >
-            <h3 className="font-bold mb-1 text-gray-900">Daily Reports</h3>
-            <p className="text-sm text-gray-600">
+            <h3 className="font-bold mb-1">Daily Reports</h3>
+            <p className="text-sm">
               Log site conditions, progress, and any incidents daily.
             </p>
           </Link>
@@ -214,10 +265,15 @@ export default function SubProjectOverview() {
           {/* Meeting Minutes */}
           <Link
             href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/meeting-minutes`}
-            className="block border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition"
+            className="
+              bg-white dark:bg-neutral-900
+              border border-neutral-200 dark:border-neutral-800
+              rounded p-4 shadow-sm hover:shadow-md
+              transition
+            "
           >
-            <h3 className="font-bold mb-1 text-gray-900">Meeting Minutes</h3>
-            <p className="text-sm text-gray-600">
+            <h3 className="font-bold mb-1">Meeting Minutes</h3>
+            <p className="text-sm">
               Document discussions, decisions, and next steps from meetings.
             </p>
           </Link>
@@ -225,15 +281,20 @@ export default function SubProjectOverview() {
           {/* Punch Lists */}
           <Link
             href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/punch-lists`}
-            className="block border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition"
+            className="
+              bg-white dark:bg-neutral-900
+              border border-neutral-200 dark:border-neutral-800
+              rounded p-4 shadow-sm hover:shadow-md
+              transition
+            "
           >
-            <h3 className="font-bold mb-1 text-gray-900">Punch Lists</h3>
-            <p className="text-sm text-gray-600">
+            <h3 className="font-bold mb-1">Punch Lists</h3>
+            <p className="text-sm">
               Track final tasks or issues that must be resolved before project close-out.
             </p>
           </Link>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

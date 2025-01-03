@@ -4,8 +4,12 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
 import { TaskDoc, fetchAllTasks } from "@/lib/services/TaskService";
+
+// Shared UI
+import { PageContainer } from "@/components/ui/PageContainer";
+import { Card } from "@/components/ui/Card";
+import TasksHeaderNav from "@/components/TasksHeaderNav";
 
 export default function TasksCardViewPage() {
   const { orgId, projectId, subProjectId } = useParams() as {
@@ -36,57 +40,54 @@ export default function TasksCardViewPage() {
     }
   }, [orgId, projectId, subProjectId]);
 
-  if (loading) return <div className="p-4">Loading tasks (card view)...</div>;
-  if (error) return <div className="p-4 text-red-600">{error}</div>;
+  if (loading) {
+    return <div className="p-6 text-sm">Loading tasks (card view)...</div>;
+  }
+  if (error) {
+    return <div className="p-6 text-red-600">{error}</div>;
+  }
 
   return (
-    <main className="p-4 space-y-6">
-      <Link
-        href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/tasks`}
-        className="text-blue-600 underline"
-      >
-        &larr; Back
-      </Link>
+    <PageContainer>
+      <TasksHeaderNav orgId={orgId} projectId={projectId} subProjectId={subProjectId} />
 
-      <h1 className="text-2xl font-bold">Tasks (Card-Based)</h1>
+      <h1 className="text-2xl font-bold">Tasks (Card-Based View)</h1>
 
-      {tasks.length === 0 && <p>No tasks found.</p>}
+      {tasks.length === 0 && (
+        <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-2">
+          No tasks found.
+        </p>
+      )}
 
-      {/* 
-        For demonstration:
-        - We'll consider each "Task" as "Main" if it has no parent
-        - subTasks are already inlined
-        We'll display each main as a card, then subTasks as smaller cards below 
-      */}
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap gap-4 mt-4">
         {tasks.map((task) => (
-          <div key={task.id} className="border rounded p-3 w-full max-w-sm">
+          <Card key={task.id} className="w-full max-w-sm">
             <h3 className="font-semibold text-lg">{task.title}</h3>
-            <p className="text-sm text-gray-600 mb-2">{task.description}</p>
-            <p className="text-xs text-gray-500">
+            <p className="text-sm mb-2">{task.description}</p>
+            <p className="text-xs">
               {task.startDate instanceof Date ? task.startDate.toLocaleDateString() : ""}{" "}
               - {task.endDate instanceof Date ? task.endDate.toLocaleDateString() : ""}
             </p>
             <p className="text-xs">
-              Assigned: {task.assignedTo || "N/A"} | Status: {task.status}
+              <strong>Assigned:</strong> {task.assignedTo || "N/A"} |{" "}
+              <strong>Status:</strong> {task.status}
             </p>
 
-            {/* Subtask cards */}
             {task.subtasks && task.subtasks.length > 0 && (
               <div className="mt-3 space-y-2">
                 {task.subtasks.map((sub) => (
-                  <div key={sub.id} className="bg-gray-50 p-2 rounded shadow-sm">
+                  <Card key={sub.id} className="p-2">
                     <p className="text-sm font-medium">{sub.title}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs">
                       {sub.status} | {sub.assignedTo || "N/A"}
                     </p>
-                  </div>
+                  </Card>
                 ))}
               </div>
             )}
-          </div>
+          </Card>
         ))}
       </div>
-    </main>
+    </PageContainer>
   );
 }

@@ -5,6 +5,11 @@
 import { FormEvent, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+
+import { PageContainer } from "@/components/ui/PageContainer";
+import { Card } from "@/components/ui/Card";
+import { GrayButton } from "@/components/ui/GrayButton";
+
 import {
   createMeeting,
   uploadMeetingAttachment,
@@ -47,13 +52,13 @@ export default function NewMeetingPage() {
       let nextObj: Date | null = null;
       if (nextMeetingDate) nextObj = new Date(nextMeetingDate);
 
-      // Convert comma-separated attendees to string[]
+      // Convert comma-separated attendees to array
       const attArr = attendees
         .split(",")
         .map((a) => a.trim())
         .filter(Boolean);
 
-      // 1) Create the meeting doc (to get the new doc ID)
+      // 1) Create the meeting doc
       const meetingId = await createMeeting(orgId, projectId, subProjectId, {
         title,
         date: dateObj,
@@ -63,7 +68,7 @@ export default function NewMeetingPage() {
         nextMeetingDate: nextObj,
       });
 
-      // 2) If files exist, upload them one by one, gather URLs, then update the doc's attachments array
+      // 2) If files exist, upload them and update doc with attachments
       if (files && files.length > 0) {
         const uploadedUrls: string[] = [];
         for (let i = 0; i < files.length; i++) {
@@ -77,8 +82,6 @@ export default function NewMeetingPage() {
           );
           uploadedUrls.push(url);
         }
-
-        // Update the new meeting doc with the attachments array
         if (uploadedUrls.length > 0) {
           await updateMeeting(orgId, projectId, subProjectId, meetingId, {
             attachments: uploadedUrls,
@@ -86,7 +89,7 @@ export default function NewMeetingPage() {
         }
       }
 
-      // 3) Redirect back to the meeting-minutes list
+      // 3) Redirect
       router.push(
         `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/meeting-minutes`
       );
@@ -98,106 +101,137 @@ export default function NewMeetingPage() {
     }
   }
 
-  return (
-    <main className="p-4 space-y-4">
-      <Link
-        href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/meeting-minutes`}
-        className="text-blue-600 underline"
-      >
-        &larr; Back to Meeting Minutes
-      </Link>
+  function handleCancel() {
+    router.push(
+      `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/meeting-minutes`
+    );
+  }
 
-      <h1 className="text-2xl font-bold">Create Meeting Minutes</h1>
+  return (
+    <PageContainer>
+      {/* Top bar: Title + Cancel */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Create Meeting Minutes</h1>
+        <GrayButton onClick={handleCancel}>Cancel</GrayButton>
+      </div>
 
       {error && <p className="text-red-600">{error}</p>}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Title */}
-        <div>
-          <label className="block font-medium mb-1">Title</label>
-          <input
-            className="border p-2 w-full"
-            placeholder="Project Coordination Meeting"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-          />
-        </div>
+      <Card>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Title */}
+          <div>
+            <label className="block font-medium mb-1">Title</label>
+            <input
+              className="
+                border p-2 w-full rounded
+                bg-white dark:bg-neutral-800 dark:text-white
+              "
+              placeholder="Project Coordination Meeting"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+            />
+          </div>
 
-        {/* Meeting Date */}
-        <div>
-          <label className="block font-medium mb-1">Date of Meeting</label>
-          <input
-            type="datetime-local"
-            className="border p-2 w-full"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
-        </div>
+          {/* Meeting Date */}
+          <div>
+            <label className="block font-medium mb-1">Date of Meeting</label>
+            <input
+              type="datetime-local"
+              className="
+                border p-2 w-full rounded
+                bg-white dark:bg-neutral-800 dark:text-white
+              "
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
+          </div>
 
-        {/* Attendees */}
-        <div>
-          <label className="block font-medium mb-1">Attendees (comma-separated)</label>
-          <input
-            className="border p-2 w-full"
-            placeholder="Alice, Bob, Charlie"
-            value={attendees}
-            onChange={(e) => setAttendees(e.target.value)}
-          />
-        </div>
+          {/* Attendees */}
+          <div>
+            <label className="block font-medium mb-1">Attendees (comma-separated)</label>
+            <input
+              className="
+                border p-2 w-full rounded
+                bg-white dark:bg-neutral-800 dark:text-white
+              "
+              placeholder="Alice, Bob, Charlie"
+              value={attendees}
+              onChange={(e) => setAttendees(e.target.value)}
+            />
+          </div>
 
-        {/* Agenda */}
-        <div>
-          <label className="block font-medium mb-1">Agenda</label>
-          <textarea
-            className="border p-2 w-full"
-            rows={3}
-            value={agenda}
-            onChange={(e) => setAgenda(e.target.value)}
-            placeholder="Agenda items..."
-          />
-        </div>
+          {/* Agenda */}
+          <div>
+            <label className="block font-medium mb-1">Agenda</label>
+            <textarea
+              className="
+                border p-2 w-full rounded
+                bg-white dark:bg-neutral-800 dark:text-white
+              "
+              rows={3}
+              value={agenda}
+              onChange={(e) => setAgenda(e.target.value)}
+              placeholder="Agenda items..."
+            />
+          </div>
 
-        {/* Meeting Notes */}
-        <div>
-          <label className="block font-medium mb-1">Meeting Notes</label>
-          <textarea
-            className="border p-2 w-full"
-            rows={3}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Meeting summary, decisions made..."
-          />
-        </div>
+          {/* Meeting Notes */}
+          <div>
+            <label className="block font-medium mb-1">Meeting Notes</label>
+            <textarea
+              className="
+                border p-2 w-full rounded
+                bg-white dark:bg-neutral-800 dark:text-white
+              "
+              rows={3}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Meeting summary, decisions made..."
+            />
+          </div>
 
-        {/* Next Meeting Date */}
-        <div>
-          <label className="block font-medium mb-1">Next Meeting Date (optional)</label>
-          <input
-            type="datetime-local"
-            className="border p-2 w-full"
-            value={nextMeetingDate}
-            onChange={(e) => setNextMeetingDate(e.target.value)}
-          />
-        </div>
+          {/* Next Meeting Date */}
+          <div>
+            <label className="block font-medium mb-1">Next Meeting Date (optional)</label>
+            <input
+              type="datetime-local"
+              className="
+                border p-2 w-full rounded
+                bg-white dark:bg-neutral-800 dark:text-white
+              "
+              value={nextMeetingDate}
+              onChange={(e) => setNextMeetingDate(e.target.value)}
+            />
+          </div>
 
-        {/* Attachments */}
-        <div>
-          <label className="block font-medium mb-1">Attachments (optional)</label>
-          <input type="file" multiple onChange={(e) => setFiles(e.target.files)} />
-          <p className="text-sm text-gray-600">
-            Add PDFs, images, or any relevant files for the meeting.
-          </p>
-        </div>
+          {/* Attachments */}
+          <div>
+            <label className="block font-medium mb-1">Attachments (optional)</label>
+            <input
+              type="file"
+              multiple
+              onChange={(e) => setFiles(e.target.files)}
+              className="
+                file:mr-2 file:py-2 file:px-3 
+                file:border-0 file:rounded 
+                file:bg-gray-300 file:text-black
+                hover:file:bg-gray-400
+                dark:file:bg-gray-700 dark:file:text-white
+                dark:hover:file:bg-gray-600
+              "
+            />
+            <p className="text-sm">
+              Add PDFs, images, or other relevant docs for the meeting.
+            </p>
+          </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-black text-white px-4 py-2 rounded hover:bg-neutral-800"
-        >
-          {loading ? "Creating..." : "Create Meeting"}
-        </button>
-      </form>
-    </main>
+          <GrayButton type="submit" disabled={loading}>
+            {loading ? "Creating..." : "Create Meeting"}
+          </GrayButton>
+        </form>
+      </Card>
+    </PageContainer>
   );
 }

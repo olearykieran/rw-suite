@@ -1,9 +1,15 @@
 // src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/daily-reports/page.tsx
+
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+
+import { PageContainer } from "@/components/ui/PageContainer";
+import { Card } from "@/components/ui/Card";
+import { GrayButton } from "@/components/ui/GrayButton";
+
 import {
   fetchAllDailyReports,
   deleteDailyReport,
@@ -21,10 +27,14 @@ export default function DailyReportListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // (Optional) Filter/pagination states here (like with RFI)
+  // e.g. const [filterDate, setFilterDate] = useState("");
+
   useEffect(() => {
     async function load() {
       try {
         setLoading(true);
+        if (!orgId || !projectId || !subProjectId) return;
         const data = await fetchAllDailyReports(orgId, projectId, subProjectId);
         setReports(data);
       } catch (err: any) {
@@ -34,9 +44,7 @@ export default function DailyReportListPage() {
         setLoading(false);
       }
     }
-    if (orgId && projectId && subProjectId) {
-      load();
-    }
+    load();
   }, [orgId, projectId, subProjectId]);
 
   async function handleDelete(reportId: string) {
@@ -49,61 +57,82 @@ export default function DailyReportListPage() {
     }
   }
 
-  if (loading) return <div className="p-4">Loading Daily Reports...</div>;
-  if (error) return <div className="p-4 text-red-600">{error}</div>;
+  if (loading) {
+    return <div className="p-6 text-sm">Loading Daily Reports...</div>;
+  }
+  if (error) {
+    return <div className="p-6 text-red-600">{error}</div>;
+  }
 
   return (
-    <main className="p-4 space-y-4">
-      <Link
-        href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`}
-        className="text-blue-600 underline"
-      >
-        &larr; Back to Sub-Project
-      </Link>
-
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Daily Reports</h1>
+    <PageContainer>
+      {/* Back link to sub-project */}
+      <div className="flex items-center justify-between">
         <Link
-          href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/daily-reports/new`}
-          className="bg-black text-white px-4 py-2 rounded hover:bg-neutral-800"
+          href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`}
+          className="
+            text-sm font-medium text-blue-600 underline 
+            hover:text-blue-700 dark:text-blue-400 
+            dark:hover:text-blue-300 transition-colors
+          "
         >
-          Create Daily Report
+          &larr; Back to Sub-Project
         </Link>
       </div>
 
+      {/* Title + Create button */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mt-4">
+        <h1 className="text-2xl font-bold">Daily Reports</h1>
+        <Link
+          href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/daily-reports/new`}
+        >
+          <GrayButton>Create Daily Report</GrayButton>
+        </Link>
+      </div>
+
+      {/* (Optional) If you want filter/pagination, do like RFI 
+          <Card>
+            <h2 className="text-lg font-semibold">Filter Reports</h2>
+            ...
+          </Card>
+      */}
+
       {reports.length === 0 ? (
-        <p>No daily reports yet. Create one!</p>
+        <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-2">
+          No daily reports yet. Create one!
+        </p>
       ) : (
-        <ul className="space-y-3">
+        <div className="space-y-3 mt-4">
           {reports.map((r) => (
-            <li
-              key={r.id}
-              className="border p-3 rounded flex justify-between items-center"
-            >
+            <Card key={r.id} className="flex justify-between items-center">
               <div>
                 <p className="font-semibold">Date: {r.date}</p>
-                {r.weatherNote && (
-                  <p className="text-sm text-gray-600">Weather: {r.weatherNote}</p>
-                )}
+                {r.weatherNote && <p className="text-sm">Weather: {r.weatherNote}</p>}
+                {r.location && <p className="text-sm">Location: {r.location}</p>}
               </div>
-              <div className="flex gap-4">
+              <div className="flex gap-3">
                 <Link
                   href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/daily-reports/${r.id}`}
-                  className="text-blue-600 underline text-sm"
+                  className="
+                    text-blue-600 underline text-sm
+                    hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300
+                  "
                 >
                   View
                 </Link>
-                <button
+                <GrayButton
                   onClick={() => handleDelete(r.id)}
-                  className="text-sm text-red-600 underline"
+                  className="text-xs bg-red-600 hover:bg-red-700"
                 >
                   Delete
-                </button>
+                </GrayButton>
               </div>
-            </li>
+            </Card>
           ))}
-        </ul>
+        </div>
       )}
-    </main>
+
+      {/* (Optional) Pagination controls go here. */}
+    </PageContainer>
   );
 }

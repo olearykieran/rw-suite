@@ -3,21 +3,22 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
+import { useParams } from "next/navigation";
 import {
   TaskDoc,
   SubTask,
   fetchAllTasks,
-  createTask,
   updateTask,
   deleteTask,
 } from "@/lib/services/TaskService";
 
+// Shared UI
+import { PageContainer } from "@/components/ui/PageContainer";
+import { Card } from "@/components/ui/Card";
+import { GrayButton } from "@/components/ui/GrayButton";
+import TasksHeaderNav from "@/components/TasksHeaderNav"; // We'll create this mini-header as a reusable component
+
 export default function TasksListPage() {
-  const router = useRouter();
   const { orgId, projectId, subProjectId } = useParams() as {
     orgId: string;
     projectId: string;
@@ -27,13 +28,6 @@ export default function TasksListPage() {
   const [tasks, setTasks] = useState<TaskDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  // For creating a new top-level task
-  const [newTaskTitle, setNewTaskTitle] = useState("");
-  const [newTaskDesc, setNewTaskDesc] = useState("");
-  const [newTaskStart, setNewTaskStart] = useState<Date | null>(null);
-  const [newTaskEnd, setNewTaskEnd] = useState<Date | null>(null);
-  const [newAssignedTo, setNewAssignedTo] = useState("");
 
   useEffect(() => {
     async function load() {
@@ -53,44 +47,7 @@ export default function TasksListPage() {
     }
   }, [orgId, projectId, subProjectId]);
 
-  async function handleCreateTask() {
-    if (!newTaskTitle.trim()) return;
-    try {
-      const newId = await createTask(orgId, projectId, subProjectId, {
-        title: newTaskTitle.trim(),
-        description: newTaskDesc.trim() || "",
-        startDate: newTaskStart,
-        endDate: newTaskEnd,
-        assignedTo: newAssignedTo.trim(),
-        status: "notStarted",
-        priority: "medium",
-        subtasks: [],
-      });
-      // Reload
-      const data = await fetchAllTasks(orgId, projectId, subProjectId);
-      setTasks(data);
-      // Clear
-      setNewTaskTitle("");
-      setNewTaskDesc("");
-      setNewTaskStart(null);
-      setNewTaskEnd(null);
-      setNewAssignedTo("");
-    } catch (err: any) {
-      console.error("Create task error:", err);
-      setError("Failed to create task");
-    }
-  }
-
-  async function handleDeleteTask(taskId: string) {
-    try {
-      await deleteTask(orgId, projectId, subProjectId, taskId);
-      setTasks((prev) => prev.filter((t) => t.id !== taskId));
-    } catch (err: any) {
-      console.error("Delete task error:", err);
-      setError("Failed to delete task");
-    }
-  }
-
+  // Update a task’s status
   async function handleTaskStatusChange(task: TaskDoc, newStatus: string) {
     try {
       await updateTask(orgId, projectId, subProjectId, task.id, { status: newStatus });
@@ -103,10 +60,22 @@ export default function TasksListPage() {
     }
   }
 
-  // Subtask Logic
+  // Delete a task
+  async function handleDeleteTask(taskId: string) {
+    try {
+      await deleteTask(orgId, projectId, subProjectId, taskId);
+      setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    } catch (err: any) {
+      console.error("Delete task error:", err);
+      setError("Failed to delete task");
+    }
+  }
+
+  // Add a subtask
   async function handleAddSubtask(task: TaskDoc) {
     const title = prompt("Subtask title?");
     if (!title) return;
+
     const newSub: SubTask = {
       id: "sub-" + Date.now(),
       title,
@@ -119,6 +88,7 @@ export default function TasksListPage() {
     );
   }
 
+  // Remove a subtask
   async function handleDeleteSubtask(task: TaskDoc, subId: string) {
     if (!task.subtasks) return;
     const updatedSubs = task.subtasks.filter((s) => s.id !== subId);
@@ -129,182 +99,112 @@ export default function TasksListPage() {
   }
 
   if (loading) {
-    return <div className="p-4">Loading Tasks...</div>;
+    return <div className="p-6 text-sm">Loading Tasks (Table View)...</div>;
   }
   if (error) {
-    return <div className="p-4 text-red-600">{error}</div>;
+    return <div className="p-6 text-red-600">{error}</div>;
   }
 
   return (
-    <main className="p-4 space-y-6">
-      <Link
-        href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`}
-        className="text-blue-600 underline"
-      >
-        &larr; Back
-      </Link>
+    <PageContainer>
+      {/* The reusable mini-header with links to each tasks view */}
+      <TasksHeaderNav orgId={orgId} projectId={projectId} subProjectId={subProjectId} />
 
-      <h1 className="text-2xl font-bold">Tasks (List / Interactive)</h1>
+      <h1 className="text-2xl font-bold">Tasks (List / Table View)</h1>
 
-      {/* Quick Nav */}
-      <div className="flex gap-4">
-        <Link
-          href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/tasks/grid`}
-          className="underline text-blue-600"
-        >
-          Card View
-        </Link>
-        <Link
-          href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/tasks/gantt`}
-          className="underline text-blue-600"
-        >
-          Gantt View
-        </Link>
-        <Link
-          href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/tasks/importexport`}
-          className="underline text-blue-600"
-        >
-          Import/Export
-        </Link>
-      </div>
+      {tasks.length === 0 && (
+        <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-2">
+          No tasks found.
+        </p>
+      )}
 
-      {/* Create Task */}
-      <div className="border p-3 rounded space-y-2 w-full max-w-xl">
-        <h2 className="font-semibold">Create New Task</h2>
-        <input
-          className="border p-2 w-full"
-          placeholder="Task Title"
-          value={newTaskTitle}
-          onChange={(e) => setNewTaskTitle(e.target.value)}
-        />
-        <textarea
-          className="border p-2 w-full"
-          placeholder="Description"
-          rows={2}
-          value={newTaskDesc}
-          onChange={(e) => setNewTaskDesc(e.target.value)}
-        />
-        <div className="flex gap-2 items-center">
-          <label className="text-sm">Start:</label>
-          <DatePicker
-            className="border p-2 text-sm"
-            selected={newTaskStart}
-            onChange={(date) => setNewTaskStart(date)}
-          />
-          <label className="text-sm">End:</label>
-          <DatePicker
-            className="border p-2 text-sm"
-            selected={newTaskEnd}
-            onChange={(date) => setNewTaskEnd(date)}
-          />
-        </div>
-        <div>
-          <label className="text-sm font-medium block">Assigned To:</label>
-          <input
-            className="border p-2 w-full text-sm"
-            placeholder="user@example.com"
-            value={newAssignedTo}
-            onChange={(e) => setNewAssignedTo(e.target.value)}
-          />
-        </div>
-        <button
-          onClick={handleCreateTask}
-          className="bg-blue-600 text-white px-3 py-1 rounded text-sm"
-        >
-          Add Task
-        </button>
-      </div>
-
-      {/* Task List */}
-      {tasks.length === 0 && <p>No tasks found.</p>}
-
-      <div className="space-y-4">
+      <div className="space-y-4 mt-4">
         {tasks.map((task) => (
-          <div key={task.id} className="border p-3 rounded">
-            <div className="flex justify-between items-center">
-              <div>
+          <Card key={task.id}>
+            <div className="flex justify-between items-start gap-4">
+              <div className="space-y-1">
                 <h3 className="font-bold text-lg">{task.title}</h3>
-                <p className="text-sm text-gray-500">{task.description}</p>
-                <p className="text-sm text-gray-500">
-                  Start:{" "}
+                <p className="text-sm">{task.description}</p>
+                <p className="text-sm">
+                  <strong>Start:</strong>{" "}
                   {task.startDate instanceof Date
                     ? task.startDate.toLocaleDateString()
                     : ""}
-                  &nbsp; | End:{" "}
+                  &nbsp; | <strong>End:</strong>{" "}
                   {task.endDate instanceof Date ? task.endDate.toLocaleDateString() : ""}
                 </p>
-                <p className="text-sm text-gray-600">
-                  Assigned: {task.assignedTo || "N/A"}
+                <p className="text-sm">
+                  <strong>Assigned:</strong> {task.assignedTo || "N/A"}
                 </p>
               </div>
-              <div className="flex flex-col items-end gap-1">
+              {/* Right column: actions */}
+              <div className="flex flex-col items-end gap-2">
                 <p className="text-sm">
                   <span className="font-semibold">Status:</span> {task.status}
                 </p>
                 <div className="flex gap-2">
-                  <button
+                  <GrayButton
                     onClick={() => handleTaskStatusChange(task, "completed")}
-                    className="text-xs bg-green-200 px-2 py-1 rounded"
+                    className="text-xs"
                   >
                     Mark Complete
-                  </button>
-                  <button
+                  </GrayButton>
+                  <GrayButton
                     onClick={() => handleTaskStatusChange(task, "inProgress")}
-                    className="text-xs bg-yellow-200 px-2 py-1 rounded"
+                    className="text-xs"
                   >
                     In Progress
-                  </button>
-                  <button
+                  </GrayButton>
+                  <GrayButton
                     onClick={() => handleTaskStatusChange(task, "delayed")}
-                    className="text-xs bg-red-200 px-2 py-1 rounded"
+                    className="text-xs"
                   >
                     Delayed
-                  </button>
-                  <button
+                  </GrayButton>
+                  <GrayButton
                     onClick={() => handleDeleteTask(task.id)}
-                    className="text-xs bg-gray-300 px-2 py-1 rounded"
+                    className="text-xs"
                   >
                     Delete
-                  </button>
+                  </GrayButton>
                 </div>
               </div>
             </div>
 
             {/* Subtasks */}
-            <div className="mt-2 border-t pt-2">
+            <div className="mt-4 border-t pt-2 space-y-2">
               <div className="flex justify-between items-center">
                 <p className="font-medium text-sm">Subtasks</p>
-                <button
-                  onClick={() => handleAddSubtask(task)}
-                  className="text-xs bg-blue-100 px-2 py-1 rounded"
-                >
+                <GrayButton onClick={() => handleAddSubtask(task)} className="text-xs">
                   + Add Subtask
-                </button>
+                </GrayButton>
               </div>
               {task.subtasks && task.subtasks.length > 0 ? (
-                <ul className="mt-2 space-y-1">
+                <ul className="mt-2 space-y-1 text-sm">
                   {task.subtasks.map((sub) => (
-                    <li key={sub.id} className="flex justify-between items-center">
+                    <li
+                      key={sub.id}
+                      className="flex justify-between items-center border p-2 rounded"
+                    >
                       <span>
-                        <strong>{sub.title}</strong> &ndash;{" "}
-                        <span className="text-xs text-gray-500">{sub.status}</span>
+                        <strong>{sub.title}</strong> &ndash; {sub.status}
                       </span>
-                      <button
+                      <GrayButton
                         onClick={() => handleDeleteSubtask(task, sub.id)}
-                        className="text-xs text-red-600 underline"
+                        className="text-xs"
                       >
                         Remove
-                      </button>
+                      </GrayButton>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-gray-400 mt-1">No subtasks yet.</p>
+                <p className="text-sm mt-1">No subtasks yet.</p>
               )}
             </div>
-          </div>
+          </Card>
         ))}
       </div>
-    </main>
+    </PageContainer>
   );
 }

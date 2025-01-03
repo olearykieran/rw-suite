@@ -1,4 +1,5 @@
 // src/lib/services/MeetingMinutesService.ts
+
 import { firestore, auth } from "@/lib/firebaseConfig";
 import {
   doc,

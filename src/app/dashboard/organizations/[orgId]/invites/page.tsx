@@ -112,7 +112,7 @@ export default function InvitesPage() {
             <div className="mt-4 p-2 bg-green-100 border border-green-300 text-sm">
               <p className="mb-1 font-medium">Invite Code:</p>
               <p className="break-all">{inviteCode}</p>
-              <p className="text-gray-600 mt-1">
+              <p className="mt-1">
                 Share this code with the new user. They can sign up and select “Invite
                 Code” flow to join this org as <strong>{role}</strong>.
               </p>

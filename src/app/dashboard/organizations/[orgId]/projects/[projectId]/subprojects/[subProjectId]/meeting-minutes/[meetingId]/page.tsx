@@ -1,9 +1,15 @@
 // src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/meeting-minutes/[meetingId]/page.tsx
+
 "use client";
 
 import { useEffect, useState, FormEvent } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+
+import { PageContainer } from "@/components/ui/PageContainer";
+import { Card } from "@/components/ui/Card";
+import { GrayButton } from "@/components/ui/GrayButton";
+
 import {
   fetchMeeting,
   updateMeeting,
@@ -34,6 +40,7 @@ export default function MeetingDetailPage() {
   // Attachments
   const [files, setFiles] = useState<FileList | null>(null);
 
+  // 1. Load the doc
   useEffect(() => {
     async function load() {
       try {
@@ -42,15 +49,13 @@ export default function MeetingDetailPage() {
         const data = await fetchMeeting(orgId, projectId, subProjectId, meetingId);
         setMeeting(data);
 
-        // Prefill local states
+        // populate local states
         setTitle(data.title || "");
         setAgenda(data.agenda || "");
         setNotes(data.notes || "");
         setAttendees(data.attendees?.join(", ") || "");
         if (data.date) {
-          // converting Date -> input value (yyyy-MM-ddTHH:mm)
-          const dt = new Date(data.date);
-          setDate(formatDateTime(dt));
+          setDate(formatDateTime(new Date(data.date)));
         }
         if (data.nextMeetingDate) {
           setNextMeetingDate(formatDateTime(new Date(data.nextMeetingDate)));
@@ -65,8 +70,8 @@ export default function MeetingDetailPage() {
     load();
   }, [orgId, projectId, subProjectId, meetingId]);
 
+  // helper to convert Date -> input value
   function formatDateTime(d: Date): string {
-    // example: "2024-10-13T14:30"
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth() + 1).padStart(2, "0");
     const dd = String(d.getDate()).padStart(2, "0");
@@ -75,10 +80,10 @@ export default function MeetingDetailPage() {
     return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
   }
 
+  // 2. Update doc
   async function handleUpdate(e: FormEvent) {
     e.preventDefault();
     if (!meeting) return;
-    setError("");
 
     try {
       let dateObj: Date | null = null;
@@ -106,6 +111,7 @@ export default function MeetingDetailPage() {
     }
   }
 
+  // 3. Upload attachments
   async function handleUpload() {
     if (!meeting || !files || files.length === 0) return;
     try {
@@ -133,106 +139,141 @@ export default function MeetingDetailPage() {
     }
   }
 
-  if (loading) return <div className="p-4">Loading meeting record...</div>;
-  if (error) return <div className="p-4 text-red-600">{error}</div>;
-  if (!meeting) return <div className="p-4">No meeting record found.</div>;
+  if (loading) {
+    return <div className="p-6 text-sm">Loading meeting record...</div>;
+  }
+  if (error) {
+    return <div className="p-6 text-red-600">{error}</div>;
+  }
+  if (!meeting) {
+    return <div className="p-6">No meeting record found.</div>;
+  }
 
   return (
-    <main className="p-4 space-y-4">
-      {/* back link */}
+    <PageContainer>
+      {/* Back link */}
       <Link
         href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/meeting-minutes`}
-        className="text-blue-600 underline"
+        className="
+          text-sm font-medium text-blue-600 underline
+          hover:text-blue-700 dark:text-blue-400
+          dark:hover:text-blue-300 transition-colors
+        "
       >
         &larr; Back to Meetings
       </Link>
 
-      <h1 className="text-2xl font-bold">Meeting: {meeting.title}</h1>
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold">Meeting: {meeting.title}</h1>
+      </div>
 
-      <form onSubmit={handleUpdate} className="space-y-4">
-        {/* Title */}
-        <div>
-          <label className="block font-medium mb-1">Title</label>
-          <input
-            className="border p-2 w-full"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-        </div>
-        {/* Date */}
-        <div>
-          <label className="block font-medium mb-1">Date</label>
-          <input
-            type="datetime-local"
-            className="border p-2 w-full"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
-        </div>
+      {/* Main details card */}
+      <Card>
+        <form onSubmit={handleUpdate} className="space-y-4">
+          {/* Title */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Title</label>
+            <input
+              className="
+                border p-2 w-full rounded
+                bg-white dark:bg-neutral-800 dark:text-white
+              "
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+          </div>
 
-        {/* Attendees */}
-        <div>
-          <label className="block font-medium mb-1">Attendees (comma-separated)</label>
-          <input
-            className="border p-2 w-full"
-            value={attendees}
-            onChange={(e) => setAttendees(e.target.value)}
-          />
-        </div>
+          {/* Date */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Date</label>
+            <input
+              type="datetime-local"
+              className="
+                border p-2 w-full rounded
+                bg-white dark:bg-neutral-800 dark:text-white
+              "
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
+          </div>
 
-        {/* Agenda */}
-        <div>
-          <label className="block font-medium mb-1">Agenda</label>
-          <textarea
-            className="border p-2 w-full"
-            rows={2}
-            value={agenda}
-            onChange={(e) => setAgenda(e.target.value)}
-          />
-        </div>
+          {/* Attendees */}
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Attendees (comma-separated)
+            </label>
+            <input
+              className="
+                border p-2 w-full rounded
+                bg-white dark:bg-neutral-800 dark:text-white
+              "
+              value={attendees}
+              onChange={(e) => setAttendees(e.target.value)}
+            />
+          </div>
 
-        {/* Notes */}
-        <div>
-          <label className="block font-medium mb-1">Notes</label>
-          <textarea
-            className="border p-2 w-full"
-            rows={3}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
-        </div>
+          {/* Agenda */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Agenda</label>
+            <textarea
+              className="
+                border p-2 w-full rounded
+                bg-white dark:bg-neutral-800 dark:text-white
+              "
+              rows={2}
+              value={agenda}
+              onChange={(e) => setAgenda(e.target.value)}
+            />
+          </div>
 
-        {/* Next Meeting */}
-        <div>
-          <label className="block font-medium mb-1">Next Meeting Date</label>
-          <input
-            type="datetime-local"
-            className="border p-2 w-full"
-            value={nextMeetingDate}
-            onChange={(e) => setNextMeetingDate(e.target.value)}
-          />
-        </div>
+          {/* Notes */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Notes</label>
+            <textarea
+              className="
+                border p-2 w-full rounded
+                bg-white dark:bg-neutral-800 dark:text-white
+              "
+              rows={3}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          </div>
 
-        <button
-          type="submit"
-          className="bg-black text-white px-4 py-2 rounded hover:bg-neutral-800"
-        >
-          Update Meeting
-        </button>
-      </form>
+          {/* Next Meeting */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Next Meeting Date</label>
+            <input
+              type="datetime-local"
+              className="
+                border p-2 w-full rounded
+                bg-white dark:bg-neutral-800 dark:text-white
+              "
+              value={nextMeetingDate}
+              onChange={(e) => setNextMeetingDate(e.target.value)}
+            />
+          </div>
 
-      {/* Attachments */}
-      <div className="border-t pt-4 space-y-4">
-        <h2 className="text-xl font-semibold">Attachments</h2>
+          <GrayButton type="submit">Update Meeting</GrayButton>
+        </form>
+      </Card>
+
+      {/* Attachments card */}
+      <Card>
+        <h2 className="text-lg font-semibold">Attachments</h2>
         {meeting.attachments && meeting.attachments.length > 0 ? (
-          <ul className="list-disc ml-5">
+          <ul className="list-disc ml-5 text-sm mt-2">
             {meeting.attachments.map((url, i) => (
               <li key={i}>
                 <a
                   href={url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-600"
+                  className="
+                    text-blue-600 underline
+                    hover:text-blue-700
+                    dark:text-blue-400 dark:hover:text-blue-300
+                  "
                 >
                   {url.split("/").pop()}
                 </a>
@@ -240,20 +281,28 @@ export default function MeetingDetailPage() {
             ))}
           </ul>
         ) : (
-          <p>No attachments yet.</p>
+          <p className="text-sm mt-1">No attachments yet.</p>
         )}
 
-        <div>
-          <label className="block font-medium mb-1">Upload Additional Docs</label>
-          <input type="file" multiple onChange={(e) => setFiles(e.target.files)} />
-          <button
-            onClick={handleUpload}
-            className="bg-blue-600 text-white px-3 py-1 rounded mt-2"
-          >
-            Upload
-          </button>
+        {/* Upload new files */}
+        <div className="mt-4 space-y-2">
+          <label className="block text-sm font-medium">Upload Files</label>
+          <input
+            type="file"
+            multiple
+            onChange={(e) => setFiles(e.target.files)}
+            className="
+              file:mr-2 file:py-2 file:px-3 
+              file:border-0 file:rounded 
+              file:bg-gray-300 file:text-black
+              hover:file:bg-gray-400
+              dark:file:bg-gray-700 dark:file:text-white
+              dark:hover:file:bg-gray-600
+            "
+          />
+          <GrayButton onClick={handleUpload}>Upload</GrayButton>
         </div>
-      </div>
-    </main>
+      </Card>
+    </PageContainer>
   );
 }

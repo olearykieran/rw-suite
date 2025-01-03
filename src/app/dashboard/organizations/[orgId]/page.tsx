@@ -1,4 +1,5 @@
 // src/app/dashboard/organizations/[orgId]/page.tsx
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -7,45 +8,74 @@ import { firestore } from "@/lib/firebaseConfig";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 
+// Shared UI
+import { PageContainer } from "@/components/ui/PageContainer";
+import { Card } from "@/components/ui/Card";
+import { GrayButton } from "@/components/ui/GrayButton";
+
 export default function OrganizationDetailPage() {
   const [org, setOrg] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const params = useParams();
+  const [error, setError] = useState("");
+  const { orgId } = useParams() as { orgId: string };
 
   useEffect(() => {
     const fetchOrg = async () => {
-      const orgId = params.orgId as string;
       if (!orgId) return;
-      const ref = doc(firestore, "organizations", orgId);
-      const snap = await getDoc(ref);
-      if (snap.exists()) {
-        setOrg({ id: snap.id, ...snap.data() });
+      try {
+        const ref = doc(firestore, "organizations", orgId);
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+          setOrg({ id: snap.id, ...snap.data() });
+        } else {
+          setError("Organization not found.");
+        }
+      } catch (err) {
+        console.error("Fetch organization error:", err);
+        setError("Failed to load organization.");
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     fetchOrg();
-  }, [params.orgId]);
+  }, [orgId]);
 
   if (loading) {
-    return <div className="p-6 text-gray-700">Loading organization...</div>;
+    return <div className="p-6 text-sm">Loading organization...</div>;
+  }
+  if (error) {
+    return <div className="p-6 text-red-600">{error}</div>;
   }
   if (!org) {
-    return <div className="p-6 text-red-600">Organization not found.</div>;
+    return <div className="p-6">Organization not found.</div>;
   }
 
   return (
-    <main className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold text-gray-800">
-        Organization: {org.name || org.id}
-      </h1>
-      <p className="text-gray-700">Additional organization details can go here...</p>
+    <PageContainer>
+      {/* Back to all organizations */}
+      <Link
+        href="/dashboard/organizations"
+        className="
+          text-sm font-medium text-blue-600 underline
+          hover:text-blue-700 dark:text-blue-400
+          dark:hover:text-blue-300 transition-colors
+        "
+      >
+        &larr; Back to Organizations
+      </Link>
+
+      <h1 className="text-2xl font-bold mt-4">Organization: {org.name || org.id}</h1>
+
+      <Card>
+        <p className="text-sm">Additional organization details can go here...</p>
+      </Card>
 
       <Link
+        className="mt-6 inline-block"
         href={`/dashboard/organizations/${org.id}/projects`}
-        className="inline-block px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition"
       >
-        View Projects
+        <GrayButton>View Projects</GrayButton>
       </Link>
-    </main>
+    </PageContainer>
   );
 }

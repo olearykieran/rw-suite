@@ -1,20 +1,24 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   createUserWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider,
 } from "firebase/auth";
-import { auth, firestore } from "@/lib/firebaseConfig";
-import { useRouter } from "next/navigation";
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 
+import { auth, firestore } from "@/lib/firebaseConfig";
 import { createOrganizationAndMembership, Role } from "@/lib/organizationHelpers";
 
-/**
- * We define a single union type for all possible roles
- */
+// Shared UI
+import { PageContainer } from "@/components/ui/PageContainer";
+import { Card } from "@/components/ui/Card";
+import { GrayButton } from "@/components/ui/GrayButton";
+import { MessageAlert } from "@/components/ui/MessageAlert";
+
+/** The roles you allow in your system */
 type CombinedRole =
   | "owner"
   | "pm"
@@ -24,43 +28,91 @@ type CombinedRole =
   | "vendor"
   | "readonly";
 
+/** The sign-up flow for org membership (create, join, or invite) */
+type Flow = "create" | "join" | "invite";
+
+/** We'll have two steps: Step1 => Org, Step2 => Auth method */
+enum Step {
+  OrgInfo = 1,
+  AuthMethod = 2,
+}
+
 export default function SignUpPage() {
   const router = useRouter();
+
+  // Overall error/success messages
   const [error, setError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+
+  // Wizard step
+  const [step, setStep] = useState<Step>(Step.OrgInfo);
+  const [inProgress, setInProgress] = useState(false);
 
   // =====================
-  // 1) Org Flow (same as before)
+  // (A) ORG MEMBERSHIP STATE (Step 1)
   // =====================
-  const [flow, setFlow] = useState<"create" | "join" | "invite">("create");
-
-  // CREATE FLOW - needs org name
-  const [orgName, setOrgName] = useState("");
-
-  // JOIN FLOW - needs existing org ID
-  const [orgIdInput, setOrgIdInput] = useState("");
-
-  // INVITE - needs code
-  const [inviteCode, setInviteCode] = useState("");
+  const [flow, setFlow] = useState<Flow>("create");
+  const [orgName, setOrgName] = useState(""); // for create
+  const [orgIdInput, setOrgIdInput] = useState(""); // for join
+  const [inviteCode, setInviteCode] = useState(""); // for invite
+  const [role, setRole] = useState<CombinedRole>("pm"); // for create/join flows
 
   // =====================
-  // 2) Email/Password Fields
+  // (B) SIGN UP FIELDS (Step 2)
   // =====================
+  // Email/pw
   const [email, setEmail] = useState("");
+  const [confirmEmail, setConfirmEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [pwVisible, setPwVisible] = useState(false);
 
-  // =====================
-  // 3) Additional fields
-  // =====================
+  // Optional phone
   const [phone, setPhone] = useState("");
 
-  /**
-   * A single role field for both user doc & membership doc
-   * (Except in the invite flow, we override it from the invite's role.)
-   */
-  const [role, setRole] = useState<CombinedRole>("pm");
+  // ------------------------------------------------------
+  // Step 1 => user chooses membership method + role
+  // (We won't finalize membership until after sign-up in step 2)
+  // ------------------------------------------------------
+
+  function handleNextStep() {
+    // Validate membership input
+    try {
+      if (flow === "create") {
+        if (!orgName.trim()) {
+          throw new Error("Please enter an organization name.");
+        }
+      } else if (flow === "join") {
+        if (!orgIdInput.trim()) {
+          throw new Error("Please enter an existing org ID to join.");
+        }
+      } else if (flow === "invite") {
+        if (!inviteCode.trim()) {
+          throw new Error("Please enter an invite code.");
+        }
+      }
+      setError("");
+      setSuccessMsg("");
+      setStep(Step.AuthMethod);
+    } catch (err: any) {
+      setError(err.message || "Invalid organization info.");
+    }
+  }
+
+  function handleBackToStep1() {
+    setStep(Step.OrgInfo);
+    setError("");
+    setSuccessMsg("");
+  }
+
+  // ------------------------------------------------------
+  // Step 2 => user picks sign up method (Google or Email)
+  // Then we finalize membership using the data from Step 1
+  // ------------------------------------------------------
 
   /**
-   * createUserDoc => writes phone + role to /users/{uid}
+   * Creates/updates the user doc in Firestore with phone + role.
+   * (Note: if flow=invite, we override role after.)
    */
   async function createUserDoc(uid: string, mail: string | null, displayName?: string) {
     await setDoc(
@@ -69,7 +121,7 @@ export default function SignUpPage() {
         email: mail || "",
         displayName: displayName || "",
         phone: phone.trim(),
-        role, // single role from the user's selection
+        role, // overridden if invite flow
         createdAt: serverTimestamp(),
       },
       { merge: true }
@@ -77,41 +129,27 @@ export default function SignUpPage() {
   }
 
   /**
-   * handleOrgMembership => sets membership doc in org if needed.
-   *   - create => new org with same role
-   *   - join => existing org with same role
-   *   - invite => read role from code
+   * Actually finalizes membership after user is created.
    */
   async function handleOrgMembership(uid: string) {
+    // create or join or invite
     if (flow === "create") {
-      // Create new org
       const safeOrgId = orgName.trim().toLowerCase().replace(/\s+/g, "-");
-      if (!safeOrgId) {
-        throw new Error("Please provide a valid organization name.");
-      }
-
-      // uses the role state
       await createOrganizationAndMembership(uid, safeOrgId, role as Role, orgName.trim());
     } else if (flow === "join") {
       const safeOrgId = orgIdInput.trim().toLowerCase().replace(/\s+/g, "-");
-      if (!safeOrgId) {
-        throw new Error("Please provide a valid org ID.");
-      }
+      // check that org exists
       const orgRef = doc(firestore, "organizations", safeOrgId);
       const orgSnap = await getDoc(orgRef);
       if (!orgSnap.exists()) {
         throw new Error(`Organization "${safeOrgId}" does not exist.`);
       }
-      // store membership doc with our chosen role
       await setDoc(doc(firestore, "organizations", safeOrgId, "members", uid), {
         role,
         joinedAt: serverTimestamp(),
       });
     } else {
       // invite
-      if (!inviteCode.trim()) {
-        throw new Error("Please provide an invite code.");
-      }
       const inviteRef = doc(firestore, "invites", inviteCode.trim());
       const inviteSnap = await getDoc(inviteRef);
       if (!inviteSnap.exists()) {
@@ -121,60 +159,62 @@ export default function SignUpPage() {
       if (inviteData.used) {
         throw new Error("This invite code has already been used.");
       }
-
       const safeOrgId = inviteData.orgId as string;
       const inviteRole = inviteData.role as Role;
 
-      // Mark invite used
-      await setDoc(
-        inviteRef,
-        {
-          ...inviteData,
-          used: true,
-        },
-        { merge: true }
-      );
-      // membership doc => uses the inviteRole
+      // mark used
+      await setDoc(inviteRef, { ...inviteData, used: true }, { merge: true });
+
+      // create membership doc in org
       await setDoc(doc(firestore, "organizations", safeOrgId, "members", uid), {
         role: inviteRole,
         joinedAt: serverTimestamp(),
       });
 
-      // Also, we want the user doc to show the inviteRole rather than the user’s selection
-      // so the user doc is consistent. If you prefer, you can skip overriding user doc.
+      // override user doc role
       await setDoc(doc(firestore, "users", uid), { role: inviteRole }, { merge: true });
     }
   }
 
-  // =====================
-  // handleEmailSignUp
-  // =====================
+  // 1) Email + Password sign up
   async function handleEmailSignUp(e: FormEvent) {
     e.preventDefault();
     setError("");
+    setSuccessMsg("");
+    setInProgress(true);
 
     try {
+      // Validate email fields
+      if (email.trim().toLowerCase() !== confirmEmail.trim().toLowerCase()) {
+        throw new Error("Emails do not match.");
+      }
+      if (password !== confirmPassword) {
+        throw new Error("Passwords do not match.");
+      }
+
+      // create user
       const userCred = await createUserWithEmailAndPassword(auth, email, password);
       const uid = userCred.user.uid;
 
-      // create user doc
+      // user doc
       await createUserDoc(uid, userCred.user.email, userCred.user.displayName || "");
-
-      // handle membership logic
+      // membership
       await handleOrgMembership(uid);
 
       router.push("/dashboard");
     } catch (err: any) {
-      console.error("Sign up error:", err);
-      setError(err.message || "An error occurred. Please try again.");
+      setError(err.message || "Sign up error. Please try again.");
+    } finally {
+      setInProgress(false);
     }
   }
 
-  // =====================
-  // handleGoogleSignUp
-  // =====================
+  // 2) Google sign up
   async function handleGoogleSignUp() {
     setError("");
+    setSuccessMsg("");
+    setInProgress(true);
+
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
@@ -182,194 +222,327 @@ export default function SignUpPage() {
       const uid = result.user.uid;
       const mail = result.user.email;
       const displayName = result.user.displayName || "";
+
       if (!mail) {
         throw new Error("No email found on Google account.");
       }
-
+      // user doc
       await createUserDoc(uid, mail, displayName);
+      // membership
       await handleOrgMembership(uid);
 
       router.push("/dashboard");
     } catch (err: any) {
-      console.error("Google sign up error:", err);
       setError(err.message || "Google sign up failed. Please try again.");
+    } finally {
+      setInProgress(false);
     }
   }
 
-  // =====================
-  // UI
-  // =====================
+  // ------------------------------------------------------
+  // RENDER
+  // ------------------------------------------------------
+
   return (
-    <main className="max-w-md mx-auto p-4 space-y-6">
-      <h1 className="text-2xl font-bold">Sign Up</h1>
-      {error && <p className="text-red-600">{error}</p>}
+    <>
+      {/* Step 1: Org & Role Info */}
+      {step === Step.OrgInfo && (
+        <PageContainer>
+          <h1 className="text-3xl font-bold text-center mb-6">Sign Up</h1>
 
-      {/* (A) Org Flow */}
-      <div className="bg-gray-100 p-4 rounded space-y-4">
-        <p className="font-medium">
-          First, choose how you'd like to connect to an organization:
-        </p>
-        <div className="flex gap-4 items-center">
-          <label>
-            <input
-              type="radio"
-              className="mr-1"
-              name="flow"
-              value="create"
-              checked={flow === "create"}
-              onChange={() => setFlow("create")}
-            />
-            Create Org
-          </label>
-          <label>
-            <input
-              type="radio"
-              className="mr-1"
-              name="flow"
-              value="join"
-              checked={flow === "join"}
-              onChange={() => setFlow("join")}
-            />
-            Join Org
-          </label>
-          <label>
-            <input
-              type="radio"
-              className="mr-1"
-              name="flow"
-              value="invite"
-              checked={flow === "invite"}
-              onChange={() => setFlow("invite")}
-            />
-            Invite Code
-          </label>
-        </div>
+          {error && <MessageAlert type="error" message={error} />}
+          {successMsg && <MessageAlert type="success" message={successMsg} />}
 
-        {/* If flow=create => ask for orgName */}
-        {flow === "create" && (
-          <div className="space-y-2">
-            <label className="block font-medium">New Organization Name</label>
-            <input
-              type="text"
-              className="border p-2 w-full"
-              placeholder="Acme Builders"
-              value={orgName}
-              onChange={(e) => setOrgName(e.target.value)}
-            />
+          <Card>
+            <div className="space-y-6">
+              <p className="font-medium text-base">
+                Step 1: Organization / Role Information
+              </p>
+
+              <div className="flex gap-4 items-center flex-wrap text-sm">
+                <label>
+                  <input
+                    type="radio"
+                    className="mr-1"
+                    name="flow"
+                    value="create"
+                    checked={flow === "create"}
+                    onChange={() => setFlow("create")}
+                  />
+                  Create Org
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    className="mr-1"
+                    name="flow"
+                    value="join"
+                    checked={flow === "join"}
+                    onChange={() => setFlow("join")}
+                  />
+                  Join Org
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    className="mr-1"
+                    name="flow"
+                    value="invite"
+                    checked={flow === "invite"}
+                    onChange={() => setFlow("invite")}
+                  />
+                  Invite Code
+                </label>
+              </div>
+
+              {flow === "create" && (
+                <div>
+                  <label className="block font-medium text-sm mb-1">
+                    New Organization Name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Acme Builders"
+                    className="
+                      border p-2 w-full rounded
+                      bg-white dark:bg-neutral-800 dark:text-white
+                    "
+                    value={orgName}
+                    onChange={(e) => setOrgName(e.target.value)}
+                  />
+                </div>
+              )}
+              {flow === "join" && (
+                <div>
+                  <label className="block font-medium text-sm mb-1">
+                    Existing Org ID
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="acme-builders"
+                    className="
+                      border p-2 w-full rounded
+                      bg-white dark:bg-neutral-800 dark:text-white
+                    "
+                    value={orgIdInput}
+                    onChange={(e) => setOrgIdInput(e.target.value)}
+                  />
+                </div>
+              )}
+              {flow === "invite" && (
+                <div>
+                  <label className="block font-medium text-sm mb-1">Invite Code</label>
+                  <input
+                    type="text"
+                    placeholder="ABC123"
+                    className="
+                      border p-2 w-full rounded
+                      bg-white dark:bg-neutral-800 dark:text-white
+                    "
+                    value={inviteCode}
+                    onChange={(e) => setInviteCode(e.target.value)}
+                  />
+                </div>
+              )}
+
+              {flow !== "invite" && (
+                <div>
+                  <label className="block font-medium text-sm mb-1">Your Role</label>
+                  <select
+                    className="
+                      border p-2 w-full rounded
+                      bg-white dark:bg-neutral-800 dark:text-white
+                    "
+                    value={role}
+                    onChange={(e) => setRole(e.target.value as CombinedRole)}
+                  >
+                    <option value="owner">Owner / Admin</option>
+                    <option value="pm">Project Manager</option>
+                    <option value="architect">Architect</option>
+                    <option value="engineer">Engineer</option>
+                    <option value="sub">Subcontractor</option>
+                    <option value="vendor">Vendor</option>
+                    <option value="readonly">Read-Only</option>
+                  </select>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <GrayButton onClick={handleNextStep}>Next</GrayButton>
+            </div>
+          </Card>
+
+          <div className="mt-4 text-center text-sm">
+            Already have an account?{" "}
+            <a href="/public/auth/sign-in" className="text-blue-600 underline">
+              Sign In
+            </a>
           </div>
-        )}
+        </PageContainer>
+      )}
 
-        {/* If flow=join => ask for orgIdInput */}
-        {flow === "join" && (
-          <div className="space-y-2">
-            <label className="block font-medium">Existing Org ID</label>
-            <input
-              type="text"
-              className="border p-2 w-full"
-              placeholder="acme-builders"
-              value={orgIdInput}
-              onChange={(e) => setOrgIdInput(e.target.value)}
-            />
+      {/* Step 2: Actual sign up methods */}
+      {step === Step.AuthMethod && (
+        <>
+          <PageContainer>
+            <h1 className="text-3xl font-bold text-center mb-6">Sign Up</h1>
+            {error && <MessageAlert type="error" message={error} />}
+            {successMsg && <MessageAlert type="success" message={successMsg} />}
+
+            <div className="flex justify-between items-center mb-4">
+              <p className="text-sm text-neutral-500">
+                Step 2: Choose your sign-up method
+              </p>
+              <GrayButton onClick={handleBackToStep1} className="text-xs">
+                &larr; Back
+              </GrayButton>
+            </div>
+          </PageContainer>
+
+          <div className="flex flex-col md:flex-row items-start justify-center gap-8 px-4">
+            {/* Left: Google signup */}
+            <PageContainer className="max-w-md">
+              <Card>
+                <h2 className="text-xl font-semibold text-center mb-4">
+                  Sign Up with Google
+                </h2>
+                <GrayButton
+                  onClick={handleGoogleSignUp}
+                  disabled={inProgress}
+                  className="w-full text-sm"
+                >
+                  {inProgress ? "Signing Up..." : "Sign Up with Google"}
+                </GrayButton>
+              </Card>
+            </PageContainer>
+
+            {/* Vertical line */}
+            <div className="hidden md:block w-px bg-neutral-300" />
+
+            {/* Right: Email/pw signup */}
+            <PageContainer className="max-w-md">
+              <Card>
+                <h2 className="text-xl font-semibold text-center mb-4">
+                  Sign Up with Email
+                </h2>
+
+                <form onSubmit={handleEmailSignUp} className="space-y-4">
+                  {/* Email x2 */}
+                  <div>
+                    <label className="block mb-1 font-medium text-sm">Email</label>
+                    <input
+                      type="email"
+                      className="
+                        border p-2 w-full rounded
+                        bg-white dark:bg-neutral-800 dark:text-white
+                      "
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 font-medium text-sm">
+                      Confirm Email
+                    </label>
+                    <input
+                      type="email"
+                      className="
+                        border p-2 w-full rounded
+                        bg-white dark:bg-neutral-800 dark:text-white
+                      "
+                      placeholder="Confirm your email"
+                      value={confirmEmail}
+                      onChange={(e) => setConfirmEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  {/* Password x2, show/hide */}
+                  <div>
+                    <label className="block mb-1 font-medium text-sm">Password</label>
+                    <div className="relative">
+                      <input
+                        type={pwVisible ? "text" : "password"}
+                        className="
+                          border p-2 w-full rounded
+                          bg-white dark:bg-neutral-800 dark:text-white
+                        "
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setPwVisible(!pwVisible)}
+                        className="
+                          absolute top-1/2 right-2 -translate-y-1/2
+                          text-sm text-blue-600 underline
+                        "
+                        tabIndex={-1}
+                      >
+                        {pwVisible ? "Hide" : "Show"}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block mb-1 font-medium text-sm">
+                      Confirm Password
+                    </label>
+                    <input
+                      type={pwVisible ? "text" : "password"}
+                      className="
+                        border p-2 w-full rounded
+                        bg-white dark:bg-neutral-800 dark:text-white
+                      "
+                      placeholder="Confirm your password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  {/* Phone optional */}
+                  <div>
+                    <label className="block mb-1 font-medium text-sm">
+                      Phone Number (optional)
+                    </label>
+                    <input
+                      type="tel"
+                      className="
+                        border p-2 w-full rounded
+                        bg-white dark:bg-neutral-800 dark:text-white
+                      "
+                      placeholder="(555) 123-4567"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                    />
+                  </div>
+
+                  <GrayButton
+                    type="submit"
+                    disabled={inProgress}
+                    className="w-full text-sm"
+                  >
+                    {inProgress ? "Creating Account..." : "Sign Up with Email"}
+                  </GrayButton>
+                </form>
+              </Card>
+            </PageContainer>
           </div>
-        )}
 
-        {/* If flow=invite => ask for inviteCode */}
-        {flow === "invite" && (
-          <div className="space-y-2">
-            <label className="block font-medium">Invite Code</label>
-            <input
-              type="text"
-              className="border p-2 w-full"
-              placeholder="ABC123"
-              value={inviteCode}
-              onChange={(e) => setInviteCode(e.target.value)}
-            />
-          </div>
-        )}
-
-        {/* One single role dropdown (used for create/join).
-            If invite flow => We'll override with code's role. */}
-        {flow !== "invite" && (
-          <div className="space-y-2">
-            <label className="block font-medium">Your Role</label>
-            <select
-              className="border p-2 w-full"
-              value={role}
-              onChange={(e) => setRole(e.target.value as CombinedRole)}
-            >
-              <option value="owner">Owner / Admin</option>
-              <option value="pm">Project Manager</option>
-              <option value="architect">Architect</option>
-              <option value="engineer">Engineer</option>
-              <option value="sub">Subcontractor</option>
-              <option value="vendor">Vendor</option>
-              <option value="readonly">Read-Only</option>
-            </select>
-          </div>
-        )}
-      </div>
-
-      {/* (B) Actual user sign up (Google or email+pass) */}
-      <div className="space-y-4">
-        <p className="text-sm text-gray-600">
-          Next, choose how you'd like to create your user account:
-        </p>
-
-        <button
-          onClick={handleGoogleSignUp}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full"
-        >
-          Sign Up with Google
-        </button>
-
-        <div className="text-center text-sm text-neutral-500">OR</div>
-
-        <form
-          onSubmit={handleEmailSignUp}
-          className="bg-white p-4 border rounded space-y-3"
-        >
-          <div>
-            <label className="block mb-1 font-medium">Email</label>
-            <input
-              type="email"
-              className="border p-2 w-full"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <label className="block mb-1 font-medium">Password</label>
-            <input
-              type="password"
-              className="border p-2 w-full"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-
-          {/* phone + single role usage */}
-          <div>
-            <label className="block mb-1 font-medium">Phone Number (optional)</label>
-            <input
-              type="tel"
-              className="border p-2 w-full"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="(555) 123-4567"
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="bg-black text-white px-4 py-2 rounded hover:bg-neutral-800 w-full"
-          >
-            Sign Up with Email
-          </button>
-        </form>
-      </div>
-    </main>
+          <PageContainer>
+            <p className="text-center text-sm mt-4">
+              Already have an account?{" "}
+              <a href="/public/auth/sign-in" className="text-blue-600 underline">
+                Sign In
+              </a>
+            </p>
+          </PageContainer>
+        </>
+      )}
+    </>
   );
 }

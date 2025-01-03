@@ -1,10 +1,12 @@
 // src/app/dashboard/vendors/page.tsx
+
 "use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebaseConfig";
+
 import {
   fetchAllVendors,
   createVendor,
@@ -12,10 +14,15 @@ import {
   VendorDoc,
 } from "@/lib/services/VendorService";
 
+// Shared UI
+import { PageContainer } from "@/components/ui/PageContainer";
+import { Card } from "@/components/ui/Card";
+import { GrayButton } from "@/components/ui/GrayButton";
+
 export default function VendorsPage() {
   const [user] = useAuthState(auth);
 
-  // Hard-coded orgId for demonstration. Replace or fetch from localStorage as needed.
+  // Hard-coded orgId for demonstration. Replace or fetch dynamically if needed.
   const orgId = "my-org";
 
   const [vendors, setVendors] = useState<VendorDoc[]>([]);
@@ -23,7 +30,6 @@ export default function VendorsPage() {
   const [error, setError] = useState("");
   const [newName, setNewName] = useState("");
 
-  // Load all vendors once user is available
   useEffect(() => {
     if (!user) {
       setLoading(false);
@@ -68,70 +74,73 @@ export default function VendorsPage() {
   }
 
   if (!user) {
-    return <div className="p-4">Please sign in to view vendors.</div>;
+    return <div className="p-6">Please sign in to view vendors.</div>;
   }
 
   if (loading) {
-    return <div className="p-4">Loading Vendors…</div>;
+    return <div className="p-6 text-sm">Loading Vendors…</div>;
   }
-
   if (error) {
-    return <div className="p-4 text-red-600">{error}</div>;
+    return <div className="p-6 text-red-600">{error}</div>;
   }
 
   return (
-    <main className="p-4 space-y-4">
+    <PageContainer>
       <h1 className="text-2xl font-bold">Vendors</h1>
 
       {/* Create new vendor */}
-      <div className="flex items-center gap-2">
-        <input
-          className="border p-2"
-          placeholder="Vendor Name"
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-        />
-        <button
-          onClick={handleCreateVendor}
-          className="bg-blue-600 text-white px-3 py-1 rounded"
-        >
-          Add Vendor
-        </button>
-      </div>
+      <Card>
+        <div className="flex items-center gap-2">
+          <input
+            className="
+              border p-2 rounded
+              bg-white dark:bg-neutral-800 dark:text-white
+            "
+            placeholder="Vendor Name"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+          />
+          <GrayButton onClick={handleCreateVendor}>Add Vendor</GrayButton>
+        </div>
+      </Card>
 
       {/* List existing vendors */}
-      {vendors.length === 0 && <p>No vendors found.</p>}
-      <ul className="space-y-2">
+      {vendors.length === 0 && (
+        <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-2">
+          No vendors found.
+        </p>
+      )}
+
+      <div className="space-y-3 mt-4">
         {vendors.map((v) => (
-          <li key={v.id} className="border p-2 rounded flex justify-between items-center">
+          <Card key={v.id} className="flex justify-between items-center">
             <div>
               <p className="font-semibold">{v.name}</p>
-              {/* If vendor has more fields like contactEmail or contactPhone */}
-              {v.contactEmail && (
-                <p className="text-sm text-gray-500">Email: {v.contactEmail}</p>
-              )}
-              {v.contactPhone && (
-                <p className="text-sm text-gray-500">Phone: {v.contactPhone}</p>
-              )}
+              {/* Additional fields like contactEmail or contactPhone */}
+              {v.contactEmail && <p className="text-sm">Email: {v.contactEmail}</p>}
+              {v.contactPhone && <p className="text-sm">Phone: {v.contactPhone}</p>}
             </div>
             <div className="flex items-center gap-3">
               {/* Link to detail page for editing */}
               <Link
                 href={`/dashboard/vendors/${v.id}`}
-                className="text-blue-600 underline text-sm"
+                className="
+                  text-blue-600 underline text-sm
+                  hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300
+                "
               >
                 Edit
               </Link>
-              <button
+              <GrayButton
                 onClick={() => handleDeleteVendor(v.id)}
-                className="text-red-600 text-sm underline"
+                className="text-xs bg-red-600 hover:bg-red-700"
               >
                 Delete
-              </button>
+              </GrayButton>
             </div>
-          </li>
+          </Card>
         ))}
-      </ul>
-    </main>
+      </div>
+    </PageContainer>
   );
 }

@@ -1,4 +1,5 @@
 // src/app/dashboard/vendors/[vendorId]/page.tsx
+
 "use client";
 
 import { useState, useEffect, FormEvent } from "react";
@@ -6,6 +7,11 @@ import { useParams, useRouter } from "next/navigation";
 import { fetchVendor, updateVendor, VendorDoc } from "@/lib/services/VendorService";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebaseConfig";
+
+// Shared UI
+import { PageContainer } from "@/components/ui/PageContainer";
+import { Card } from "@/components/ui/Card";
+import { GrayButton } from "@/components/ui/GrayButton";
 
 export default function VendorDetailPage() {
   const router = useRouter();
@@ -33,7 +39,6 @@ export default function VendorDetailPage() {
           setLoading(false);
           return;
         }
-
         setLoading(true);
         const data = await fetchVendor(orgId, vendorId);
         setVendor(data);
@@ -66,7 +71,7 @@ export default function VendorDetailPage() {
         contactPhone,
       });
       alert("Vendor updated!");
-      router.push("/dashboard/vendors"); // or wherever your vendor list is
+      router.push("/dashboard/vendors");
     } catch (err: any) {
       console.error("Update vendor error:", err);
       setError(err.message || "Failed to update vendor.");
@@ -74,70 +79,80 @@ export default function VendorDetailPage() {
   }
 
   if (!user) {
-    return <div className="p-4">Please sign in.</div>;
+    return <div className="p-6">Please sign in.</div>;
   }
 
   if (loading) {
-    return <div className="p-4">Loading vendor...</div>;
+    return <div className="p-6 text-sm">Loading vendor...</div>;
   }
   if (error) {
-    return <div className="p-4 text-red-600">{error}</div>;
+    return <div className="p-6 text-red-600">{error}</div>;
   }
   if (!vendor) {
-    return <div className="p-4">Vendor not found.</div>;
+    return <div className="p-6">Vendor not found.</div>;
   }
 
   return (
-    <main className="p-4 space-y-4 max-w-md">
-      <button onClick={() => router.back()} className="text-blue-600 underline text-sm">
+    <PageContainer>
+      <GrayButton onClick={() => router.back()} className="mb-4 text-sm">
         &larr; Back
-      </button>
+      </GrayButton>
+
       <h1 className="text-2xl font-bold">Edit Vendor</h1>
 
-      <form onSubmit={handleUpdate} className="space-y-4">
-        <div>
-          <label className="block mb-1 font-medium">Name</label>
-          <input
-            className="border p-2 w-full"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <label className="block mb-1 font-medium">Trade</label>
-          <input
-            className="border p-2 w-full"
-            value={trade}
-            onChange={(e) => setTrade(e.target.value)}
-            placeholder="Plumbing, Electrical..."
-          />
-        </div>
-        <div>
-          <label className="block mb-1 font-medium">Email</label>
-          <input
-            className="border p-2 w-full"
-            type="email"
-            value={contactEmail}
-            onChange={(e) => setContactEmail(e.target.value)}
-          />
-        </div>
-        <div>
-          <label className="block mb-1 font-medium">Phone</label>
-          <input
-            className="border p-2 w-full"
-            value={contactPhone}
-            onChange={(e) => setContactPhone(e.target.value)}
-          />
-        </div>
+      <Card>
+        <form onSubmit={handleUpdate} className="space-y-4">
+          <div>
+            <label className="block mb-1 font-medium">Name</label>
+            <input
+              className="
+                border p-2 w-full rounded
+                bg-white dark:bg-neutral-800 dark:text-white
+              "
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label className="block mb-1 font-medium">Trade</label>
+            <input
+              className="
+                border p-2 w-full rounded
+                bg-white dark:bg-neutral-800 dark:text-white
+              "
+              value={trade}
+              onChange={(e) => setTrade(e.target.value)}
+              placeholder="Plumbing, Electrical..."
+            />
+          </div>
+          <div>
+            <label className="block mb-1 font-medium">Email</label>
+            <input
+              type="email"
+              className="
+                border p-2 w-full rounded
+                bg-white dark:bg-neutral-800 dark:text-white
+              "
+              value={contactEmail}
+              onChange={(e) => setContactEmail(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block mb-1 font-medium">Phone</label>
+            <input
+              className="
+                border p-2 w-full rounded
+                bg-white dark:bg-neutral-800 dark:text-white
+              "
+              value={contactPhone}
+              onChange={(e) => setContactPhone(e.target.value)}
+            />
+          </div>
 
-        <button
-          type="submit"
-          className="bg-black text-white px-4 py-2 rounded hover:bg-neutral-800"
-        >
-          Update
-        </button>
-      </form>
-    </main>
+          <GrayButton type="submit">Update</GrayButton>
+        </form>
+      </Card>
+    </PageContainer>
   );
 }

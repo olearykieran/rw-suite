@@ -4,7 +4,12 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
+
+// Shared UI
+import { PageContainer } from "@/components/ui/PageContainer";
+import { Card } from "@/components/ui/Card";
+import { GrayButton } from "@/components/ui/GrayButton";
+import TasksHeaderNav from "@/components/TasksHeaderNav";
 
 export default function TasksImportExportPage() {
   const { orgId, projectId, subProjectId } = useParams() as {
@@ -14,7 +19,6 @@ export default function TasksImportExportPage() {
   };
   const [error, setError] = useState("");
 
-  // 1) Export
   async function handleExport() {
     setError("");
     try {
@@ -41,7 +45,6 @@ export default function TasksImportExportPage() {
     }
   }
 
-  // 2) Import
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     setError("");
     const file = e.target.files?.[0];
@@ -70,30 +73,34 @@ export default function TasksImportExportPage() {
   }
 
   return (
-    <main className="p-4 space-y-4">
-      <Link
-        href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/tasks`}
-        className="text-blue-600 underline"
-      >
-        &larr; Back to Tasks
-      </Link>
+    <PageContainer>
+      <TasksHeaderNav orgId={orgId} projectId={projectId} subProjectId={subProjectId} />
 
       <h1 className="text-2xl font-bold">Tasks Import/Export</h1>
       {error && <p className="text-red-600">{error}</p>}
 
-      <div className="space-y-3">
-        <button
-          onClick={handleExport}
-          className="bg-green-600 text-white px-4 py-2 rounded"
-        >
-          Export Tasks to JSON
-        </button>
-
-        <div>
-          <label className="block font-medium mb-1">Import JSON File</label>
-          <input type="file" accept=".json" onChange={handleImport} />
+      <Card>
+        <div className="space-y-3">
+          <GrayButton onClick={handleExport}>Export Tasks to JSON</GrayButton>
+          <div>
+            <label className="block font-medium mb-1">Import JSON File</label>
+            <input
+              type="file"
+              accept=".json"
+              onChange={handleImport}
+              className="
+                file:mr-2 file:py-2 file:px-3 
+                file:border-0 file:rounded 
+                file:bg-gray-300 file:text-black
+                hover:file:bg-gray-400
+                dark:file:bg-gray-700 dark:file:text-white
+                dark:hover:file:bg-gray-600
+                transition-colors
+              "
+            />
+          </div>
         </div>
-      </div>
-    </main>
+      </Card>
+    </PageContainer>
   );
 }
