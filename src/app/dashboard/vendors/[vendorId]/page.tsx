@@ -1,5 +1,3 @@
-// src/app/dashboard/vendors/[vendorId]/page.tsx
-
 "use client";
 
 import { useState, useEffect, FormEvent } from "react";
@@ -31,6 +29,10 @@ export default function VendorDetailPage() {
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
 
+  // For fade-in
+  const [showContent, setShowContent] = useState(false);
+
+  // 1. Load from Firestore
   useEffect(() => {
     async function load() {
       try {
@@ -52,6 +54,8 @@ export default function VendorDetailPage() {
         setError("Failed to load vendor.");
       } finally {
         setLoading(false);
+        // Trigger fade-in
+        setTimeout(() => setShowContent(true), 100);
       }
     }
     if (vendorId) {
@@ -59,6 +63,7 @@ export default function VendorDetailPage() {
     }
   }, [vendorId, user]);
 
+  // 2. Update vendor
   async function handleUpdate(e: FormEvent) {
     e.preventDefault();
     if (!vendor) return;
@@ -78,6 +83,7 @@ export default function VendorDetailPage() {
     }
   }
 
+  // ---------- RENDER ----------
   if (!user) {
     return <div className="p-6">Please sign in.</div>;
   }
@@ -94,65 +100,81 @@ export default function VendorDetailPage() {
 
   return (
     <PageContainer>
-      <GrayButton onClick={() => router.back()} className="mb-4 text-sm">
-        &larr; Back
-      </GrayButton>
+      {/* === Section #1: Back + Title === */}
+      <div
+        className={`
+          opacity-0 transition-all duration-500 ease-out delay-[0ms]
+          ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
+        `}
+      >
+        <GrayButton onClick={() => router.back()} className="mb-4 text-sm">
+          &larr; Back
+        </GrayButton>
 
-      <h1 className="text-2xl font-bold">Edit Vendor</h1>
+        <h1 className="text-2xl font-bold">Edit Vendor</h1>
+      </div>
 
-      <Card>
-        <form onSubmit={handleUpdate} className="space-y-4">
-          <div>
-            <label className="block mb-1 font-medium">Name</label>
-            <input
-              className="
-                border p-2 w-full rounded
-                bg-white dark:bg-neutral-800 dark:text-white
-              "
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <label className="block mb-1 font-medium">Trade</label>
-            <input
-              className="
-                border p-2 w-full rounded
-                bg-white dark:bg-neutral-800 dark:text-white
-              "
-              value={trade}
-              onChange={(e) => setTrade(e.target.value)}
-              placeholder="Plumbing, Electrical..."
-            />
-          </div>
-          <div>
-            <label className="block mb-1 font-medium">Email</label>
-            <input
-              type="email"
-              className="
-                border p-2 w-full rounded
-                bg-white dark:bg-neutral-800 dark:text-white
-              "
-              value={contactEmail}
-              onChange={(e) => setContactEmail(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="block mb-1 font-medium">Phone</label>
-            <input
-              className="
-                border p-2 w-full rounded
-                bg-white dark:bg-neutral-800 dark:text-white
-              "
-              value={contactPhone}
-              onChange={(e) => setContactPhone(e.target.value)}
-            />
-          </div>
+      {/* === Section #2: Edit Form === */}
+      <div
+        className={`
+          opacity-0 transition-all duration-500 ease-out delay-[100ms]
+          ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
+        `}
+      >
+        <Card>
+          <form onSubmit={handleUpdate} className="space-y-4">
+            <div>
+              <label className="block mb-1 font-medium">Name</label>
+              <input
+                className="
+                  border p-2 w-full rounded
+                  bg-white dark:bg-neutral-800 dark:text-white
+                "
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label className="block mb-1 font-medium">Trade</label>
+              <input
+                className="
+                  border p-2 w-full rounded
+                  bg-white dark:bg-neutral-800 dark:text-white
+                "
+                value={trade}
+                onChange={(e) => setTrade(e.target.value)}
+                placeholder="Plumbing, Electrical..."
+              />
+            </div>
+            <div>
+              <label className="block mb-1 font-medium">Email</label>
+              <input
+                type="email"
+                className="
+                  border p-2 w-full rounded
+                  bg-white dark:bg-neutral-800 dark:text-white
+                "
+                value={contactEmail}
+                onChange={(e) => setContactEmail(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block mb-1 font-medium">Phone</label>
+              <input
+                className="
+                  border p-2 w-full rounded
+                  bg-white dark:bg-neutral-800 dark:text-white
+                "
+                value={contactPhone}
+                onChange={(e) => setContactPhone(e.target.value)}
+              />
+            </div>
 
-          <GrayButton type="submit">Update</GrayButton>
-        </form>
-      </Card>
+            <GrayButton type="submit">Update</GrayButton>
+          </form>
+        </Card>
+      </div>
     </PageContainer>
   );
 }

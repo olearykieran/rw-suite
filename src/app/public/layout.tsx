@@ -1,9 +1,13 @@
-import { ReactNode } from "react";
+// src/app/public/layout.tsx
+"use client";
 
-export default function PublicLayout({ children }: { children: ReactNode }) {
+import { ReactNode } from "react";
+import { LoadingProvider } from "@/components/ui/LoadingProvider";
+
+function PublicLayoutContent({ children }: { children: ReactNode }) {
   return (
     <div>
-      <header className="w-full h-16 flex items-center px-8 justify-between  border-b border-gray-500">
+      <header className="w-full h-16 flex items-center px-8 justify-between border-b border-gray-500">
         <div className="text-xl font-bold">RW Suite</div>
         <nav className="space-x-4">
           <a href="/public/about" className="hover:underline">
@@ -19,5 +23,13 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
       </header>
       <main>{children}</main>
     </div>
+  );
+}
+
+export default function PublicLayout({ children }: { children: ReactNode }) {
+  return (
+    <LoadingProvider>
+      <PublicLayoutContent>{children}</PublicLayoutContent>
+    </LoadingProvider>
   );
 }

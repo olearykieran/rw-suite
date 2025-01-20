@@ -1,5 +1,3 @@
-// src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/punch-lists/page.tsx
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -9,6 +7,7 @@ import Link from "next/link";
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Card } from "@/components/ui/Card";
 import { GrayButton } from "@/components/ui/GrayButton";
+import { AnimatedList } from "@/components/ui/AnimatedList"; // <-- AnimatedList import
 
 import {
   fetchAllPunchLists,
@@ -27,9 +26,10 @@ export default function PunchListIndexPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // (Optional) If you want filters/pagination, define states here
-  // e.g. const [statusFilter, setStatusFilter] = useState("all");
+  // For fade-in
+  const [showContent, setShowContent] = useState(false);
 
+  // Load data
   useEffect(() => {
     async function load() {
       try {
@@ -42,6 +42,8 @@ export default function PunchListIndexPage() {
         setError("Failed to load punch lists.");
       } finally {
         setLoading(false);
+        // Trigger fade-in
+        setTimeout(() => setShowContent(true), 100);
       }
     }
     load();
@@ -57,6 +59,7 @@ export default function PunchListIndexPage() {
     }
   }
 
+  // ---------- RENDER ----------
   if (loading) {
     return <div className="p-6 text-sm">Loading Punch Lists...</div>;
   }
@@ -66,73 +69,87 @@ export default function PunchListIndexPage() {
 
   return (
     <PageContainer>
-      {/* Back link to sub-project */}
-      <div className="flex items-center justify-between">
-        <Link
-          href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`}
-          className="
-            text-sm font-medium text-blue-600 underline
-            hover:text-blue-700 dark:text-blue-400
-            dark:hover:text-blue-300 transition-colors
-          "
-        >
-          &larr; Back to Sub-Project
-        </Link>
-      </div>
-
-      {/* Title + Create Button */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mt-4">
-        <h1 className="text-2xl font-bold">Punch Lists</h1>
-        <Link
-          href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/punch-lists/new`}
-        >
-          <GrayButton>Create Punch List</GrayButton>
-        </Link>
-      </div>
-
-      {/* If you want a filter card, do like RFI:
-          <Card>
-            <h2 className="text-lg font-semibold">Filter Punch Lists</h2>
-            ...
-          </Card>
-      */}
-
-      {punchLists.length === 0 ? (
-        <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-2">
-          No punch lists found. Create one!
-        </p>
-      ) : (
-        <div className="space-y-3 mt-4">
-          {punchLists.map((pl) => (
-            <Card key={pl.id} className="flex justify-between items-center">
-              <div>
-                <p className="font-semibold">{pl.title}</p>
-                <p className="text-sm">Status: {pl.status || "open"}</p>
-              </div>
-              <div className="flex gap-3">
-                <Link
-                  href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/punch-lists/${pl.id}`}
-                  className="
-                    text-blue-600 underline text-sm
-                    hover:text-blue-700 dark:text-blue-400
-                    dark:hover:text-blue-300
-                  "
-                >
-                  View
-                </Link>
-                <GrayButton
-                  onClick={() => handleDelete(pl.id)}
-                  className="text-xs bg-red-600 hover:bg-red-700"
-                >
-                  Delete
-                </GrayButton>
-              </div>
-            </Card>
-          ))}
+      {/* === Section #1: Back link + Title === */}
+      <div
+        className={`
+          opacity-0 transition-all duration-500 ease-out delay-[0ms]
+          ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
+        `}
+      >
+        {/* Back link */}
+        <div className="flex items-center justify-between">
+          <Link
+            href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`}
+            className="
+              text-sm font-medium text-blue-600 underline
+              hover:text-blue-700 dark:text-blue-400
+              dark:hover:text-blue-300 transition-colors
+            "
+          >
+            &larr; Back to Sub-Project
+          </Link>
         </div>
-      )}
 
-      {/* If you have pagination logic, place it here */}
+        {/* Title + Create Button */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mt-4">
+          <h1 className="text-2xl font-bold">Punch Lists</h1>
+          <Link
+            href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/punch-lists/new`}
+          >
+            <GrayButton>Create Punch List</GrayButton>
+          </Link>
+        </div>
+      </div>
+
+      {/* === Section #2: List or Empty State (AnimatedList) === */}
+      <div
+        className={`
+          opacity-0 transition-all duration-500 ease-out delay-[100ms]
+          ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
+        `}
+      >
+        {punchLists.length === 0 ? (
+          <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-2">
+            No punch lists found. Create one!
+          </p>
+        ) : (
+          <AnimatedList
+            items={punchLists}
+            className="mt-4"
+            emptyMessage={
+              <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-2">
+                No punch lists found. Create one!
+              </p>
+            }
+            renderItem={(pl) => (
+              <Card key={pl.id} className="flex justify-between items-center">
+                <div>
+                  <p className="font-semibold">{pl.title}</p>
+                  <p className="text-sm">Status: {pl.status || "open"}</p>
+                </div>
+                <div className="flex gap-3">
+                  <Link
+                    href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/punch-lists/${pl.id}`}
+                    className="
+                      text-blue-600 underline text-sm
+                      hover:text-blue-700 dark:text-blue-400
+                      dark:hover:text-blue-300
+                    "
+                  >
+                    View
+                  </Link>
+                  <GrayButton
+                    onClick={() => handleDelete(pl.id)}
+                    className="text-xs bg-red-600 hover:bg-red-700"
+                  >
+                    Delete
+                  </GrayButton>
+                </div>
+              </Card>
+            )}
+          />
+        )}
+      </div>
     </PageContainer>
   );
 }

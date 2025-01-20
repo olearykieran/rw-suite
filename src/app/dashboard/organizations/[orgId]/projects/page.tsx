@@ -1,5 +1,3 @@
-// src/app/dashboard/organizations/[orgId]/projects/page.tsx
-
 "use client";
 
 import { useParams } from "next/navigation";
@@ -12,10 +10,19 @@ import Link from "next/link";
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Card } from "@/components/ui/Card";
 import { GrayButton } from "@/components/ui/GrayButton";
+import { AnimatedList } from "@/components/ui/AnimatedList";
+
+interface Project {
+  id: string;
+  name?: string;
+  status?: string;
+  mainProjectId?: string;
+  [key: string]: any;
+}
 
 export default function ProjectsPage() {
   const { orgId } = useParams() as { orgId: string };
-  const [projects, setProjects] = useState<any[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -25,7 +32,10 @@ export default function ProjectsPage() {
       try {
         const ref = collection(firestore, "organizations", orgId, "projects");
         const snap = await getDocs(ref);
-        const data = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        const data = snap.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Project[];
         setProjects(data);
       } catch (err: any) {
         console.error("Fetch projects error:", err);
@@ -37,11 +47,31 @@ export default function ProjectsPage() {
     fetchProjects();
   }, [orgId]);
 
-  if (loading) {
-    return <div className="p-6 text-sm">Loading projects...</div>;
-  }
+  const renderProject = (project: Project) => (
+    <Card>
+      <p className="font-semibold text-lg">{project.name || project.id}</p>
+      {project.status && <p className="text-sm">Status: {project.status}</p>}
+      {project.mainProjectId && (
+        <p className="text-sm">Sub-project of: {project.mainProjectId}</p>
+      )}
+      <Link
+        href={`/dashboard/organizations/${orgId}/projects/${project.id}/subprojects`}
+        className="
+          text-blue-600 underline text-sm mt-2 inline-block
+          hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300
+        "
+      >
+        View Project
+      </Link>
+    </Card>
+  );
+
   if (error) {
-    return <div className="p-6 text-red-600">{error}</div>;
+    return (
+      <PageContainer>
+        <div className="p-6 text-red-600">{error}</div>
+      </PageContainer>
+    );
   }
 
   return (
@@ -58,40 +88,24 @@ export default function ProjectsPage() {
         &larr; Back to Organizations
       </Link>
 
-      <h1 className="text-2xl font-bold mt-4">Projects under Org {orgId}</h1>
-
-      <div>
+      <div className="flex justify-between items-center mt-4">
+        <h1 className="text-2xl font-bold">Projects under Org {orgId}</h1>
         <Link href={`/dashboard/organizations/${orgId}/projects/new`}>
           <GrayButton>Create New Project</GrayButton>
         </Link>
       </div>
 
-      {projects.length === 0 && (
-        <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-2">
-          No projects found. Create one!
-        </p>
-      )}
-
-      <div className="space-y-3 mt-4">
-        {projects.map((p) => (
-          <Card key={p.id}>
-            <p className="font-semibold text-lg">{p.name || p.id}</p>
-            {p.status && <p className="text-sm">Status: {p.status}</p>}
-            {p.mainProjectId && (
-              <p className="text-sm">Sub-project of: {p.mainProjectId}</p>
-            )}
-            <Link
-              href={`/dashboard/organizations/${orgId}/projects/${p.id}`}
-              className="
-                text-blue-600 underline text-sm mt-2 inline-block
-                hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300
-              "
-            >
-              View Project
-            </Link>
-          </Card>
-        ))}
-      </div>
+      <AnimatedList
+        items={projects}
+        renderItem={renderProject}
+        isLoading={loading}
+        className="mt-4"
+        emptyMessage={
+          <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-2">
+            No projects found. Create one!
+          </p>
+        }
+      />
     </PageContainer>
   );
 }

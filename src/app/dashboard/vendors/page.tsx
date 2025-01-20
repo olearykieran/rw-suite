@@ -1,5 +1,3 @@
-// src/app/dashboard/vendors/page.tsx
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -18,6 +16,7 @@ import {
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Card } from "@/components/ui/Card";
 import { GrayButton } from "@/components/ui/GrayButton";
+import { AnimatedList } from "@/components/ui/AnimatedList"; // <-- AnimatedList import
 
 export default function VendorsPage() {
   const [user] = useAuthState(auth);
@@ -29,6 +28,9 @@ export default function VendorsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [newName, setNewName] = useState("");
+
+  // For fade-in animations
+  const [showContent, setShowContent] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -48,6 +50,8 @@ export default function VendorsPage() {
       setError(err.message || "Failed to load vendors.");
     } finally {
       setLoading(false);
+      // Trigger fade-in
+      setTimeout(() => setShowContent(true), 100);
     }
   }
 
@@ -73,10 +77,10 @@ export default function VendorsPage() {
     }
   }
 
+  // ---------- RENDER ----------
   if (!user) {
     return <div className="p-6">Please sign in to view vendors.</div>;
   }
-
   if (loading) {
     return <div className="p-6 text-sm">Loading Vendors…</div>;
   }
@@ -86,60 +90,82 @@ export default function VendorsPage() {
 
   return (
     <PageContainer>
-      <h1 className="text-2xl font-bold">Vendors</h1>
+      {/* === Fade-in Section #1: Title & Create New Vendor === */}
+      <div
+        className={`
+          opacity-0 transition-all duration-500 ease-out delay-[0ms]
+          ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
+        `}
+      >
+        <h1 className="text-2xl font-bold">Vendors</h1>
 
-      {/* Create new vendor */}
-      <Card>
-        <div className="flex items-center gap-2">
-          <input
-            className="
-              border p-2 rounded
-              bg-white dark:bg-neutral-800 dark:text-white
-            "
-            placeholder="Vendor Name"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
+        {/* Create new vendor card */}
+        <Card className="mt-4">
+          <div className="flex items-center gap-2">
+            <input
+              className="
+                border p-2 rounded
+                bg-white dark:bg-neutral-800 dark:text-white
+              "
+              placeholder="Vendor Name"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+            />
+            <GrayButton onClick={handleCreateVendor}>Add Vendor</GrayButton>
+          </div>
+        </Card>
+      </div>
+
+      {/* === Fade-in Section #2: List or Empty State (AnimatedList) === */}
+      <div
+        className={`
+          opacity-0 transition-all duration-500 ease-out delay-[100ms]
+          ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
+        `}
+      >
+        {vendors.length === 0 ? (
+          <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-4">
+            No vendors found.
+          </p>
+        ) : (
+          <AnimatedList
+            items={vendors}
+            className="mt-4"
+            emptyMessage={
+              <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-2">
+                No vendors found.
+              </p>
+            }
+            renderItem={(v) => (
+              <Card key={v.id} className="flex justify-between items-center">
+                <div>
+                  <p className="font-semibold">{v.name}</p>
+                  {/* Additional fields like contactEmail or contactPhone */}
+                  {v.contactEmail && <p className="text-sm">Email: {v.contactEmail}</p>}
+                  {v.contactPhone && <p className="text-sm">Phone: {v.contactPhone}</p>}
+                </div>
+                <div className="flex items-center gap-3">
+                  {/* Link to detail page for editing */}
+                  <Link
+                    href={`/dashboard/vendors/${v.id}`}
+                    className="
+                      text-blue-600 underline text-sm
+                      hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300
+                    "
+                  >
+                    Edit
+                  </Link>
+                  <GrayButton
+                    onClick={() => handleDeleteVendor(v.id)}
+                    className="text-xs bg-red-600 hover:bg-red-700"
+                  >
+                    Delete
+                  </GrayButton>
+                </div>
+              </Card>
+            )}
           />
-          <GrayButton onClick={handleCreateVendor}>Add Vendor</GrayButton>
-        </div>
-      </Card>
-
-      {/* List existing vendors */}
-      {vendors.length === 0 && (
-        <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-2">
-          No vendors found.
-        </p>
-      )}
-
-      <div className="space-y-3 mt-4">
-        {vendors.map((v) => (
-          <Card key={v.id} className="flex justify-between items-center">
-            <div>
-              <p className="font-semibold">{v.name}</p>
-              {/* Additional fields like contactEmail or contactPhone */}
-              {v.contactEmail && <p className="text-sm">Email: {v.contactEmail}</p>}
-              {v.contactPhone && <p className="text-sm">Phone: {v.contactPhone}</p>}
-            </div>
-            <div className="flex items-center gap-3">
-              {/* Link to detail page for editing */}
-              <Link
-                href={`/dashboard/vendors/${v.id}`}
-                className="
-                  text-blue-600 underline text-sm
-                  hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300
-                "
-              >
-                Edit
-              </Link>
-              <GrayButton
-                onClick={() => handleDeleteVendor(v.id)}
-                className="text-xs bg-red-600 hover:bg-red-700"
-              >
-                Delete
-              </GrayButton>
-            </div>
-          </Card>
-        ))}
+        )}
       </div>
     </PageContainer>
   );

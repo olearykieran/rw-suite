@@ -1,5 +1,3 @@
-// src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/submittals/[submittalId]/page.tsx
-
 "use client";
 
 import { useParams } from "next/navigation";
@@ -16,7 +14,6 @@ import { serverTimestamp } from "firebase/firestore";
 import { auth } from "@/lib/firebaseConfig";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
-// Import our shared UI components
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Card } from "@/components/ui/Card";
 import { GrayButton } from "@/components/ui/GrayButton";
@@ -76,6 +73,9 @@ export default function SubmittalDetailPage() {
   // Workflow editing
   const [workflow, setWorkflow] = useState<WorkflowStep[]>([]);
 
+  // For fade-in animation
+  const [showContent, setShowContent] = useState(false);
+
   // 1. Load the Submittal + Activity
   async function loadFullData() {
     try {
@@ -106,6 +106,8 @@ export default function SubmittalDetailPage() {
       setError("Failed to load submittal.");
     } finally {
       setLoading(false);
+      // Trigger the fade-in after data loads
+      setTimeout(() => setShowContent(true), 100);
     }
   }
 
@@ -124,7 +126,7 @@ export default function SubmittalDetailPage() {
         status,
         importance,
         officialResponse,
-        workflow, // updated workflow array
+        workflow,
       });
       await addSubmittalActivity(orgId, projectId, subProjectId, submittalId, {
         message: `Submittal updated => status:${status}, importance:${importance}`,
@@ -143,7 +145,6 @@ export default function SubmittalDetailPage() {
     const updatedSteps = [...workflow];
     updatedSteps[index].status = newStatus;
 
-    // Example logic: if all steps are approved => submittal = "approved"
     let newSubmittalStatus = submittal.status;
     if (updatedSteps.every((step) => step.status === "approved")) {
       newSubmittalStatus = "approved";
@@ -291,6 +292,7 @@ export default function SubmittalDetailPage() {
     await loadFullData();
   }
 
+  // ---------- RENDER ----------
   if (loading) return <div className="p-6">Loading Submittal...</div>;
   if (error) return <div className="p-6 text-red-600">{error}</div>;
   if (!submittal) return <div className="p-6">No submittal found.</div>;
@@ -300,266 +302,313 @@ export default function SubmittalDetailPage() {
 
   return (
     <PageContainer>
-      {/* Back link */}
-      <Link
-        href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/submittals`}
-        className="
-          text-sm font-medium text-blue-600 underline 
-          hover:text-blue-700 dark:text-blue-400 
-          dark:hover:text-blue-300 transition-colors
-        "
+      {/* === Section #1: Back link + Heading === */}
+      <div
+        className={`
+          opacity-0 transition-all duration-500 ease-out delay-[0ms]
+          ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
+        `}
       >
-        &larr; Back to Submittals
-      </Link>
+        <Link
+          href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/submittals`}
+          className="
+            text-sm font-medium text-blue-600 underline 
+            hover:text-blue-700 dark:text-blue-400 
+            dark:hover:text-blue-300 transition-colors
+          "
+        >
+          &larr; Back to Submittals
+        </Link>
 
-      {/* Header */}
-      <div className="space-y-1">
-        <h1 className="text-2xl font-bold">
-          {submittal.submittalNumber
-            ? `Submittal #${submittal.submittalNumber} (v${submittal.version || 1}): ${
-                submittal.subject
-              }`
-            : submittal.subject}
-        </h1>
-        <p className="text-sm opacity-80">Type: {submittal.submittalType || "N/A"}</p>
+        <div className="space-y-1 mt-2">
+          <h1 className="text-2xl font-bold">
+            {submittal.submittalNumber
+              ? `Submittal #${submittal.submittalNumber} (v${submittal.version || 1}): ${
+                  submittal.subject
+                }`
+              : submittal.subject}
+          </h1>
+          <p className="text-sm opacity-80">Type: {submittal.submittalType || "N/A"}</p>
+        </div>
       </div>
 
-      {/* Basic info */}
-      <Card>
-        <div className="text-sm space-y-1">
-          <p>
-            <strong>Assigned To:</strong> {submittal.assignedTo || "N/A"}
-          </p>
-          <p>
-            <strong>Due Date:</strong>{" "}
-            {submittal.dueDate ? new Date(submittal.dueDate).toLocaleDateString() : "N/A"}
-          </p>
-        </div>
+      {/* === Section #2: Basic Info & Workflow === */}
+      <div
+        className={`
+          opacity-0 transition-all duration-500 ease-out delay-[100ms]
+          ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
+        `}
+      >
+        <Card>
+          <div className="text-sm space-y-1">
+            <p>
+              <strong>Assigned To:</strong> {submittal.assignedTo || "N/A"}
+            </p>
+            <p>
+              <strong>Due Date:</strong>{" "}
+              {submittal.dueDate
+                ? new Date(submittal.dueDate).toLocaleDateString()
+                : "N/A"}
+            </p>
+          </div>
 
-        {/* Workflow steps */}
-        {workflow.length > 0 && (
-          <div className="pt-4 space-y-2">
-            <h2 className="text-lg font-semibold">Approval Workflow</h2>
-            <ul className="list-disc ml-5 space-y-2 text-sm">
-              {workflow.map((step, idx) => (
-                <li key={idx}>
-                  <strong>{step.role}</strong> – {step.userId}{" "}
-                  {step.status === "pending" && (
-                    <span className="ml-2 text-blue-500">(Pending)</span>
-                  )}
-                  {step.status === "approved" && (
-                    <span className="ml-2 text-green-600">[Approved]</span>
-                  )}
-                  {step.status === "rejected" && (
-                    <span className="ml-2 text-red-600">[Rejected]</span>
-                  )}
-                  {/* If the current user has the same userId, let them Approve/Reject */}
-                  {auth.currentUser?.uid === step.userId && step.status === "pending" && (
-                    <div className="flex gap-2 mt-1">
-                      <GrayButton onClick={() => handleWorkflowAction(idx, "approved")}>
-                        Approve
-                      </GrayButton>
-                      <GrayButton onClick={() => handleWorkflowAction(idx, "rejected")}>
-                        Reject
-                      </GrayButton>
-                    </div>
-                  )}
+          {/* Workflow steps */}
+          {workflow.length > 0 && (
+            <div className="pt-4 space-y-2">
+              <h2 className="text-lg font-semibold">Approval Workflow</h2>
+              <ul className="list-disc ml-5 space-y-2 text-sm">
+                {workflow.map((step, idx) => (
+                  <li key={idx}>
+                    <strong>{step.role}</strong> – {step.userId}{" "}
+                    {step.status === "pending" && (
+                      <span className="ml-2 text-blue-500">(Pending)</span>
+                    )}
+                    {step.status === "approved" && (
+                      <span className="ml-2 text-green-600">[Approved]</span>
+                    )}
+                    {step.status === "rejected" && (
+                      <span className="ml-2 text-red-600">[Rejected]</span>
+                    )}
+                    {/* If the current user has the same userId, let them Approve/Reject */}
+                    {auth.currentUser?.uid === step.userId &&
+                      step.status === "pending" && (
+                        <div className="flex gap-2 mt-1">
+                          <GrayButton
+                            onClick={() => handleWorkflowAction(idx, "approved")}
+                          >
+                            Approve
+                          </GrayButton>
+                          <GrayButton
+                            onClick={() => handleWorkflowAction(idx, "rejected")}
+                          >
+                            Reject
+                          </GrayButton>
+                        </div>
+                      )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </Card>
+      </div>
+
+      {/* === Section #3: Attachments === */}
+      <div
+        className={`
+          opacity-0 transition-all duration-500 ease-out delay-[200ms]
+          ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
+        `}
+      >
+        <Card>
+          <h2 className="text-lg font-semibold">Attachments</h2>
+          {submittal.attachments && submittal.attachments.length > 0 ? (
+            <ul className="list-disc ml-5 text-sm">
+              {submittal.attachments.map((url: string, i: number) => (
+                <li key={i}>
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="
+                      text-blue-600 underline 
+                      hover:text-blue-700 
+                      dark:text-blue-400 dark:hover:text-blue-300
+                    "
+                  >
+                    {url.split("/").pop()}
+                  </a>
                 </li>
               ))}
             </ul>
+          ) : (
+            <p className="text-sm opacity-70">No attachments yet.</p>
+          )}
+
+          {/* Upload new attachments */}
+          <div className="space-y-3 pt-4 text-sm">
+            <div>
+              <label className="block font-medium mb-1">
+                Upload Document(s) (PDF, etc.)
+              </label>
+              <input
+                type="file"
+                multiple
+                onChange={(e) => setNewFiles(e.target.files)}
+                className="
+                  file:mr-2 file:py-2 file:px-3 
+                  file:border-0 file:rounded 
+                  file:bg-gray-300 file:text-black
+                  hover:file:bg-gray-400
+                  dark:file:bg-gray-700 dark:file:text-white
+                  dark:hover:file:bg-gray-600
+                "
+              />
+            </div>
+            <div>
+              <label className="block font-medium mb-1">
+                Take Photo (mobile) or Upload Image
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={(e) => setNewPhotoFile(e.target.files)}
+                className="
+                  file:mr-2 file:py-2 file:px-3 
+                  file:border-0 file:rounded 
+                  file:bg-gray-300 file:text-black
+                  hover:file:bg-gray-400
+                  dark:file:bg-gray-700 dark:file:text-white
+                  dark:hover:file:bg-gray-600
+                "
+              />
+            </div>
+
+            <GrayButton onClick={handleAttachNewFiles}>Add to Submittal</GrayButton>
           </div>
-        )}
-      </Card>
+        </Card>
+      </div>
 
-      {/* Attachments */}
-      <Card>
-        <h2 className="text-lg font-semibold">Attachments</h2>
-        {submittal.attachments && submittal.attachments.length > 0 ? (
-          <ul className="list-disc ml-5 text-sm">
-            {submittal.attachments.map((url: string, i: number) => (
-              <li key={i}>
-                <a
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="
-                    text-blue-600 underline 
-                    hover:text-blue-700 
-                    dark:text-blue-400 dark:hover:text-blue-300
-                  "
-                >
-                  {url.split("/").pop()}
-                </a>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm opacity-70">No attachments yet.</p>
-        )}
-
-        {/* Upload new attachments */}
-        <div className="space-y-3 pt-4 text-sm">
-          <div>
-            <label className="block font-medium mb-1">
-              Upload Document(s) (PDF, etc.)
-            </label>
+      {/* === Section #4: Link to Spec Section === */}
+      <div
+        className={`
+          opacity-0 transition-all duration-500 ease-out delay-[300ms]
+          ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
+        `}
+      >
+        <Card>
+          <h2 className="text-lg font-semibold">Link to Spec Section</h2>
+          <p className="text-sm">Example: “03 30 00 – Cast-In-Place Concrete”</p>
+          <div className="flex gap-2 mt-2">
             <input
-              type="file"
-              multiple
-              onChange={(e) => setNewFiles(e.target.files)}
-              className="
-                file:mr-2 file:py-2 file:px-3 
-                file:border-0 file:rounded 
-                file:bg-gray-300 file:text-black
-                hover:file:bg-gray-400
-                dark:file:bg-gray-700 dark:file:text-white
-                dark:hover:file:bg-gray-600
-              "
-            />
-          </div>
-          <div>
-            <label className="block font-medium mb-1">
-              Take Photo (mobile) or Upload Image
-            </label>
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={(e) => setNewPhotoFile(e.target.files)}
-              className="
-                file:mr-2 file:py-2 file:px-3 
-                file:border-0 file:rounded 
-                file:bg-gray-300 file:text-black
-                hover:file:bg-gray-400
-                dark:file:bg-gray-700 dark:file:text-white
-                dark:hover:file:bg-gray-600
-              "
-            />
-          </div>
-
-          <GrayButton onClick={handleAttachNewFiles}>Add to Submittal</GrayButton>
-        </div>
-      </Card>
-
-      {/* Link to spec section */}
-      <Card>
-        <h2 className="text-lg font-semibold">Link to Spec Section</h2>
-        <p className="text-sm">Example: “03 30 00 – Cast-In-Place Concrete”</p>
-        <div className="flex gap-2 mt-2">
-          <input
-            className="
-              border p-2 rounded
-              bg-white dark:bg-neutral-800 dark:text-white
-            "
-            placeholder="e.g. 03 30 00"
-            value={specSection}
-            onChange={(e) => setSpecSection(e.target.value)}
-          />
-          <GrayButton onClick={handleLinkSpec}>Link Spec</GrayButton>
-        </div>
-      </Card>
-
-      {/* Status & Importance */}
-      <Card>
-        <div className="flex flex-col sm:flex-row gap-4 flex-wrap">
-          <div>
-            <label className="block font-medium mb-1">Status</label>
-            <select
               className="
                 border p-2 rounded
-                bg-white text-black
-                dark:bg-neutral-800 dark:text-white
+                bg-white dark:bg-neutral-800 dark:text-white
               "
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
-              <option value="draft">Draft</option>
-              <option value="open">Open</option>
-              <option value="inReview">In Review</option>
-              <option value="approved">Approved</option>
-              <option value="closed">Closed</option>
-            </select>
+              placeholder="e.g. 03 30 00"
+              value={specSection}
+              onChange={(e) => setSpecSection(e.target.value)}
+            />
+            <GrayButton onClick={handleLinkSpec}>Link Spec</GrayButton>
           </div>
+        </Card>
+      </div>
+
+      {/* === Section #5: Status & Importance === */}
+      <div
+        className={`
+          opacity-0 transition-all duration-500 ease-out delay-[400ms]
+          ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
+        `}
+      >
+        <Card>
+          <div className="flex flex-col sm:flex-row gap-4 flex-wrap">
+            <div>
+              <label className="block font-medium mb-1">Status</label>
+              <select
+                className="
+                  border p-2 rounded
+                  bg-white text-black
+                  dark:bg-neutral-800 dark:text-white
+                "
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+              >
+                <option value="draft">Draft</option>
+                <option value="open">Open</option>
+                <option value="inReview">In Review</option>
+                <option value="approved">Approved</option>
+                <option value="closed">Closed</option>
+              </select>
+            </div>
+            <div>
+              <label className="block font-medium mb-1">Importance</label>
+              <select
+                className="
+                  border p-2 rounded
+                  bg-white text-black
+                  dark:bg-neutral-800 dark:text-white
+                "
+                value={importance}
+                onChange={(e) => setImportance(e.target.value)}
+              >
+                <option value="normal">Normal</option>
+                <option value="high">High</option>
+                <option value="critical">Critical</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Official Response */}
           <div>
-            <label className="block font-medium mb-1">Importance</label>
-            <select
+            <label className="block font-medium mt-4 mb-1">Official Response</label>
+            <textarea
               className="
-                border p-2 rounded
-                bg-white text-black
-                dark:bg-neutral-800 dark:text-white
+                border p-2 w-full rounded
+                bg-white dark:bg-neutral-800 dark:text-white
               "
-              value={importance}
-              onChange={(e) => setImportance(e.target.value)}
-            >
-              <option value="normal">Normal</option>
-              <option value="high">High</option>
-              <option value="critical">Critical</option>
-            </select>
+              rows={3}
+              value={officialResponse}
+              onChange={(e) => setOfficialResponse(e.target.value)}
+            />
           </div>
-        </div>
 
-        {/* Official Response */}
-        <div>
-          <label className="block font-medium mt-4 mb-1">Official Response</label>
-          <textarea
-            className="
-              border p-2 w-full rounded
-              bg-white dark:bg-neutral-800 dark:text-white
-            "
-            rows={3}
-            value={officialResponse}
-            onChange={(e) => setOfficialResponse(e.target.value)}
-          />
-        </div>
+          {/* Update / Resubmit buttons */}
+          <div className="flex gap-4 mt-4">
+            <GrayButton onClick={handleUpdate} disabled={isClosed}>
+              {isClosed ? "SUBMITTAL CLOSED/APPROVED" : "Update Submittal"}
+            </GrayButton>
+            {(submittal.status === "open" || submittal.status === "inReview") && (
+              <GrayButton onClick={handleResubmit}>Revise & Resubmit</GrayButton>
+            )}
+          </div>
+        </Card>
+      </div>
 
-        {/* Update / Resubmit buttons */}
-        <div className="flex gap-4 mt-4">
-          <GrayButton onClick={handleUpdate} disabled={isClosed}>
-            {isClosed ? "SUBMITTAL CLOSED/APPROVED" : "Update Submittal"}
-          </GrayButton>
-          {/* Show Revise & Resubmit if it's open or inReview */}
-          {submittal.status === "open" || submittal.status === "inReview" ? (
-            <GrayButton onClick={handleResubmit}>Revise & Resubmit</GrayButton>
-          ) : null}
-        </div>
-      </Card>
+      {/* === Section #6: Activity / Comments === */}
+      <div
+        className={`
+          opacity-0 transition-all duration-500 ease-out delay-[500ms]
+          ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
+        `}
+      >
+        <Card>
+          <h2 className="text-lg font-semibold">Activity / Comments</h2>
+          {activityLog.length === 0 ? (
+            <p className="text-sm text-neutral-500">No activity yet.</p>
+          ) : (
+            <ul className="space-y-2 text-sm mt-2">
+              {activityLog.map((act) => (
+                <li key={act.id} className="p-2 rounded">
+                  <p>
+                    {act.message}{" "}
+                    {act.createdAt && (
+                      <span className="ml-2 text-xs opacity-75">
+                        {new Date(act.createdAt.seconds * 1000).toLocaleString()}
+                      </span>
+                    )}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
 
-      {/* Activity / Comments */}
-      <Card>
-        <h2 className="text-lg font-semibold">Activity / Comments</h2>
-        {activityLog.length === 0 ? (
-          <p className="text-sm text-neutral-500">No activity yet.</p>
-        ) : (
-          <ul className="space-y-2 text-sm">
-            {activityLog.map((act) => (
-              <li key={act.id} className="p-2 rounded">
-                <p>
-                  {act.message}{" "}
-                  {act.createdAt && (
-                    <span className="ml-2 text-xs opacity-75">
-                      {new Date(act.createdAt.seconds * 1000).toLocaleString()}
-                    </span>
-                  )}
-                </p>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <div className="flex gap-2 items-center mt-3">
-          <input
-            type="text"
-            placeholder="Add a comment..."
-            className="
-              flex-1 border p-2 rounded
-              bg-white dark:bg-neutral-800 dark:text-white
-            "
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-          />
-          <GrayButton onClick={handleAddComment}>Comment</GrayButton>
-        </div>
-      </Card>
+          <div className="flex gap-2 items-center mt-3">
+            <input
+              type="text"
+              placeholder="Add a comment..."
+              className="
+                flex-1 border p-2 rounded
+                bg-white dark:bg-neutral-800 dark:text-white
+              "
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+            />
+            <GrayButton onClick={handleAddComment}>Comment</GrayButton>
+          </div>
+        </Card>
+      </div>
     </PageContainer>
   );
 }

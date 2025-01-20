@@ -48,16 +48,6 @@ export default function TasksHeaderNav({ orgId, projectId, subProjectId }: Props
       </Link>
 
       <Link
-        href={`${baseTasksUrl}/grid`}
-        className="
-          underline text-blue-600 hover:text-blue-700
-          dark:text-blue-400 dark:hover:text-blue-300
-        "
-      >
-        Card View
-      </Link>
-
-      <Link
         href={`${baseTasksUrl}/gantt`}
         className="
           underline text-blue-600 hover:text-blue-700
@@ -75,16 +65,6 @@ export default function TasksHeaderNav({ orgId, projectId, subProjectId }: Props
         "
       >
         Import/Export
-      </Link>
-
-      <Link
-        href={`${baseTasksUrl}/new`}
-        className="
-          underline text-blue-600 hover:text-blue-700
-          dark:text-blue-400 dark:hover:text-blue-300
-        "
-      >
-        New Task
       </Link>
     </nav>
   );

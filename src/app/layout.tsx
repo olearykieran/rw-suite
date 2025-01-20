@@ -1,5 +1,4 @@
 // src/app/layout.tsx
-
 import "./globals.css";
 import { Poppins, Space_Grotesk } from "next/font/google";
 import { ReactNode } from "react";
@@ -25,12 +24,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <head>
-        {/* 
-          Add your meta viewport here 
-        */}
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </head>
-
       <body
         className={`
           ${poppins.variable} 

@@ -6,7 +6,8 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { fetchAllRfis } from "@/lib/services/RfiService";
-
+import { useLoading } from "@/components/ui/LoadingProvider";
+import { AnimatedList } from "@/components/ui/AnimatedList";
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Card } from "@/components/ui/Card";
 import { GrayButton } from "@/components/ui/GrayButton";
@@ -21,6 +22,7 @@ interface RfiItem {
 }
 
 export default function RfiListPage() {
+  const { withLoading } = useLoading();
   const { orgId, projectId, subProjectId } = useParams() as {
     orgId: string;
     projectId: string;
@@ -28,7 +30,7 @@ export default function RfiListPage() {
   };
 
   const [rfis, setRfis] = useState<RfiItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [error, setError] = useState("");
 
   // For filtering
@@ -55,10 +57,9 @@ export default function RfiListPage() {
 
   // Load RFIs from Firestore
   useEffect(() => {
-    (async () => {
+    const loadData = async () => {
       try {
         if (!orgId || !projectId || !subProjectId) return;
-        setLoading(true);
         const data = await fetchAllRfis(orgId, projectId, subProjectId);
 
         // Sort by RFI number or created date
@@ -73,14 +74,12 @@ export default function RfiListPage() {
         console.error("Fetch RFIs error:", err);
         setError("Failed to load RFIs.");
       } finally {
-        setLoading(false);
+        setIsInitialLoading(false);
       }
-    })();
+    };
+    loadData();
   }, [orgId, projectId, subProjectId]);
 
-  if (loading) {
-    return <div className="p-6 text-sm">Loading RFIs...</div>;
-  }
   if (error) {
     return <div className="p-6 text-red-600">{error}</div>;
   }
@@ -91,11 +90,7 @@ export default function RfiListPage() {
       <div className="flex items-center justify-between">
         <Link
           href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`}
-          className="
-            text-sm font-medium text-blue-600 underline 
-            hover:text-blue-700 dark:text-blue-400 
-            dark:hover:text-blue-300 transition-colors
-          "
+          className="text-sm font-medium text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
         >
           &larr; Back to Sub-Project
         </Link>
@@ -120,12 +115,7 @@ export default function RfiListPage() {
           </label>
           <select
             id="statusFilter"
-            className="
-              border p-2 rounded
-              bg-white text-black
-              dark:bg-neutral-800 dark:text-white
-              transition-colors
-            "
+            className="border p-2 rounded bg-white text-black dark:bg-neutral-800 dark:text-white transition-colors"
             value={filterStatus}
             onChange={(e) => {
               setFilterStatus(e.target.value as any);
@@ -142,43 +132,32 @@ export default function RfiListPage() {
         </div>
       </Card>
 
-      {/* No results */}
-      {filteredRfis.length === 0 && (
-        <p className="text-sm text-neutral-700 dark:text-neutral-300">
-          No RFIs match your filter.
-        </p>
-      )}
-
-      {/* If there are RFIs, show the table & cards */}
-      {filteredRfis.length > 0 && (
-        <>
-          {/* Table (desktop) */}
-          <div
-            className="
-              hidden sm:block
-              overflow-x-auto
-              bg-white dark:bg-neutral-900
-              border border-neutral-200 dark:border-neutral-800
-              rounded-lg
-            "
-          >
-            <table className="w-full min-w-[600px]">
-              <thead className="border-b">
-                <tr>
-                  <th className="p-3 text-left text-sm font-medium">RFI #</th>
-                  <th className="p-3 text-left text-sm font-medium">Subject</th>
-                  <th className="p-3 text-left text-sm font-medium">Status</th>
-                  <th className="p-3 text-left text-sm font-medium">Importance</th>
-                  <th className="p-3 text-left text-sm font-medium">Assigned To</th>
-                  <th className="p-3 text-left text-sm font-medium"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {pageData.map((rfi) => (
-                  <tr
-                    key={rfi.id}
-                    className="border-b hover:bg-neutral-50 dark:hover:bg-neutral-800"
-                  >
+      <AnimatedList
+        items={pageData}
+        isLoading={isInitialLoading}
+        className="mt-4"
+        emptyMessage={
+          <p className="text-sm text-neutral-700 dark:text-neutral-300">
+            No RFIs match your filter.
+          </p>
+        }
+        renderItem={(rfi) => (
+          <>
+            {/* Table row (desktop) */}
+            <div className="hidden sm:block overflow-x-auto bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg">
+              <table className="w-full min-w-[600px]">
+                <thead className="border-b">
+                  <tr>
+                    <th className="p-3 text-left text-sm font-medium">RFI #</th>
+                    <th className="p-3 text-left text-sm font-medium">Subject</th>
+                    <th className="p-3 text-left text-sm font-medium">Status</th>
+                    <th className="p-3 text-left text-sm font-medium">Importance</th>
+                    <th className="p-3 text-left text-sm font-medium">Assigned To</th>
+                    <th className="p-3 text-left text-sm font-medium"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b hover:bg-neutral-50 dark:hover:bg-neutral-800">
                     <td className="p-3">{rfi.rfiNumber || "--"}</td>
                     <td className="p-3">{rfi.subject}</td>
                     <td className="p-3 capitalize">{rfi.status}</td>
@@ -187,42 +166,24 @@ export default function RfiListPage() {
                     <td className="p-3">
                       <Link
                         href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/rfis/${rfi.id}`}
-                        className="
-                          text-blue-600 underline
-                          hover:text-blue-700
-                          dark:text-blue-400 dark:hover:text-blue-300
-                        "
+                        className="text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                       >
                         View
                       </Link>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </tbody>
+              </table>
+            </div>
 
-          {/* Card view (mobile) */}
-          <div className="block sm:hidden space-y-3">
-            {pageData.map((rfi) => (
-              <div
-                key={rfi.id}
-                className="
-                  bg-white dark:bg-neutral-900
-                  border border-neutral-200 dark:border-neutral-800
-                  rounded p-3 shadow-sm hover:shadow-md
-                  transition
-                "
-              >
+            {/* Card (mobile) */}
+            <div className="block sm:hidden">
+              <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded p-3 shadow-sm hover:shadow-md transition">
                 <div className="flex justify-between items-center">
                   <h2 className="font-bold text-lg">RFI #{rfi.rfiNumber || "--"}</h2>
                   <Link
                     href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/rfis/${rfi.id}`}
-                    className="
-                      text-blue-600 underline text-sm
-                      hover:text-blue-700
-                      dark:text-blue-400 dark:hover:text-blue-300
-                    "
+                    className="text-blue-600 underline text-sm hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                   >
                     View
                   </Link>
@@ -240,14 +201,14 @@ export default function RfiListPage() {
                   <strong>Assigned To:</strong> {rfi.assignedTo || "N/A"}
                 </p>
               </div>
-            ))}
-          </div>
-        </>
-      )}
+            </div>
+          </>
+        )}
+      />
 
       {/* Pagination Controls */}
       {filteredRfis.length > pageSize && (
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-center mt-4">
           <GrayButton
             onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
             disabled={currentPage <= 1}

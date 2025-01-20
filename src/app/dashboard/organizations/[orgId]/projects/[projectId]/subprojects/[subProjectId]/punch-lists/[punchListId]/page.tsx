@@ -1,5 +1,3 @@
-// src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/punch-lists/[punchListId]/page.tsx
-
 "use client";
 
 import { useState, useEffect, FormEvent } from "react";
@@ -41,6 +39,10 @@ export default function PunchListDetailPage() {
   // Attachments
   const [files, setFiles] = useState<FileList | null>(null);
 
+  // For fade-in
+  const [showContent, setShowContent] = useState(false);
+
+  // Load data
   useEffect(() => {
     async function load() {
       try {
@@ -58,6 +60,8 @@ export default function PunchListDetailPage() {
         setError("Failed to load punch list.");
       } finally {
         setLoading(false);
+        // fade-in
+        setTimeout(() => setShowContent(true), 100);
       }
     }
     load();
@@ -129,6 +133,7 @@ export default function PunchListDetailPage() {
     }
   }
 
+  // ---------- RENDER ----------
   if (loading) {
     return <div className="p-6 text-sm">Loading Punch List...</div>;
   }
@@ -141,198 +146,220 @@ export default function PunchListDetailPage() {
 
   return (
     <PageContainer>
-      {/* Back link */}
-      <Link
-        href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/punch-lists`}
-        className="
-          text-sm font-medium text-blue-600 underline
-          hover:text-blue-700 dark:text-blue-400
-          dark:hover:text-blue-300 transition-colors
-        "
+      {/* === Fade-in #1: Back link & Title === */}
+      <div
+        className={`
+          opacity-0 transition-all duration-500 ease-out delay-[0ms]
+          ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
+        `}
       >
-        &larr; Back to Punch Lists
-      </Link>
+        <Link
+          href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/punch-lists`}
+          className="
+            text-sm font-medium text-blue-600 underline
+            hover:text-blue-700 dark:text-blue-400
+            dark:hover:text-blue-300 transition-colors
+          "
+        >
+          &larr; Back to Punch Lists
+        </Link>
 
-      {/* Header */}
-      <div className="space-y-1">
-        <h1 className="text-2xl font-bold">{punchList.title}</h1>
+        <div className="space-y-1 mt-2">
+          <h1 className="text-2xl font-bold">{punchList.title}</h1>
+        </div>
       </div>
 
-      {/* Main Details Card */}
-      <Card>
-        <form onSubmit={handleUpdatePunchList} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Title</label>
+      {/* === Fade-in #2: Main Details === */}
+      <div
+        className={`
+          opacity-0 transition-all duration-500 ease-out delay-[100ms]
+          ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
+        `}
+      >
+        <Card>
+          <form onSubmit={handleUpdatePunchList} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Title</label>
+              <input
+                className="
+                  border p-2 w-full rounded
+                  bg-white dark:bg-neutral-800 dark:text-white
+                "
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Description</label>
+              <textarea
+                className="
+                  border p-2 w-full rounded
+                  bg-white dark:bg-neutral-800 dark:text-white
+                "
+                rows={3}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Status</label>
+              <select
+                className="
+                  border p-2 w-full rounded
+                  bg-white dark:bg-neutral-800 dark:text-white
+                "
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+              >
+                <option value="open">Open</option>
+                <option value="inProgress">In Progress</option>
+                <option value="closed">Closed</option>
+              </select>
+            </div>
+
+            {/* Items Section */}
+            <Card>
+              <h2 className="text-lg font-semibold mb-2">Punch Items</h2>
+              <GrayButton onClick={handleAddItem} className="mb-3" type="button">
+                Add New Item
+              </GrayButton>
+
+              {items.length === 0 && (
+                <p className="text-sm text-neutral-600 dark:text-neutral-300">
+                  No items yet.
+                </p>
+              )}
+
+              {items.map((item) => (
+                <Card key={item.id} className="space-y-2 mb-2">
+                  <div className="flex gap-2 items-center">
+                    <label className="block text-sm w-16">Title</label>
+                    <input
+                      className="border p-1 flex-1 rounded"
+                      value={item.title}
+                      onChange={(e) => handleItemChange(item.id, "title", e.target.value)}
+                    />
+                  </div>
+
+                  <div className="flex gap-2 items-center">
+                    <label className="block text-sm w-16">Location</label>
+                    <input
+                      className="border p-1 flex-1 rounded"
+                      value={item.location || ""}
+                      onChange={(e) =>
+                        handleItemChange(item.id, "location", e.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div className="flex gap-2 items-center">
+                    <label className="block text-sm w-16">Assigned</label>
+                    <input
+                      className="border p-1 flex-1 rounded"
+                      value={item.assignedTo || ""}
+                      onChange={(e) =>
+                        handleItemChange(item.id, "assignedTo", e.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div className="flex gap-2 items-center">
+                    <label className="block text-sm w-16">Status</label>
+                    <select
+                      className="border p-1 rounded"
+                      value={item.status || "open"}
+                      onChange={(e) =>
+                        handleItemChange(item.id, "status", e.target.value)
+                      }
+                    >
+                      <option value="open">Open</option>
+                      <option value="done">Done</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm mb-1">Notes</label>
+                    <textarea
+                      className="border p-1 w-full rounded"
+                      rows={2}
+                      value={item.notes || ""}
+                      onChange={(e) => handleItemChange(item.id, "notes", e.target.value)}
+                    />
+                  </div>
+
+                  <div className="flex justify-end">
+                    <GrayButton
+                      onClick={() => handleDeleteItem(item.id)}
+                      className="text-xs bg-red-600 hover:bg-red-700"
+                      type="button"
+                    >
+                      Remove
+                    </GrayButton>
+                  </div>
+                </Card>
+              ))}
+            </Card>
+
+            <GrayButton type="submit">Update Punch List</GrayButton>
+          </form>
+        </Card>
+      </div>
+
+      {/* === Fade-in #3: Attachments === */}
+      <div
+        className={`
+          opacity-0 transition-all duration-500 ease-out delay-[200ms]
+          ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
+        `}
+      >
+        <Card>
+          <h2 className="text-lg font-semibold">Attachments</h2>
+          {punchList.attachments && punchList.attachments.length > 0 ? (
+            <ul className="list-disc ml-5 text-sm mt-2">
+              {punchList.attachments.map((url, i) => (
+                <li key={i}>
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="
+                      text-blue-600 underline
+                      hover:text-blue-700
+                      dark:text-blue-400 dark:hover:text-blue-300
+                    "
+                  >
+                    {url.split("/").pop()}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm mt-1">No attachments yet.</p>
+          )}
+
+          {/* Upload new attachments */}
+          <div className="mt-4 space-y-2">
+            <label className="block text-sm font-medium">Upload Attachments</label>
             <input
+              type="file"
+              multiple
+              onChange={(e) => setFiles(e.target.files)}
               className="
-                border p-2 w-full rounded
-                bg-white dark:bg-neutral-800 dark:text-white
+                file:mr-2 file:py-2 file:px-3
+                file:border-0 file:rounded
+                file:bg-gray-300 file:text-black
+                hover:file:bg-gray-400
+                dark:file:bg-gray-700 dark:file:text-white
+                dark:hover:file:bg-gray-600
               "
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
             />
+            <GrayButton onClick={handleUploadAttachments}>Upload</GrayButton>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Description</label>
-            <textarea
-              className="
-                border p-2 w-full rounded
-                bg-white dark:bg-neutral-800 dark:text-white
-              "
-              rows={3}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Status</label>
-            <select
-              className="
-                border p-2 w-full rounded
-                bg-white dark:bg-neutral-800 dark:text-white
-              "
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
-              <option value="open">Open</option>
-              <option value="inProgress">In Progress</option>
-              <option value="closed">Closed</option>
-            </select>
-          </div>
-
-          {/* Items Section */}
-          <Card>
-            <h2 className="text-lg font-semibold mb-2">Punch Items</h2>
-            <GrayButton onClick={handleAddItem} className="mb-3">
-              Add New Item
-            </GrayButton>
-
-            {items.length === 0 && (
-              <p className="text-sm text-neutral-600 dark:text-neutral-300">
-                No items yet.
-              </p>
-            )}
-
-            {items.map((item) => (
-              <Card key={item.id} className="space-y-2 mb-2">
-                <div className="flex gap-2 items-center">
-                  <label className="block text-sm w-16">Title</label>
-                  <input
-                    className="border p-1 flex-1 rounded"
-                    value={item.title}
-                    onChange={(e) => handleItemChange(item.id, "title", e.target.value)}
-                  />
-                </div>
-
-                <div className="flex gap-2 items-center">
-                  <label className="block text-sm w-16">Location</label>
-                  <input
-                    className="border p-1 flex-1 rounded"
-                    value={item.location || ""}
-                    onChange={(e) =>
-                      handleItemChange(item.id, "location", e.target.value)
-                    }
-                  />
-                </div>
-
-                <div className="flex gap-2 items-center">
-                  <label className="block text-sm w-16">Assigned</label>
-                  <input
-                    className="border p-1 flex-1 rounded"
-                    value={item.assignedTo || ""}
-                    onChange={(e) =>
-                      handleItemChange(item.id, "assignedTo", e.target.value)
-                    }
-                  />
-                </div>
-
-                <div className="flex gap-2 items-center">
-                  <label className="block text-sm w-16">Status</label>
-                  <select
-                    className="border p-1 rounded"
-                    value={item.status || "open"}
-                    onChange={(e) => handleItemChange(item.id, "status", e.target.value)}
-                  >
-                    <option value="open">Open</option>
-                    <option value="done">Done</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm mb-1">Notes</label>
-                  <textarea
-                    className="border p-1 w-full rounded"
-                    rows={2}
-                    value={item.notes || ""}
-                    onChange={(e) => handleItemChange(item.id, "notes", e.target.value)}
-                  />
-                </div>
-
-                <div className="flex justify-end">
-                  <GrayButton
-                    onClick={() => handleDeleteItem(item.id)}
-                    className="text-xs bg-red-600 hover:bg-red-700"
-                    type="button"
-                  >
-                    Remove
-                  </GrayButton>
-                </div>
-              </Card>
-            ))}
-          </Card>
-
-          <GrayButton type="submit">Update Punch List</GrayButton>
-        </form>
-      </Card>
-
-      {/* Attachments Card */}
-      <Card>
-        <h2 className="text-lg font-semibold">Attachments</h2>
-        {punchList.attachments && punchList.attachments.length > 0 ? (
-          <ul className="list-disc ml-5 text-sm mt-2">
-            {punchList.attachments.map((url, i) => (
-              <li key={i}>
-                <a
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="
-                    text-blue-600 underline
-                    hover:text-blue-700
-                    dark:text-blue-400 dark:hover:text-blue-300
-                  "
-                >
-                  {url.split("/").pop()}
-                </a>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm mt-1">No attachments yet.</p>
-        )}
-
-        {/* Upload new attachments */}
-        <div className="mt-4 space-y-2">
-          <label className="block text-sm font-medium">Upload Attachments</label>
-          <input
-            type="file"
-            multiple
-            onChange={(e) => setFiles(e.target.files)}
-            className="
-              file:mr-2 file:py-2 file:px-3
-              file:border-0 file:rounded
-              file:bg-gray-300 file:text-black
-              hover:file:bg-gray-400
-              dark:file:bg-gray-700 dark:file:text-white
-              dark:hover:file:bg-gray-600
-            "
-          />
-          <GrayButton onClick={handleUploadAttachments}>Upload</GrayButton>
-        </div>
-      </Card>
+        </Card>
+      </div>
     </PageContainer>
   );
 }

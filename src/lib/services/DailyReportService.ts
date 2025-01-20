@@ -81,7 +81,7 @@ export async function fetchDailyReport(
   orgId: string,
   projectId: string,
   subProjectId: string,
-  reportId: string
+  dailyReportId: string
 ): Promise<DailyReportDoc> {
   const docRef = doc(
     firestore,
@@ -92,7 +92,7 @@ export async function fetchDailyReport(
     "subprojects",
     subProjectId,
     "daily-reports",
-    reportId
+    dailyReportId
   );
   const snap = await getDoc(docRef);
   if (!snap.exists()) {
@@ -130,7 +130,7 @@ export async function updateDailyReport(
   orgId: string,
   projectId: string,
   subProjectId: string,
-  reportId: string,
+  dailyReportId: string,
   updates: Partial<DailyReportDoc>
 ) {
   const docRef = doc(
@@ -142,7 +142,7 @@ export async function updateDailyReport(
     "subprojects",
     subProjectId,
     "daily-reports",
-    reportId
+    dailyReportId
   );
   await updateDoc(docRef, {
     ...updates,
@@ -158,7 +158,7 @@ export async function deleteDailyReport(
   orgId: string,
   projectId: string,
   subProjectId: string,
-  reportId: string
+  dailyReportId: string
 ) {
   const docRef = doc(
     firestore,
@@ -169,7 +169,7 @@ export async function deleteDailyReport(
     "subprojects",
     subProjectId,
     "daily-reports",
-    reportId
+    dailyReportId
   );
   await deleteDoc(docRef);
 }
@@ -181,13 +181,13 @@ export async function uploadDailyReportAttachment(
   orgId: string,
   projectId: string,
   subProjectId: string,
-  reportId: string,
+  dailyReportId: string,
   file: File
 ): Promise<string> {
   const storage = getStorage();
   const fileRef = ref(
     storage,
-    `daily-reports/${orgId}/${projectId}/${subProjectId}/${reportId}/${file.name}`
+    `daily-reports/${orgId}/${projectId}/${subProjectId}/${dailyReportId}/${file.name}`
   );
   await uploadBytes(fileRef, file);
   return await getDownloadURL(fileRef);

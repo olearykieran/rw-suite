@@ -26,6 +26,9 @@ export default function SubProjectOverview() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // For fade-in animation
+  const [showContent, setShowContent] = useState(false);
+
   useEffect(() => {
     async function fetchData() {
       try {
@@ -79,6 +82,8 @@ export default function SubProjectOverview() {
         setError("Failed to load sub-project.");
       } finally {
         setLoading(false);
+        // Trigger the fade-in after loading completes
+        setTimeout(() => setShowContent(true), 100);
       }
     }
 
@@ -105,194 +110,210 @@ export default function SubProjectOverview() {
 
   return (
     <div className="w-full max-w-5xl mx-auto px-4 py-6 space-y-8">
-      {/* Back link */}
-      <div className="flex items-center justify-between">
-        <Link
-          href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects`}
+      {/* === Section #1: Back link & sub-project header === */}
+      <div
+        className={`
+          opacity-0 transition-all duration-500 ease-out delay-[0ms]
+          ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
+        `}
+      >
+        {/* Back link */}
+        <div className="flex items-center justify-between mb-4">
+          <Link
+            href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects`}
+            className="
+              text-sm font-medium text-blue-600 underline
+              hover:text-blue-700 dark:text-blue-400
+              dark:hover:text-blue-300 transition-colors
+            "
+          >
+            &larr; Back to Sub-Projects of {mainProjectName}
+          </Link>
+        </div>
+
+        {/* Sub-Project Header */}
+        <div
           className="
-            text-sm font-medium text-blue-600 underline
-            hover:text-blue-700 dark:text-blue-400
-            dark:hover:text-blue-300 transition-colors
+            bg-white dark:bg-neutral-900
+            border border-neutral-200 dark:border-gray-600
+            rounded-lg p-6 space-y-4
           "
         >
-          &larr; Back to Sub-Projects of {mainProjectName}
-        </Link>
-      </div>
-
-      {/* Sub-Project Header */}
-      <div
-        className="
-          bg-white dark:bg-neutral-900
-          border border-neutral-200 dark:border-neutral-800
-          rounded-lg p-6 space-y-4
-        "
-      >
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">
-            Sub-Project: {subProject.name || subProjectId}
-          </h1>
-          <button
-            onClick={handleDeselectSubProject}
-            className="
-              bg-gray-300 text-black
-              hover:bg-gray-400
-              dark:bg-gray-700 dark:text-white
-              dark:hover:bg-gray-600
-              transition-colors
-              px-4 py-2 rounded text-sm
-            "
-          >
-            Deselect
-          </button>
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold">
+              Sub-Project: {subProject.name || subProjectId}
+            </h1>
+            <button
+              onClick={handleDeselectSubProject}
+              className="
+                bg-gray-300 text-black
+                hover:bg-gray-400
+                dark:bg-gray-700 dark:text-white
+                dark:hover:bg-gray-600
+                transition-colors
+                px-4 py-2 rounded text-sm
+              "
+            >
+              Deselect
+            </button>
+          </div>
+          <p className="text-sm">
+            <strong>Status:</strong> {subProject.status || "N/A"}
+          </p>
         </div>
-        <p className="text-sm">
-          <strong>Status:</strong> {subProject.status || "N/A"}
-        </p>
       </div>
 
-      {/* Sub-Project Features */}
+      {/* === Section #2: Sub-Project Features === */}
       <div
-        className="
-          bg-white dark:bg-neutral-900
-          border border-neutral-200 dark:border-neutral-800
-          rounded-lg p-6 space-y-4
-        "
+        className={`
+          opacity-0 transition-all duration-500 ease-out delay-[100ms]
+          ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
+        `}
       >
-        <h2 className="text-xl font-semibold">Sub-Project Features</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {/* RFIs */}
-          <Link
-            href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/rfis`}
-            className="
-              bg-white dark:bg-neutral-900
-              border border-neutral-200 dark:border-neutral-800
-              rounded p-4 shadow-sm hover:shadow-md
-              transition
-            "
-          >
-            <h3 className="font-bold mb-1">RFIs</h3>
-            <p className="text-sm">
-              Create, distribute, and track Requests for Information.
-            </p>
-          </Link>
+        <div
+          className="
+            bg-white dark:bg-neutral-900
+            border border-neutral-200 dark:border-gray-600
+            rounded-lg p-6 space-y-4
+          "
+        >
+          <h2 className="text-xl font-semibold">Sub-Project Features</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* RFIs */}
+            <Link
+              href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/rfis`}
+              className="
+                bg-white dark:bg-neutral-700
+                border border-neutral-200 dark:border-gray-600
+                rounded p-4 shadow-sm hover:shadow-md
+                transition
+              "
+            >
+              <h3 className="font-bold mb-1">RFIs</h3>
+              <p className="text-sm">
+                Create, distribute, and track Requests for Information.
+              </p>
+            </Link>
 
-          {/* Submittals */}
-          <Link
-            href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/submittals`}
-            className="
-              bg-white dark:bg-neutral-900
-              border border-neutral-200 dark:border-neutral-800
-              rounded p-4 shadow-sm hover:shadow-md
-              transition
-            "
-          >
-            <h3 className="font-bold mb-1">Submittals</h3>
-            <p className="text-sm">Create, distribute, and track Submittals.</p>
-          </Link>
+            {/* Submittals */}
+            <Link
+              href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/submittals`}
+              className="
+                bg-white dark:bg-neutral-700
+                border border-neutral-200 dark:border-gray-600
+                rounded p-4 shadow-sm hover:shadow-md
+                transition
+              "
+            >
+              <h3 className="font-bold mb-1">Submittals</h3>
+              <p className="text-sm">Create, distribute, and track Submittals.</p>
+            </Link>
 
-          {/* Blueprints */}
-          <Link
-            href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/blueprints`}
-            className="
-              bg-white dark:bg-neutral-900
-              border border-neutral-200 dark:border-neutral-800
-              rounded p-4 shadow-sm hover:shadow-md
-              transition
-            "
-          >
-            <h3 className="font-bold mb-1">Blueprints</h3>
-            <p className="text-sm">Create, distribute, and track Blueprints.</p>
-          </Link>
+            {/* Blueprints */}
+            <Link
+              href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/blueprints`}
+              className="
+                bg-white dark:bg-neutral-700
+                border border-neutral-200 dark:border-gray-600
+                rounded p-4 shadow-sm hover:shadow-md
+                transition
+              "
+            >
+              <h3 className="font-bold mb-1">Blueprints</h3>
+              <p className="text-sm">Create, distribute, and track Blueprints.</p>
+            </Link>
 
-          {/* Tasks */}
-          <Link
-            href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/tasks`}
-            className="
-              bg-white dark:bg-neutral-900
-              border border-neutral-200 dark:border-neutral-800
-              rounded p-4 shadow-sm hover:shadow-md
-              transition
-            "
-          >
-            <h3 className="font-bold mb-1">Tasks & Scheduling</h3>
-            <p className="text-sm">Create, distribute, and track Tasks.</p>
-          </Link>
+            {/* Tasks */}
+            <Link
+              href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/tasks`}
+              className="
+                bg-white dark:bg-neutral-700
+                border border-neutral-200 dark:border-gray-600
+                rounded p-4 shadow-sm hover:shadow-md
+                transition
+              "
+            >
+              <h3 className="font-bold mb-1">Tasks & Scheduling</h3>
+              <p className="text-sm">Create, distribute, and track Tasks.</p>
+            </Link>
 
-          {/* Finances */}
-          <Link
-            href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/finances`}
-            className="
-              bg-white dark:bg-neutral-900
-              border border-neutral-200 dark:border-neutral-800
-              rounded p-4 shadow-sm hover:shadow-md
-              transition
-            "
-          >
-            <h3 className="font-bold mb-1">Finances</h3>
-            <p className="text-sm">Create, distribute, and track Finances.</p>
-          </Link>
+            {/* Finances */}
+            <Link
+              href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/finances`}
+              className="
+                bg-white dark:bg-neutral-700
+                border border-neutral-200 dark:border-gray-600
+                rounded p-4 shadow-sm hover:shadow-md
+                transition
+              "
+            >
+              <h3 className="font-bold mb-1">Finances</h3>
+              <p className="text-sm">Create, distribute, and track Finances.</p>
+            </Link>
 
-          {/* Change Orders */}
-          <Link
-            href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/change-orders`}
-            className="
-              bg-white dark:bg-neutral-900
-              border border-neutral-200 dark:border-neutral-800
-              rounded p-4 shadow-sm hover:shadow-md
-              transition
-            "
-          >
-            <h3 className="font-bold mb-1">Change Orders</h3>
-            <p className="text-sm">Track changes to scope, costs, or schedule.</p>
-          </Link>
+            {/* Change Orders */}
+            <Link
+              href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/change-orders`}
+              className="
+                bg-white dark:bg-neutral-700
+                border border-neutral-200 dark:border-gray-600
+                rounded p-4 shadow-sm hover:shadow-md
+                transition
+              "
+            >
+              <h3 className="font-bold mb-1">Change Orders</h3>
+              <p className="text-sm">Track changes to scope, costs, or schedule.</p>
+            </Link>
 
-          {/* Daily Reports */}
-          <Link
-            href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/daily-reports`}
-            className="
-              bg-white dark:bg-neutral-900
-              border border-neutral-200 dark:border-neutral-800
-              rounded p-4 shadow-sm hover:shadow-md
-              transition
-            "
-          >
-            <h3 className="font-bold mb-1">Daily Reports</h3>
-            <p className="text-sm">
-              Log site conditions, progress, and any incidents daily.
-            </p>
-          </Link>
+            {/* Daily Reports */}
+            <Link
+              href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/daily-reports`}
+              className="
+                bg-white dark:bg-neutral-700
+                border border-neutral-200 dark:border-gray-600
+                rounded p-4 shadow-sm hover:shadow-md
+                transition
+              "
+            >
+              <h3 className="font-bold mb-1">Daily Reports</h3>
+              <p className="text-sm">
+                Log site conditions, progress, and any incidents daily.
+              </p>
+            </Link>
 
-          {/* Meeting Minutes */}
-          <Link
-            href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/meeting-minutes`}
-            className="
-              bg-white dark:bg-neutral-900
-              border border-neutral-200 dark:border-neutral-800
-              rounded p-4 shadow-sm hover:shadow-md
-              transition
-            "
-          >
-            <h3 className="font-bold mb-1">Meeting Minutes</h3>
-            <p className="text-sm">
-              Document discussions, decisions, and next steps from meetings.
-            </p>
-          </Link>
+            {/* Meeting Minutes */}
+            <Link
+              href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/meeting-minutes`}
+              className="
+                bg-white dark:bg-neutral-700
+                border border-neutral-200 dark:border-gray-600
+                rounded p-4 shadow-sm hover:shadow-md
+                transition
+              "
+            >
+              <h3 className="font-bold mb-1">Meeting Minutes</h3>
+              <p className="text-sm">
+                Document discussions, decisions, and next steps from meetings.
+              </p>
+            </Link>
 
-          {/* Punch Lists */}
-          <Link
-            href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/punch-lists`}
-            className="
-              bg-white dark:bg-neutral-900
-              border border-neutral-200 dark:border-neutral-800
-              rounded p-4 shadow-sm hover:shadow-md
-              transition
-            "
-          >
-            <h3 className="font-bold mb-1">Punch Lists</h3>
-            <p className="text-sm">
-              Track final tasks or issues that must be resolved before project close-out.
-            </p>
-          </Link>
+            {/* Punch Lists */}
+            <Link
+              href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/punch-lists`}
+              className="
+                bg-white dark:bg-neutral-700
+                border border-neutral-200 dark:border-gray-600
+                rounded p-4 shadow-sm hover:shadow-md
+                transition
+              "
+            >
+              <h3 className="font-bold mb-1">Punch Lists</h3>
+              <p className="text-sm">
+                Track final tasks or issues that must be resolved before project
+                close-out.
+              </p>
+            </Link>
+          </div>
         </div>
       </div>
     </div>

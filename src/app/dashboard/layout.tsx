@@ -7,21 +7,30 @@ import { useRouter } from "next/navigation";
 import { collection, getDocs } from "firebase/firestore";
 import SidebarNav from "@/components/SidebarNav";
 import TopHeader from "@/components/TopHeader";
+import { LoadingProvider, useLoading } from "@/components/ui/LoadingProvider";
+import { AnimatedPage } from "@/components/ui/AnimatedPage";
 
-export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const [user, loading] = useAuthState(auth);
+function DashboardLayoutContent({ children }: { children: ReactNode }) {
+  const [user, authLoading] = useAuthState(auth);
   const router = useRouter();
+  const { withLoading, setLoading } = useLoading();
 
   const [orgIds, setOrgIds] = useState<string[]>([]);
   const [orgCheckDone, setOrgCheckDone] = useState(false);
 
+  // Handle auth loading state
   useEffect(() => {
-    if (!loading && !user) {
+    setLoading(authLoading || !orgCheckDone);
+  }, [authLoading, orgCheckDone, setLoading]);
+
+  // Handle auth redirects and org check
+  useEffect(() => {
+    if (!authLoading && !user) {
       router.replace("/public/auth/sign-in");
-    } else if (!loading && user) {
+    } else if (!authLoading && user) {
       checkOrganizations(user.uid);
     }
-  }, [user, loading]);
+  }, [user, authLoading]);
 
   async function checkOrganizations(uid: string) {
     try {
@@ -43,8 +52,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     }
   }
 
-  if (loading || !orgCheckDone) {
-    return <div className="p-6 text-[var(--foreground)]">Loading your account...</div>;
+  if (authLoading || !orgCheckDone) {
+    return null;
   }
 
   if (orgIds.length === 0) {
@@ -60,23 +69,21 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex h-screen w-full overflow-hidden">
-      {/* 
-        Sidebar is hidden on mobile due to the
-        `hidden sm:flex` class inside SidebarNav
-      */}
       <SidebarNav />
-
-      {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* 
-          The TopHeader includes the mobile hamburger for opening 
-          the mobile drawer (MobileNavDrawer). 
-        */}
         <TopHeader />
-
-        {/* Main page content */}
-        <main className="flex-1 p-6 overflow-y-auto">{children}</main>
+        <main className="flex-1 p-6 overflow-y-auto">
+          <AnimatedPage>{children}</AnimatedPage>
+        </main>
       </div>
     </div>
+  );
+}
+
+export default function DashboardLayout({ children }: { children: ReactNode }) {
+  return (
+    <LoadingProvider>
+      <DashboardLayoutContent>{children}</DashboardLayoutContent>
+    </LoadingProvider>
   );
 }
