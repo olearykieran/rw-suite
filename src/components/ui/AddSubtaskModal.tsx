@@ -1,12 +1,8 @@
 "use client";
+
 import React, { useState, FormEvent } from "react";
 import { SubTask, TaskDoc } from "@/lib/services/TaskService";
 
-/**
- * If you store blocked weekdays/dates globally or per subProject,
- * you can pass them in as props.
- * For demonstration, we hardcode them here.
- */
 const BLOCKED_WEEKDAYS = [0, 6]; // Sunday(0), Saturday(6)
 const BLOCKED_DATES = ["2024-01-01"];
 
@@ -57,11 +53,6 @@ function offsetToDate(mainStart: Date, mainEnd: Date, offsetDay: number): Date {
   return out > mainEnd ? new Date(mainEnd.getTime()) : out;
 }
 
-/**
- * AddSubtaskModal
- * A reusable modal for adding a subtask to a "mainTask,"
- * with the user specifying offsetStart + durationDays.
- */
 export function AddSubtaskModal({
   visible,
   onClose,
@@ -77,13 +68,13 @@ export function AddSubtaskModal({
   const [offsetStart, setOffsetStart] = useState(1);
   const [duration, setDuration] = useState(1);
 
-  if (!visible) return null; // not visible => do nothing
+  if (!visible) return null;
 
   // Ensure mainTask has valid start/end
   const mainStart = ensureDate(mainTask?.startDate);
   const mainEnd = ensureDate(mainTask?.endDate);
 
-  // If the main task date is invalid, user can’t create a subtask
+  // If invalid => show an error
   if (!mainTask || !mainStart || !mainEnd) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
@@ -103,18 +94,18 @@ export function AddSubtaskModal({
     );
   }
 
-  // 1) compute how many working days in main
+  // We know mainStart & mainEnd are Date objects here
   const totalDays = computeWorkingDaysCount(mainStart, mainEnd);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
 
-    // If offsetStart > totalDays => clamp
+    // check offsetStart
     if (offsetStart > totalDays) {
       alert(`Offset start cannot exceed ${totalDays} total days in main task range.`);
       return;
     }
-    // If offsetStart + duration - 1 > totalDays => clamp
+    // offsetStart + duration cannot exceed totalDays
     if (offsetStart + duration - 1 > totalDays) {
       alert(
         `Offset start + duration cannot exceed ${totalDays} total working days in main.`
@@ -122,13 +113,13 @@ export function AddSubtaskModal({
       return;
     }
 
-    // Convert offsetStart => real Date
-    const subStart = offsetToDate(mainStart, mainEnd, offsetStart);
+    // Convert offsetStart => real Date (use non-null assertion or as Date)
+    const subStart = offsetToDate(mainStart!, mainEnd!, offsetStart);
 
     // Move forward skipping blocked days for “duration - 1”
     let remain = duration - 1;
     const subEnd = new Date(subStart.getTime());
-    while (remain > 0 && subEnd < mainEnd) {
+    while (remain > 0 && subEnd < mainEnd!) {
       subEnd.setDate(subEnd.getDate() + 1);
       const dow = subEnd.getDay();
       const iso = subEnd.toISOString().slice(0, 10);
@@ -136,9 +127,9 @@ export function AddSubtaskModal({
         remain--;
       }
     }
-    // clamp if subEnd went beyond mainEnd
-    if (subEnd > mainEnd) {
-      subEnd.setTime(mainEnd.getTime());
+    // clamp if subEnd beyond mainEnd
+    if (subEnd > mainEnd!) {
+      subEnd.setTime(mainEnd!.getTime());
     }
 
     const newSub: SubTask = {

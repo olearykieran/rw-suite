@@ -24,6 +24,8 @@ declare module "dhtmlx-gantt" {
   }
 
   interface GanttStatic {
+    templates: any;
+    date: any;
     config: GanttConfig;
 
     // already declared

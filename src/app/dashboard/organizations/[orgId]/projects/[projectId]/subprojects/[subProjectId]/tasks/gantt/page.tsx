@@ -1,10 +1,19 @@
+// src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/tasks/gantt/page.tsx
+
 "use client";
 
-import React, { useEffect, useState, useRef, FormEvent } from "react";
+import React, {
+  useEffect,
+  useState,
+  useRef,
+  FormEvent,
+  WheelEvent,
+  useCallback,
+} from "react";
 import { useParams } from "next/navigation";
+
 import {
   TaskDoc,
-  SubTask,
   fetchAllTasks,
   fetchTask,
   updateTask,
@@ -23,7 +32,7 @@ interface DhtmlxTaskItem {
   text: string;
   start_date: string; // e.g. "2025-01-10 00:00"
   end_date: string; // e.g. "2025-01-20 00:00"
-  parent?: string | number;
+  parent: string | number;
 }
 interface DhtmlxLink {
   id: string | number;
@@ -36,22 +45,35 @@ interface DhtmlxGanttData {
   links: DhtmlxLink[];
 }
 
-/** Convert date-ish fields to "YYYY-MM-DD HH:mm" local-midnight. */
-function safeDateString(val: any): string {
-  if (!val) return "2024-01-01 00:00";
+/**
+ * safeDateString(val)
+ *   Converts a task’s start/end Date => "YYYY-MM-DD HH:mm"
+ *   We add +1 day to the end date so tasks show inclusively in the Gantt.
+ */
+function safeDateString(val: any, isEndDate = false): string {
+  if (!val) return "2025-01-01 00:00";
   let d: Date;
 
+  // Attempt to parse
   if (val instanceof Date) {
     d = val;
-  } else if (typeof val === "string" && /^\d{4}-\d{2}-\d{2}T/.test(val)) {
+  } else if (typeof val === "string" && val.includes("T")) {
     d = new Date(val);
   } else if (val && typeof val === "object" && "seconds" in val) {
+    // Firestore Timestamp => {seconds, ...}
     d = new Date(val.seconds * 1000);
   } else {
-    d = new Date("2024-01-01T00:00:00");
+    d = new Date("2025-01-01T00:00:00");
   }
 
-  if (isNaN(d.getTime())) return "2024-01-01 00:00";
+  if (isNaN(d.getTime())) {
+    return "2025-01-01 00:00";
+  }
+
+  // If this is an end date, add +1 day so it displays inclusively in Gantt
+  if (isEndDate) {
+    d.setDate(d.getDate() + 1);
+  }
 
   const yy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -59,39 +81,34 @@ function safeDateString(val: any): string {
   return `${yy}-${mm}-${dd} 00:00`;
 }
 
-/** Build Gantt data from your tasks. */
+/**
+ * buildGanttData => transforms TaskDoc[] into DHTMLX Gantt format.
+ *   - For nesting, uses .parentId or "0" if no parent.
+ *   - For dependencies => finish-to-start links.
+ */
 function buildGanttData(taskDocs: TaskDoc[]): DhtmlxGanttData {
   const data: DhtmlxTaskItem[] = [];
   const links: DhtmlxLink[] = [];
 
-  for (const main of taskDocs) {
+  for (const t of taskDocs) {
+    const parentVal = t.parentId || "0";
     data.push({
-      id: main.id,
-      text: main.title,
-      start_date: safeDateString(main.startDate),
-      end_date: safeDateString(main.endDate),
-      parent: "0",
+      id: t.id,
+      text: t.title,
+      start_date: safeDateString(t.startDate, false),
+      end_date: safeDateString(t.endDate, true),
+      parent: parentVal,
     });
-    if (main.predecessors?.length) {
-      for (const p of main.predecessors) {
-        links.push({ id: `${p}->${main.id}`, source: p, target: main.id, type: 0 });
-      }
-    }
 
-    if (main.subtasks?.length) {
-      for (const sub of main.subtasks) {
-        data.push({
-          id: sub.id,
-          text: sub.title,
-          start_date: safeDateString(sub.startDate),
-          end_date: safeDateString(sub.endDate),
-          parent: main.id,
+    // If it has predecessors => create finish-to-start links
+    if (t.predecessors?.length) {
+      for (const p of t.predecessors) {
+        links.push({
+          id: `${p}->${t.id}`,
+          source: p,
+          target: t.id,
+          type: 0, // finish-to-start
         });
-        if (sub.predecessors?.length) {
-          for (const sp of sub.predecessors) {
-            links.push({ id: `${sp}->${sub.id}`, source: sp, target: sub.id, type: 0 });
-          }
-        }
       }
     }
   }
@@ -99,7 +116,6 @@ function buildGanttData(taskDocs: TaskDoc[]): DhtmlxGanttData {
   return { data, links };
 }
 
-/** The main Gantt page component. */
 export default function TasksGanttPage() {
   const { orgId, projectId, subProjectId } = useParams() as {
     orgId: string;
@@ -112,10 +128,16 @@ export default function TasksGanttPage() {
   const [error, setError] = useState("");
   const [showContent, setShowContent] = useState(false);
 
-  // For blocking out weekends/dates
+  // For blocked days (weekends, etc.)
   const [blockedWeekdays, setBlockedWeekdays] = useState<number[]>([0, 6]);
   const [blockedDates, setBlockedDates] = useState<string[]>(["2024-01-01"]);
 
+  // Zoom levels
+  const [zoomLevel, setZoomLevel] = useState<
+    "day" | "week" | "month" | "quarter" | "year"
+  >("week");
+
+  // Load tasks from Firestore
   useEffect(() => {
     if (!orgId || !projectId || !subProjectId) return;
     loadTasks();
@@ -124,17 +146,15 @@ export default function TasksGanttPage() {
   async function loadTasks() {
     try {
       setLoading(true);
-      // fetch tasks => sort => build gantt
       const tasks = await fetchAllTasks(orgId, projectId, subProjectId);
 
-      // If you keep orderIndex on main tasks, sort by it so the Gantt matches the main page:
-      tasks.sort((a, b) => {
-        const aOrder = (a as any).orderIndex ?? 99999;
-        const bOrder = (b as any).orderIndex ?? 99999;
-        return aOrder - bOrder;
-      });
+      // If for some reason multiple docs have the same ID, deduplicate:
+      const uniqueTasks = Array.from(new Map(tasks.map((t) => [t.id, t])).values());
 
-      setGanttData(buildGanttData(tasks));
+      // Sort them by orderIndex
+      uniqueTasks.sort((a, b) => (a.orderIndex ?? 99999) - (b.orderIndex ?? 99999));
+
+      setGanttData(buildGanttData(uniqueTasks));
     } catch (err: any) {
       console.error("Gantt fetch error:", err);
       setError(err.message || "Failed to load tasks for Gantt.");
@@ -145,45 +165,19 @@ export default function TasksGanttPage() {
   }
 
   // ---------- GANTT EVENT HANDLERS ----------
-
-  // Partial update when user drags/resizes a bar
   async function handleTaskUpdated(ganttTask: any) {
     try {
+      // If user drags the bar => newStart/newEnd
       const newStart = new Date(ganttTask.start_date);
       const newEnd = new Date(ganttTask.end_date);
+      // Subtract the +1 day we added for display
+      newEnd.setDate(newEnd.getDate() - 1);
 
-      // If parent=0 => main
-      if (String(ganttTask.parent) === "0") {
-        await updateTask(orgId, projectId, subProjectId, String(ganttTask.id), {
-          startDate: newStart,
-          endDate: newEnd,
-          title: ganttTask.text,
-        });
-      } else {
-        // sub => find which main has that sub
-        const all = await fetchAllTasks(orgId, projectId, subProjectId);
-        const parentDoc = all.find((m) =>
-          m.subtasks?.some((s) => String(s.id) === String(ganttTask.id))
-        );
-        if (!parentDoc) return; // no sub => ignore
-
-        const updatedSubs = (parentDoc.subtasks || []).map((sub) => {
-          if (String(sub.id) === String(ganttTask.id)) {
-            return {
-              ...sub,
-              startDate: newStart,
-              endDate: newEnd,
-              title: ganttTask.text,
-            };
-          }
-          return sub;
-        });
-        await updateTask(orgId, projectId, subProjectId, parentDoc.id, {
-          subtasks: updatedSubs,
-        });
-      }
-
-      // Re-fetch once, no multiple reload
+      await updateTask(orgId, projectId, subProjectId, String(ganttTask.id), {
+        startDate: newStart,
+        endDate: newEnd,
+        title: ganttTask.text,
+      });
       await loadTasks();
     } catch (err: any) {
       console.error("handleTaskUpdated error:", err);
@@ -191,12 +185,10 @@ export default function TasksGanttPage() {
     }
   }
 
-  // Link creation => add dependency
   async function handleLinkAdded(link: DhtmlxLink) {
     try {
       const predecessorId = String(link.source);
       const successorId = String(link.target);
-
       await linkAddOrRemoveDependency(predecessorId, successorId, "add");
       await loadTasks();
     } catch (err: any) {
@@ -205,12 +197,10 @@ export default function TasksGanttPage() {
     }
   }
 
-  // Link deletion => remove dependency
   async function handleLinkDeleted(link: DhtmlxLink) {
     try {
       const predecessorId = String(link.source);
       const successorId = String(link.target);
-
       await linkAddOrRemoveDependency(predecessorId, successorId, "remove");
       await loadTasks();
     } catch (err: any) {
@@ -220,72 +210,40 @@ export default function TasksGanttPage() {
   }
 
   /**
-   * linkAddOrRemoveDependency => the shared logic for sub or main tasks,
-   * adding or removing from predecessors[] / successors[].
+   * linkAddOrRemoveDependency =>
+   *   modifies .predecessors and .successors on the two tasks in Firestore
    */
   async function linkAddOrRemoveDependency(
     predecessorId: string,
     successorId: string,
     mode: "add" | "remove"
   ) {
-    // fetch predecessor
-    let predDoc = await fetchTask(orgId, projectId, subProjectId, predecessorId).catch(
+    // update .successors in predecessor
+    const predDoc = await fetchTask(orgId, projectId, subProjectId, predecessorId).catch(
       () => null
     );
     if (predDoc) {
-      // main => adjust .successors
-      const successors = new Set(predDoc.successors || []);
-      if (mode === "add") successors.add(successorId);
-      else successors.delete(successorId);
-      await updateTask(orgId, projectId, subProjectId, predDoc.id, {
-        successors: Array.from(successors),
+      const newSucc = new Set(predDoc.successors || []);
+      if (mode === "add") newSucc.add(successorId);
+      else newSucc.delete(successorId);
+
+      await updateTask(orgId, projectId, subProjectId, predecessorId, {
+        successors: Array.from(newSucc),
       });
-    } else {
-      // sub => find which main
-      const all = await fetchAllTasks(orgId, projectId, subProjectId);
-      for (const m of all) {
-        const subIdx = (m.subtasks || []).findIndex((s) => s.id === predecessorId);
-        if (subIdx >= 0) {
-          const subarray = [...(m.subtasks || [])];
-          const old = subarray[subIdx];
-          const newSucc = new Set(old.successors || []);
-          if (mode === "add") newSucc.add(successorId);
-          else newSucc.delete(successorId);
-          subarray[subIdx] = { ...old, successors: Array.from(newSucc) };
-          await updateTask(orgId, projectId, subProjectId, m.id, { subtasks: subarray });
-          break;
-        }
-      }
     }
 
-    // fetch successor
-    let succDoc = await fetchTask(orgId, projectId, subProjectId, successorId).catch(
+    // update .predecessors in successor
+    const succDoc = await fetchTask(orgId, projectId, subProjectId, successorId).catch(
       () => null
     );
     if (succDoc) {
-      // main => adjust .predecessors
-      const preds = new Set(succDoc.predecessors || []);
-      if (mode === "add") preds.add(predecessorId);
-      else preds.delete(predecessorId);
-      await updateTask(orgId, projectId, subProjectId, succDoc.id, {
-        predecessors: Array.from(preds),
+      const newPred = new Set(succDoc.predecessors || []);
+      if (mode === "add") newPred.add(predecessorId);
+      else newPred.delete(predecessorId);
+
+      await updateTask(orgId, projectId, subProjectId, successorId, {
+        predecessors: Array.from(newPred),
       });
-    } else {
-      // sub => find which main
-      const all = await fetchAllTasks(orgId, projectId, subProjectId);
-      for (const m of all) {
-        const subIdx = (m.subtasks || []).findIndex((s) => s.id === successorId);
-        if (subIdx >= 0) {
-          const subarray = [...(m.subtasks || [])];
-          const old = subarray[subIdx];
-          const newPreds = new Set(old.predecessors || []);
-          if (mode === "add") newPreds.add(predecessorId);
-          else newPreds.delete(predecessorId);
-          subarray[subIdx] = { ...old, predecessors: Array.from(newPreds) };
-          await updateTask(orgId, projectId, subProjectId, m.id, { subtasks: subarray });
-          break;
-        }
-      }
     }
   }
 
@@ -296,21 +254,22 @@ export default function TasksGanttPage() {
   function handleAddBlockedWeekday(e: FormEvent) {
     e.preventDefault();
     if (!blockedWeekdays.includes(tempDow)) {
-      setBlockedWeekdays([...blockedWeekdays, tempDow]);
+      setBlockedWeekdays((prev) => [...prev, tempDow]);
     }
   }
   function handleAddBlockedDate(e: FormEvent) {
     e.preventDefault();
     if (tempDate && !blockedDates.includes(tempDate)) {
-      setBlockedDates([...blockedDates, tempDate]);
+      setBlockedDates((prev) => [...prev, tempDate]);
     }
   }
 
-  // ---------- Gantt Component using sub-scale + css for weekends ----------
+  // ============= GANTT COMPONENT =============
   function GanttComponent({
     ganttData,
     blockedWeekdays,
     blockedDates,
+    zoomLevel,
     onTaskUpdated,
     onLinkAdded,
     onLinkDeleted,
@@ -318,6 +277,7 @@ export default function TasksGanttPage() {
     ganttData: DhtmlxGanttData;
     blockedWeekdays: number[];
     blockedDates: string[];
+    zoomLevel: "day" | "week" | "month" | "quarter" | "year";
     onTaskUpdated: (task: any) => void;
     onLinkAdded: (link: DhtmlxLink) => void;
     onLinkDeleted: (link: DhtmlxLink) => void;
@@ -325,86 +285,211 @@ export default function TasksGanttPage() {
     const ganttContainer = useRef<HTMLDivElement>(null);
     const inittedRef = useRef(false);
 
-    useEffect(() => {
-      gantt.setSkin("dark");
-      if (!ganttContainer.current) return;
-      if (!inittedRef.current) {
-        // ---------------- Initialize Gantt Once -------------
-        gantt.config.xml_date = "%Y-%m-%d %H:%i";
+    /**
+     * applyZoomConfig => sets gantt.config.scales based on zoomLevel
+     */
+    const applyZoomConfig = useCallback(() => {
+      const ganttAny = gantt as any;
+      let newScales: any[] = [];
 
-        // We'll define a function that returns "weekend" if day is Sat/Sun,
-        // or else an empty string. Then we also check if it's in blockedDates.
-        const dayCss = (date: Date) => {
-          // Check if blocked weekday
+      switch (zoomLevel) {
+        case "day":
+          newScales = [
+            {
+              unit: "day",
+              step: 1,
+              format: (date: Date) => ganttAny.date.date_to_str("%D")(date),
+            },
+            {
+              unit: "day",
+              step: 1,
+              format: (date: Date) => ganttAny.date.date_to_str("%j %M %Y")(date),
+            },
+          ];
+          gantt.config.min_column_width = 40;
+          break;
+
+        case "week":
+          newScales = [
+            {
+              unit: "week",
+              step: 1,
+              format: (date: Date) => {
+                const onejan = new Date(date.getFullYear(), 0, 1);
+                const weekNum = Math.ceil(
+                  ((date.getTime() - onejan.getTime()) / 86400000 + onejan.getDay() + 1) /
+                    7
+                );
+                return `Wk ${weekNum}`;
+              },
+            },
+            {
+              unit: "day",
+              step: 1,
+              format: (date: Date) => ganttAny.date.date_to_str("%D")(date),
+            },
+          ];
+          gantt.config.min_column_width = 50;
+          break;
+
+        case "month":
+          newScales = [
+            {
+              unit: "month",
+              step: 1,
+              format: (date: Date) => ganttAny.date.date_to_str("%F %Y")(date),
+            },
+            {
+              unit: "week",
+              step: 1,
+              format: (date: Date) => `Week #${ganttAny.date.getWeek(date)}`,
+            },
+          ];
+          gantt.config.min_column_width = 70;
+          break;
+
+        case "quarter":
+          newScales = [
+            {
+              unit: "month",
+              step: 3,
+              format: (date: Date) => {
+                const month = date.getMonth();
+                const quarter = Math.floor(month / 3) + 1;
+                const year = date.getFullYear();
+                return `Q${quarter} ${year}`;
+              },
+            },
+            {
+              unit: "month",
+              step: 1,
+              format: (date: Date) => ganttAny.date.date_to_str("%M")(date),
+            },
+          ];
+          gantt.config.min_column_width = 90;
+          break;
+
+        case "year":
+          newScales = [
+            {
+              unit: "year",
+              step: 1,
+              format: (date: Date) => ganttAny.date.date_to_str("%Y")(date),
+            },
+            {
+              unit: "month",
+              step: 1,
+              format: (date: Date) => ganttAny.date.date_to_str("%M")(date),
+            },
+          ];
+          gantt.config.min_column_width = 100;
+          break;
+
+        default:
+          // fallback => "week"
+          newScales = [
+            {
+              unit: "week",
+              step: 1,
+              format: (date: Date) => `Wk ${ganttAny.date.getWeek(date)}`,
+            },
+            {
+              unit: "day",
+              step: 1,
+              format: (date: Date) => ganttAny.date.date_to_str("%D")(date),
+            },
+          ];
+          gantt.config.min_column_width = 50;
+          break;
+      }
+
+      gantt.config.scales = newScales;
+    }, [zoomLevel]);
+
+    /**
+     * dayCss => returns "weekend" for blocked days
+     * Only relevant if scale is day/week so we can see them clearly.
+     */
+    const dayCss = useCallback(
+      (date: Date, scaleUnit: string) => {
+        if (scaleUnit === "day" || scaleUnit === "week") {
           const dow = date.getDay();
           const iso = date.toISOString().slice(0, 10);
-
           if (blockedWeekdays.includes(dow) || blockedDates.includes(iso)) {
-            return "weekend"; // We'll style it similarly
+            return "weekend";
           }
-          return "";
-        };
+        }
+        return "";
+      },
+      [blockedWeekdays, blockedDates]
+    );
 
-        gantt.config.scales = [
-          {
-            unit: "day",
-            format: "%D", // e.g. "Mon", "Tue"
-            css: dayCss, // <--- apply CSS class conditionally
-          },
-          {
-            unit: "day",
-            format: "%j %M %Y", // e.g. "15 Jan 2025"
-            css: dayCss,
-          },
-        ];
+    useEffect(() => {
+      if (!ganttContainer.current) return;
 
-        gantt.config.min_column_width = 40;
+      gantt.setSkin("dark");
 
-        // columns
-        gantt.config.columns = [
-          { name: "text", label: "Task Name", width: 220, tree: true },
-          { name: "start_date", label: "Start", align: "center", width: 90 },
-          { name: "end_date", label: "End", align: "center", width: 90 },
-        ];
+      // Create & append a <style> tag to define our gradient-task class with CSS variables
+      // (This approach follows the "updated CSS logic" snippet you provided.)
+      if (!document.querySelector("#gantt-gradient-style")) {
+        const style = document.createElement("style");
+        style.id = "gantt-gradient-style";
+        style.innerHTML = `
+          .gradient-task {
+            --dhx-gantt-task-background: linear-gradient(to bottom, #808080, #707070);
+            --dhx-gantt-task-border: 1px solid #ccc;
+            --dhx-gantt-task-color: #fff;
+          }
+            
+        `;
+        document.head.appendChild(style);
+      }
 
-        // -------------- Attach Gantt events --------------
-        // clamp subtask drag
-        gantt.attachEvent("onTaskDrag", (id, mode, task) => {
-          // if sub => clamp
-          const item = ganttData.data.find((d) => String(d.id) === String(id));
-          if (item && item.parent && item.parent !== "0") {
-            const parent = ganttData.data.find(
-              (d) => String(d.id) === String(item.parent)
-            );
-            if (parent) {
-              const ps = new Date(parent.start_date);
-              const pe = new Date(parent.end_date);
-              const st = new Date(task.start_date);
-              const en = new Date(task.end_date);
-              if (st < ps) task.start_date = new Date(ps);
-              if (en > pe) task.end_date = new Date(pe);
+      // Assign the custom class to tasks
+      (gantt as any).templates.task_class = function () {
+        return "gradient-task";
+      };
+
+      // Apply zoom settings
+      applyZoomConfig();
+
+      // Overwrite scale css with dayCss => highlights blocked days
+      if (gantt.config.scales) {
+        for (let i = 0; i < gantt.config.scales.length; i++) {
+          const s = gantt.config.scales[i] as any;
+          const originalCss = s.css;
+          const scaleUnit = s.unit;
+          s.css = (date: Date) => {
+            let existing = "";
+            if (typeof originalCss === "function") {
+              existing = originalCss(date);
+            } else if (typeof originalCss === "string") {
+              existing = originalCss;
             }
-          }
-          return true;
-        });
-        // partial update
+            const fromNew = dayCss(date, scaleUnit);
+            return (existing + " " + fromNew).trim();
+          };
+        }
+      }
+
+      gantt.config.columns = [
+        { name: "text", label: "Task Name", width: 220, tree: true },
+        { name: "start_date", label: "Start", align: "center", width: 90 },
+        { name: "end_date", label: "End", align: "center", width: 90 },
+      ];
+
+      gantt.config.xml_date = "%Y-%m-%d %H:%i";
+
+      // Make the container tall
+      if (ganttContainer.current) {
+        ganttContainer.current.style.height = "1500px";
+      }
+
+      // Initialize/refresh Gantt
+      if (!inittedRef.current) {
+        // Attach events once
         gantt.attachEvent("onAfterTaskUpdate", (id, updatedTask) => {
           onTaskUpdated({ ...updatedTask, id });
-          return true;
-        });
-        // link flipping if reversed
-        gantt.attachEvent("onBeforeLinkAdd", (id, link) => {
-          const sTask = gantt.getTask(link.source);
-          const tTask = gantt.getTask(link.target);
-          if (!sTask || !tTask) return false;
-          const sEnd = new Date(sTask.end_date);
-          const tStart = new Date(tTask.start_date);
-          if (sEnd > tStart) {
-            const tmp = link.source;
-            link.source = link.target;
-            link.target = tmp;
-          }
-          link.type = 0; // finish->start
           return true;
         });
         gantt.attachEvent("onAfterLinkAdd", (id, link) => {
@@ -416,32 +501,74 @@ export default function TasksGanttPage() {
           return true;
         });
 
-        // -------------- Initialize + Parse --------------
         gantt.init(ganttContainer.current);
         gantt.parse(ganttData);
-
         inittedRef.current = true;
       } else {
-        // already initted => just parse updated data
         gantt.clearAll();
         gantt.parse(ganttData);
       }
-    }, [ganttData, blockedWeekdays, blockedDates]);
+    }, [
+      ganttData,
+      zoomLevel,
+      blockedWeekdays,
+      blockedDates,
+      applyZoomConfig,
+      dayCss,
+      onTaskUpdated,
+      onLinkAdded,
+      onLinkDeleted,
+    ]);
 
     return (
-      <div style={{ width: "100%", overflowX: "auto" }}>
-        {/* Example style to highlight "weekend" columns */}
+      <div style={{ width: "100%", position: "relative" }}>
         <style>{`
+          /* highlight blocked days in red-ish */
           .weekend {
             background: rgba(220, 0, 0, 0.1) !important;
           }
         `}</style>
-        <div ref={ganttContainer} style={{ width: "2400px", height: "600px" }} />
+
+        {/* Gantt container */}
+        <div
+          ref={ganttContainer}
+          style={{
+            width: "100%",
+            overflow: "auto",
+          }}
+        />
       </div>
     );
   }
 
-  // ---------- Rendering ----------
+  // ---------- pinch/zoom logic ----------
+  useEffect(() => {
+    function handleWheel(e: WheelEvent) {
+      // If user holds ctrl or meta (cmd on Mac), treat it as zoom
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const direction = e.deltaY > 0 ? 1 : -1;
+      const levels: Array<"day" | "week" | "month" | "quarter" | "year"> = [
+        "day",
+        "week",
+        "month",
+        "quarter",
+        "year",
+      ];
+      const curIndex = levels.indexOf(zoomLevel);
+      let newIndex = curIndex + direction;
+      if (newIndex < 0) newIndex = 0;
+      if (newIndex >= levels.length) newIndex = levels.length - 1;
+      setZoomLevel(levels[newIndex]);
+    }
+
+    window.addEventListener("wheel", handleWheel as any, { passive: false });
+    return () => {
+      window.removeEventListener("wheel", handleWheel as any);
+    };
+  }, [zoomLevel]);
+
+  // ---------- rendering ----------
   if (loading) {
     return <div className="p-4">Loading tasks for Gantt...</div>;
   }
@@ -452,18 +579,39 @@ export default function TasksGanttPage() {
   return (
     <PageContainer className="max-w-full">
       <TasksHeaderNav orgId={orgId} projectId={projectId} subProjectId={subProjectId} />
-      <h1 className="text-2xl font-bold mb-4">Gantt with Subtasks & Dependencies</h1>
+      <h1 className="text-2xl font-bold mb-4">
+        Gantt Chart (Gradient Bars + Black Text)
+      </h1>
 
-      {/* Fade container */}
       <div
         className={`
           opacity-0 transition-all duration-500 ease-out delay-[100ms]
           ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
         `}
       >
-        <Card className="mb-4 space-y-4">
+        {/* Zoom selector */}
+        <Card className="mb-4 p-4">
+          <label className="block font-bold mb-2">Zoom Level</label>
+          <select
+            className="border p-1 bg-neutral-900 text-white rounded"
+            value={zoomLevel}
+            onChange={(e) => setZoomLevel(e.target.value as any)}
+          >
+            <option value="day">Day</option>
+            <option value="week">Week</option>
+            <option value="month">Month</option>
+            <option value="quarter">Quarter</option>
+            <option value="year">Year</option>
+          </select>
+          <p className="mt-2 text-sm text-neutral-400">
+            You can also pinch on a trackpad or hold Ctrl/Meta + mouse wheel to zoom.
+          </p>
+        </Card>
+
+        {/* Block days form */}
+        <Card className="mb-4 p-4 space-y-4">
           <div className="flex gap-4">
-            {/* Block weekday form */}
+            {/* block weekday */}
             <form onSubmit={handleAddBlockedWeekday}>
               <label className="block mb-1 text-sm">Block Weekday</label>
               <select
@@ -486,11 +634,11 @@ export default function TasksGanttPage() {
                 Add
               </button>
               <p className="text-xs mt-1">
-                Currently blocked weekdays: {blockedWeekdays.join(", ")}
+                Blocked weekdays: {blockedWeekdays.join(", ")}
               </p>
             </form>
 
-            {/* Block single date */}
+            {/* block specific date */}
             <form onSubmit={handleAddBlockedDate}>
               <label className="block mb-1 text-sm">Block Date</label>
               <input
@@ -508,8 +656,9 @@ export default function TasksGanttPage() {
               <p className="text-xs mt-1">Currently blocked: {blockedDates.join(", ")}</p>
             </form>
           </div>
-          <p className="text-sm text-neutral-600">
-            Weekends or blocked days will appear with the <code>.weekend</code> style.
+
+          <p className="text-xs text-neutral-400">
+            Only day/week scales highlight blocked days in red.
           </p>
         </Card>
 
@@ -517,6 +666,7 @@ export default function TasksGanttPage() {
         <Card className="relative overflow-hidden">
           <GanttComponent
             ganttData={ganttData}
+            zoomLevel={zoomLevel}
             blockedWeekdays={blockedWeekdays}
             blockedDates={blockedDates}
             onTaskUpdated={handleTaskUpdated}

@@ -12,17 +12,20 @@ export default function TopHeader() {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const handleSignOut = async () => {
-    await auth.signOut();
+    try {
+      await auth.signOut();
+    } catch (error) {
+      console.error("Sign out error:", error);
+    } finally {
+      setDropdownOpen(false);
+    }
   };
 
-  // 1. Create a ref for the user-icon+dropdown container
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // 2. Listen for clicks anywhere on the document
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        // The click is outside the container => close the dropdown
         setDropdownOpen(false);
       }
     }
@@ -42,7 +45,6 @@ export default function TopHeader() {
       "
     >
       <div className="flex items-center gap-4">
-        {/* Hamburger button => only show on mobile */}
         <button
           className="sm:hidden p-2 rounded hover:bg-[var(--foreground)]/[0.1]"
           onClick={() => setDrawerOpen(true)}
@@ -51,22 +53,21 @@ export default function TopHeader() {
           <Bars3Icon className="h-5 w-5" />
         </button>
 
-        {/* Page title */}
         <h2 className="text-lg font-semibold">RW Suite Dashboard</h2>
       </div>
 
-      {/* Right side: notification bell, user icon, etc. */}
       <div className="flex items-center gap-4 relative">
         <button className="relative p-1 rounded hover:bg-[var(--foreground)]/[0.1]">
           <BellIcon className="h-6 w-6" />
         </button>
 
-        {/* Container for user icon + dropdown */}
         <div ref={containerRef} className="relative">
-          {/* User icon toggles dropdown */}
           <button
             className="h-8 w-8 rounded-full bg-neutral-300 flex items-center justify-center"
-            onClick={() => setDropdownOpen(!dropdownOpen)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setDropdownOpen(!dropdownOpen);
+            }}
           >
             <UserIcon className="h-5 w-5 text-black" />
           </button>
@@ -74,16 +75,21 @@ export default function TopHeader() {
           {dropdownOpen && (
             <div
               className="
-                absolute top-12 right-0 w-48 
+                absolute top-12 right-0 w-48 z-[9999]
                 bg-[var(--background)] text-[var(--foreground)]
                 shadow-lg border border-neutral-200 
                 rounded p-2
               "
+              onClick={(e) => e.stopPropagation()}
             >
               <p className="text-sm opacity-70 mb-1">{user?.email}</p>
               <hr className="my-2 border-neutral-300" />
               <button
-                onClick={handleSignOut}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSignOut();
+                }}
                 className="
                   block text-left w-full px-2 py-1 
                   hover:bg-[var(--foreground)]/[0.1] text-sm
@@ -96,7 +102,6 @@ export default function TopHeader() {
         </div>
       </div>
 
-      {/* The mobile nav drawer */}
       <MobileNavDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </header>
   );

@@ -1,3 +1,5 @@
+"use client"; // remove if not needed for Next.js client
+
 import { firestore, auth } from "@/lib/firebaseConfig";
 import {
   doc,
@@ -9,47 +11,295 @@ import {
   deleteDoc,
   serverTimestamp,
 } from "firebase/firestore";
+import type { WorkBook } from "xlsx";
 
-function ensureDate(val: any): Date | null {
-  /**
-   * Safely convert Firestore Timestamps or iso-strings to a real Date,
-   * or return null if invalid.
-   */
+// -------------- TypeScript interfaces --------------
+/**
+ * SubTask
+ * A lightweight interface to represent subtasks.
+ * If you need more fields, add them here.
+ */
+export interface SubTask {
+  id: string;
+  title: string;
+  status?: string;
+  startDate?: Date;
+  endDate?: Date;
+  durationDays?: number;
+}
+
+/**
+ * TaskDoc
+ * The main "Task" object we store in Firestore
+ */
+export interface TaskDoc {
+  id: string;
+
+  // Basic
+  title: string;
+  description?: string;
+  assignedTo?: string;
+  priority?: string;
+  status?: string;
+
+  // Outline-based
+  tempId?: string; // e.g. "5","5.8","5.8.1"
+  outlineNumber?: string; // same as above
+  isSubtask?: boolean;
+  parentTempId?: string; // the parent's tempId
+  parentId?: string;
+  subTaskTempIds?: string[]; // child's tempIds
+  subtaskIds?: string[]; // doc IDs after fix
+
+  // Scheduling
+  startDate?: Date | null;
+  endDate?: Date | null;
+  durationDays?: number;
+
+  // Dependencies
+  predecessors?: string[];
+  successors?: string[];
+
+  // Sort
+  orderIndex?: number;
+
+  // Firestore metadata
+  createdAt?: any;
+  createdBy?: string | null;
+  updatedAt?: any;
+  updatedBy?: string | null;
+
+  blockedWeekdays?: number[];
+  blockedDates?: string[];
+}
+
+// -------------- Parsing --------------
+/**
+ * parseMsProjectExcelFile
+ * Reads an Excel file exported from MS Project, returning a list of TaskDocs.
+ *
+ * A typical cause of "multiple entries per line" is that the Excel file may have
+ * merged rows or partial rows.  Here, we add extra checks (e.g. ensuring col0 is numeric)
+ * to skip extraneous lines.
+ */
+export async function parseMsProjectExcelFile(file: File): Promise<TaskDoc[]> {
+  console.log("parseMsProjectExcelFile => reading file:", file.name);
+
+  // 1) import xlsx
+  const XLSXImport = await import("xlsx");
+  const XLSX = XLSXImport.default || XLSXImport;
+  if (!XLSX?.read) {
+    throw new Error("SheetJS XLSX missing read()");
+  }
+
+  // 2) read => first sheet
+  const arrayBuf = await file.arrayBuffer();
+  const wb: WorkBook = XLSX.read(arrayBuf, { type: "array", cellDates: true });
+  if (!wb.SheetNames?.length) throw new Error("No sheets in workbook.");
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  if (!sheet) throw new Error("No sheet object found in workbook.");
+
+  // 3) convert => array-of-arrays
+  const data = XLSX.utils.sheet_to_json<any[]>(sheet, {
+    header: 1,
+    defval: "",
+    raw: false,
+    dateNF: "mm/dd/yyyy",
+  });
+
+  // Suppose row 9 => tasks start (you can adjust if needed)
+  const tasksStartIndex = 9;
+  const lastRow = data.length;
+
+  interface TempRow {
+    taskNumber: string; // col0 => "1","2","3"
+    outline: string; // col1 => "1","1.1","5.8","5.8.1", ...
+    title: string;
+    assignedTo?: string;
+    start?: any;
+    finish?: any;
+    durStr?: string;
+    pctComplete?: string;
+    priority?: string;
+    preds?: string[];
+    succs?: string[];
+
+    // subtask info
+    isSubtask?: boolean;
+    parentTempId?: string; // parent's "taskNumber"
+    subTaskTempIds: string[];
+
+    // derived scheduling
+    startDate?: Date | null;
+    endDate?: Date | null;
+    durationDays?: number;
+    status?: string;
+  }
+
+  const rows: TempRow[] = [];
+
+  for (let r = tasksStartIndex; r < lastRow; r++) {
+    const row = data[r];
+    if (!row || row.length === 0) {
+      // empty row => skip
+      continue;
+    }
+
+    // Columns:
+    //   0 => taskNumber
+    //   1 => outline
+    //   2 => title
+    //   3 => assigned
+    //   4 => start
+    //   5 => finish
+    //   6 => durStr
+    //   8 => percentComplete
+    //   9 => priority
+    //   10 => dependsRaw
+    //   11 => dependsAfterRaw
+    // (If you have more or fewer columns, adjust the indexes)
+    const col0 = row[0]?.toString().trim(); // e.g. "1","2"
+    const col1 = row[1]?.toString().trim(); // e.g. "1.1","5.8","5.8.1"
+
+    // Additional check: ensure col0 is a valid numeric (this helps skip junk lines)
+    const col0Num = parseFloat(col0);
+    if (!col0 || !col1 || isNaN(col0Num)) {
+      // skip if missing or not numeric
+      continue;
+    }
+
+    const title = row[2]?.toString().trim() || "Untitled";
+    const assigned = row[3]?.toString().trim() || "";
+    const startVal = row[4];
+    const endVal = row[5];
+    const durStr = row[6]?.toString().trim() || "";
+    const pct = row[8]?.toString().trim() || "";
+    const prio = row[9]?.toString().trim() || "";
+    const dependsRaw = row[10]?.toString().trim() || "";
+    const dependsAfterRaw = row[11]?.toString().trim() || "";
+
+    rows.push({
+      taskNumber: col0,
+      outline: col1,
+      title,
+      assignedTo: assigned,
+      start: startVal,
+      finish: endVal,
+      durStr,
+      pctComplete: pct,
+      priority: prio || undefined,
+      preds: parseDependencies(dependsRaw),
+      succs: parseDependencies(dependsAfterRaw),
+
+      isSubtask: false,
+      parentTempId: undefined,
+      subTaskTempIds: [],
+    });
+  }
+
+  // parse date + status
+  for (const row of rows) {
+    row.startDate = parseDate(row.start);
+    row.endDate = parseDate(row.finish);
+
+    let dd = 0;
+    if (row.durStr) {
+      const dnum = parseFloat(row.durStr);
+      if (!isNaN(dnum)) dd = dnum;
+    }
+    row.durationDays = dd;
+
+    let st = "notStarted";
+    if (row.pctComplete === "100%") st = "completed";
+    else if (row.pctComplete !== "0%" && row.pctComplete !== "") st = "inProgress";
+    row.status = st;
+  }
+
+  // ============ Multi-Level Approach ============
+  // For each row => see how many dots => that's dotCount
+  // Then gather children that start with row.outline + "." and have (dotCount+1) total dots
+  for (const parentRow of rows) {
+    const pDotCount = countDots(parentRow.outline);
+    const prefix = parentRow.outline + ".";
+    for (const childRow of rows) {
+      if (childRow === parentRow) continue;
+      if (childRow.outline.startsWith(prefix)) {
+        // must have exactly (pDotCount+1) dots
+        const cDots = countDots(childRow.outline);
+        if (cDots === pDotCount + 1) {
+          parentRow.subTaskTempIds.push(childRow.taskNumber);
+          childRow.parentTempId = parentRow.taskNumber;
+          childRow.isSubtask = true;
+        }
+      }
+    }
+  }
+
+  // ============ Build Final =============
+  const final: TaskDoc[] = [];
+  let index = 0;
+  for (const row of rows) {
+    final.push({
+      id: "",
+      tempId: row.taskNumber,
+      outlineNumber: row.outline,
+      isSubtask: row.isSubtask,
+      parentTempId: row.parentTempId,
+      subTaskTempIds: row.subTaskTempIds.length ? row.subTaskTempIds : undefined,
+
+      title: row.title,
+      assignedTo: row.assignedTo,
+      status: row.status,
+      priority: row.priority,
+      startDate: row.startDate,
+      endDate: row.endDate,
+      durationDays: row.durationDays,
+      predecessors: row.preds && row.preds.length ? row.preds : undefined,
+      successors: row.succs && row.succs.length ? row.succs : undefined,
+
+      orderIndex: index++,
+    });
+  }
+
+  console.log(
+    "parseMsProjectExcelFile => returning",
+    final.length,
+    "items. Multi-level subtask support."
+  );
+  return final;
+}
+
+// -------------- parse helper funcs --------------
+function parseDependencies(raw: string): string[] {
+  if (!raw) return [];
+  return raw
+    .split(/[,;]+/)
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
+
+function parseDate(val: any): Date | null {
   if (!val) return null;
   if (val instanceof Date) return val;
-  // Firestore Timestamp => { seconds, nanoseconds } or .toDate()
-  if (val.seconds) {
-    return new Date(val.seconds * 1000);
-  }
-  // ISO string => e.g. "2024-01-03T00:00:00.000Z"
-  if (typeof val === "string" && /^\d{4}-\d{2}-\d{2}T/.test(val)) {
-    return new Date(val);
+  if (typeof val === "string") {
+    const dt = new Date(val);
+    if (!isNaN(dt.getTime())) return dt;
   }
   return null;
 }
 
-/**
- * Recursively convert any date-like fields in an object
- * to real Date objects.
- */
+function countDots(s: string): number {
+  return (s.match(/\./g) || []).length;
+}
+
+// ================ Firestore conversion helpers ================
 function convertAllDates(obj: any): any {
   if (!obj || typeof obj !== "object") return obj;
-  if (Array.isArray(obj)) {
-    return obj.map(convertAllDates);
-  }
-  if (obj instanceof Date) {
-    return obj;
-  }
-  // Potential Firestore Timestamp
-  if (obj.seconds && typeof obj.toDate !== "function") {
-    // just in case
+  if (Array.isArray(obj)) return obj.map(convertAllDates);
+  if (obj instanceof Date) return obj;
+  if (obj.seconds) {
     return new Date(obj.seconds * 1000);
   }
-  // If we suspect a date string
-  if (typeof obj === "string" && /^\d{4}-\d{2}-\d{2}T/.test(obj)) {
-    return new Date(obj);
-  }
-
   const out: any = {};
   for (const k of Object.keys(obj)) {
     out[k] = convertAllDates(obj[k]);
@@ -57,17 +307,10 @@ function convertAllDates(obj: any): any {
   return out;
 }
 
-/**
- * Convert all `Date` objects into ISO strings before saving to Firestore.
- */
 function stripDates(obj: any): any {
   if (!obj || typeof obj !== "object") return obj;
-  if (obj instanceof Date) {
-    return obj.toISOString();
-  }
-  if (Array.isArray(obj)) {
-    return obj.map(stripDates);
-  }
+  if (obj instanceof Date) return obj.toISOString();
+  if (Array.isArray(obj)) return obj.map(stripDates);
   const out: any = {};
   for (const k of Object.keys(obj)) {
     out[k] = stripDates(obj[k]);
@@ -75,99 +318,40 @@ function stripDates(obj: any): any {
   return out;
 }
 
-export interface TaskConstraints {
-  mustStartOn?: Date | null;
-  deadline?: Date | null;
-}
-
-export interface TaskResources {
-  crew?: string; // e.g. "Carpentry crew, Electrician"
-  materials?: string; // e.g. "Concrete, Steel beams"
-}
-
-export interface SubTask {
-  id: string;
-  title: string;
-  assignedTo?: string;
-  status?: string; // "notStarted" | "inProgress" | "delayed" | "completed"
-  description?: string;
-
-  // Scheduling
-  startDate?: Date | null;
-  endDate?: Date | null;
-  durationDays?: number;
-
-  // Dependencies
-  predecessors?: string[];
-  successors?: string[];
-}
-
-export interface TaskDoc {
-  id: string;
-  title: string;
-  description?: string;
-  assignedTo?: string; // userId or email
-  priority?: string; // "low" | "medium" | "high" or custom
-  status?: string; // "notStarted" | "inProgress" | "delayed" | "completed"
-
-  // Scheduling
-  startDate?: Date | null;
-  endDate?: Date | null;
-  durationDays?: number;
-  blockedWeekdays?: number[];
-  blockedDates?: string[];
-
-  // Dependencies
-  predecessors?: string[];
-  successors?: string[];
-
-  // Subtasks => each must remain within main [startDate, endDate] if present
-  subtasks?: SubTask[];
-
-  // NEW: constraints
-  constraints?: TaskConstraints;
-
-  // NEW: resources
-  resources?: TaskResources;
-
-  // Firestore
-  createdAt?: any;
-  createdBy?: string | null;
-  updatedAt?: any;
-  updatedBy?: string | null;
-}
-
 /**
- * createTask
+ * computeEndDateIgnoringBlocked
+ * - Adds "durationDays" working days to "start", skipping blockedWeekdays and blockedDates.
+ *   The final date is returned.
  */
-export async function createTask(
+function computeEndDateIgnoringBlocked(
+  start: Date,
+  durationDays: number,
+  blockedWeekdays: number[] = [0, 6],
+  blockedDates: string[] = []
+): Date {
+  if (durationDays <= 0) return new Date(start);
+  let remaining = durationDays;
+  const cur = new Date(start);
+  // We already start on day1, so subtract 1
+  remaining -= 1;
+  while (remaining > 0) {
+    cur.setDate(cur.getDate() + 1);
+    const dow = cur.getDay();
+    const iso = cur.toISOString().slice(0, 10);
+    if (blockedWeekdays.includes(dow)) continue;
+    if (blockedDates.includes(iso)) continue;
+    remaining--;
+  }
+  return cur;
+}
+
+// ================ Firestore CRUD ================
+export async function fetchAllTasks(
   orgId: string,
   projectId: string,
-  subProjectId: string,
-  data: Omit<TaskDoc, "id">
-): Promise<string> {
-  // If user provided startDate/duration => compute endDate ignoring blocked
-  if (data.startDate instanceof Date && typeof data.durationDays === "number") {
-    data.endDate = computeEndDateIgnoringBlocked(
-      data.startDate,
-      data.durationDays,
-      data.blockedWeekdays || [0, 6],
-      data.blockedDates || []
-    );
-  }
-
-  // clamp subtasks if any
-  if (data.subtasks && data.startDate && data.endDate) {
-    data.subtasks = clampAllSubtasks(
-      data.subtasks,
-      data.startDate,
-      data.endDate,
-      data.blockedWeekdays || [0, 6],
-      data.blockedDates || []
-    );
-  }
-
-  const tasksColl = collection(
+  subProjectId: string
+): Promise<TaskDoc[]> {
+  const collRef = collection(
     firestore,
     "organizations",
     orgId,
@@ -177,19 +361,13 @@ export async function createTask(
     subProjectId,
     "tasks"
   );
-  const docRef = await addDoc(tasksColl, {
-    ...stripDates(data),
-    createdAt: serverTimestamp(),
-    createdBy: auth.currentUser?.uid || null,
-    updatedAt: serverTimestamp(),
-    updatedBy: auth.currentUser?.uid || null,
+  const snap = await getDocs(collRef);
+  return snap.docs.map((d) => {
+    const raw = { id: d.id, ...d.data() };
+    return convertAllDates(raw) as TaskDoc;
   });
-  return docRef.id;
 }
 
-/**
- * fetchTask
- */
 export async function fetchTask(
   orgId: string,
   projectId: string,
@@ -208,22 +386,37 @@ export async function fetchTask(
     taskId
   );
   const snap = await getDoc(ref);
-  if (!snap.exists()) {
-    throw new Error("Task not found");
-  }
+  if (!snap.exists()) throw new Error("Task not found => " + taskId);
   const raw = { id: snap.id, ...snap.data() };
-  const converted = convertAllDates(raw);
-  return converted as TaskDoc;
+  return convertAllDates(raw) as TaskDoc;
 }
 
-/**
- * fetchAllTasks
- */
-export async function fetchAllTasks(
+export async function createTask(
   orgId: string,
   projectId: string,
-  subProjectId: string
-): Promise<TaskDoc[]> {
+  subProjectId: string,
+  data: Omit<TaskDoc, "id">
+): Promise<string> {
+  console.log("createTask => incoming data:", data);
+
+  const cleaned = { ...data } as any;
+  if (cleaned.subtasks) {
+    console.warn("createTask => removing unexpected .subtasks:", cleaned.subtasks);
+    delete cleaned.subtasks;
+  }
+  // optional end date
+  if (cleaned.startDate instanceof Date && typeof cleaned.durationDays === "number") {
+    cleaned.endDate = computeEndDateIgnoringBlocked(
+      cleaned.startDate,
+      cleaned.durationDays,
+      cleaned.blockedWeekdays || [],
+      cleaned.blockedDates || []
+    );
+  }
+
+  const stripped = stripDates(cleaned);
+  console.log("createTask => final doc =>", stripped);
+
   const collRef = collection(
     firestore,
     "organizations",
@@ -234,17 +427,17 @@ export async function fetchAllTasks(
     subProjectId,
     "tasks"
   );
-  const snap = await getDocs(collRef);
-  const tasks: any[] = snap.docs.map((d) => {
-    const raw = { id: d.id, ...d.data() };
-    return convertAllDates(raw);
+  const docRef = await addDoc(collRef, {
+    ...stripped,
+    createdAt: serverTimestamp(),
+    createdBy: auth.currentUser?.uid || null,
+    updatedAt: serverTimestamp(),
+    updatedBy: auth.currentUser?.uid || null,
   });
-  return tasks as TaskDoc[];
+  console.log("createTask => docId=", docRef.id);
+  return docRef.id;
 }
 
-/**
- * updateTask
- */
 export async function updateTask(
   orgId: string,
   projectId: string,
@@ -252,34 +445,30 @@ export async function updateTask(
   taskId: string,
   updates: Partial<TaskDoc>
 ) {
-  // 1) fetch existing
+  console.log("updateTask => incoming updates:", updates);
+
+  const cleaned = { ...updates } as any;
+  if (cleaned.subtasks) {
+    console.warn("updateTask => removing unexpected .subtasks:", cleaned.subtasks);
+    delete cleaned.subtasks;
+  }
+
+  // fetch existing so we can re-derive any fields (like endDate)
   const existing = await fetchTask(orgId, projectId, subProjectId, taskId);
+  const merged = { ...existing, ...cleaned };
 
-  // 2) merge
-  const newData: TaskDoc = { ...existing, ...updates };
-
-  // 3) if startDate/duration => recalc end ignoring blocked
-  if (newData.startDate instanceof Date && typeof newData.durationDays === "number") {
-    newData.endDate = computeEndDateIgnoringBlocked(
-      newData.startDate,
-      newData.durationDays,
-      newData.blockedWeekdays || [0, 6],
-      newData.blockedDates || []
+  if (merged.startDate instanceof Date && typeof merged.durationDays === "number") {
+    merged.endDate = computeEndDateIgnoringBlocked(
+      merged.startDate,
+      merged.durationDays,
+      merged.blockedWeekdays || [],
+      merged.blockedDates || []
     );
   }
 
-  // 4) clamp subtasks
-  if (newData.subtasks && newData.startDate && newData.endDate) {
-    newData.subtasks = clampAllSubtasks(
-      newData.subtasks,
-      newData.startDate,
-      newData.endDate,
-      newData.blockedWeekdays || [0, 6],
-      newData.blockedDates || []
-    );
-  }
+  const stripped = stripDates(merged);
+  console.log("updateTask => final doc =>", stripped);
 
-  // 5) store
   const ref = doc(
     firestore,
     "organizations",
@@ -292,15 +481,13 @@ export async function updateTask(
     taskId
   );
   await updateDoc(ref, {
-    ...stripDates(newData),
+    ...stripped,
     updatedAt: serverTimestamp(),
     updatedBy: auth.currentUser?.uid || null,
   });
+  console.log("updateTask => docId=", taskId, " updated.");
 }
 
-/**
- * deleteTask
- */
 export async function deleteTask(
   orgId: string,
   projectId: string,
@@ -319,18 +506,18 @@ export async function deleteTask(
     taskId
   );
   await deleteDoc(ref);
+  console.log("deleteTask => docId=", taskId, " deleted.");
 }
 
-/**
- * importTasksFromJson
- */
 export async function importTasksFromJson(
   orgId: string,
   projectId: string,
   subProjectId: string,
   tasksData: Omit<TaskDoc, "id">[]
 ) {
-  const tasksColl = collection(
+  console.log("importTasksFromJson => data length:", tasksData.length);
+
+  const collRef = collection(
     firestore,
     "organizations",
     orgId,
@@ -340,21 +527,35 @@ export async function importTasksFromJson(
     subProjectId,
     "tasks"
   );
-  for (const t of tasksData) {
-    const stripped = stripDates(t);
-    await addDoc(tasksColl, {
+  for (let i = 0; i < tasksData.length; i++) {
+    const row = { ...tasksData[i] };
+    console.log("importTasksFromJson => row #" + i, row);
+
+    if ((row as any).subtasks) {
+      console.warn("importTasksFromJson => removing .subtasks:", (row as any).subtasks);
+      delete (row as any).subtasks;
+    }
+    if (row.startDate instanceof Date && typeof row.durationDays === "number") {
+      row.endDate = computeEndDateIgnoringBlocked(
+        row.startDate,
+        row.durationDays,
+        row.blockedWeekdays || [],
+        row.blockedDates || []
+      );
+    }
+    const stripped = stripDates(row);
+    await addDoc(collRef, {
       ...stripped,
+      orderIndex: i,
       createdAt: serverTimestamp(),
       createdBy: auth.currentUser?.uid || null,
       updatedAt: serverTimestamp(),
       updatedBy: auth.currentUser?.uid || null,
     });
   }
+  console.log("importTasksFromJson => import complete.");
 }
 
-/**
- * exportTasksToJson
- */
 export async function exportTasksToJson(
   orgId: string,
   projectId: string,
@@ -362,90 +563,4 @@ export async function exportTasksToJson(
 ): Promise<Omit<TaskDoc, "id">[]> {
   const tasks = await fetchAllTasks(orgId, projectId, subProjectId);
   return tasks.map(({ id, ...rest }) => rest);
-}
-
-/**
- * computeEndDateIgnoringBlocked
- * For a main task or subtask that says "I want X working days" from start,
- * skip blocked weekdays/dates.
- */
-function computeEndDateIgnoringBlocked(
-  start: Date,
-  durationDays: number,
-  blockedWeekdays: number[],
-  blockedDates: string[]
-): Date {
-  if (durationDays <= 0) {
-    return new Date(start.getTime());
-  }
-  let remaining = durationDays;
-  let cur = new Date(start.getTime());
-
-  // We consider day #1 as the start date
-  remaining -= 1; // so we move forward only “durationDays - 1” more working days
-
-  while (remaining > 0) {
-    cur.setDate(cur.getDate() + 1);
-
-    const dow = cur.getDay();
-    const iso = cur.toISOString().slice(0, 10);
-
-    if (blockedWeekdays.includes(dow)) {
-      continue;
-    }
-    if (blockedDates.includes(iso)) {
-      continue;
-    }
-    remaining--;
-  }
-  return cur;
-}
-
-/**
- * clampAllSubtasks => ensures each sub is within [mainStart, mainEnd].
- */
-function clampAllSubtasks(
-  subs: SubTask[],
-  mainStart: Date,
-  mainEnd: Date,
-  blockedWeekdays: number[],
-  blockedDates: string[]
-): SubTask[] {
-  return subs.map((sub) => {
-    const sDate = ensureDate(sub.startDate) || new Date(mainStart.getTime());
-    let eDate = ensureDate(sub.endDate);
-
-    // If sub has a numeric durationDays, recalc end from sub start ignoring blocked
-    if (sDate && typeof sub.durationDays === "number" && sub.durationDays > 0) {
-      eDate = computeEndDateIgnoringBlocked(
-        sDate,
-        sub.durationDays,
-        blockedWeekdays,
-        blockedDates
-      );
-    } else if (!eDate) {
-      // fallback if not provided
-      eDate = new Date(sDate.getTime());
-    }
-
-    // clamp subStart
-    if (sDate < mainStart) {
-      sub.startDate = mainStart;
-    } else if (sDate > mainEnd) {
-      sub.startDate = new Date(mainEnd.getTime());
-    } else {
-      sub.startDate = sDate;
-    }
-
-    // clamp subEnd
-    if (eDate < mainStart) {
-      sub.endDate = new Date(mainStart.getTime());
-    } else if (eDate > mainEnd) {
-      sub.endDate = new Date(mainEnd.getTime());
-    } else {
-      sub.endDate = eDate;
-    }
-
-    return sub;
-  });
 }

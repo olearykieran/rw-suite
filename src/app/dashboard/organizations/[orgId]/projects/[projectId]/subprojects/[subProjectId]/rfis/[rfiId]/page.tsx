@@ -1,590 +1,529 @@
+// src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/rfis/[rfiId]/page.tsx
+
 "use client";
 
-import React, { useEffect, useState, useRef, FormEvent, DragEvent } from "react";
 import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
-  TaskDoc,
-  SubTask,
-  fetchAllTasks,
-  fetchTask,
-  createTask,
-  updateTask,
-  deleteTask,
-} from "@/lib/services/TaskService";
+  fetchRfi,
+  updateRfi,
+  addActivity,
+  fetchActivityLog,
+} from "@/lib/services/RfiService";
+import { auth } from "@/lib/firebaseConfig";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Card } from "@/components/ui/Card";
-import TasksHeaderNav from "@/components/TasksHeaderNav";
 import { GrayButton } from "@/components/ui/GrayButton";
 
-import gantt from "dhtmlx-gantt";
-import "dhtmlx-gantt/codebase/dhtmlxgantt.css";
-
-/**
- * We'll define custom CSS classes for blocked columns,
- * e.g. `.gantt_inactive_day` for the day scale + timeline cells we want grayed out.
- *
- * In your global CSS or <style jsx global>:
- *
- * .gantt_inactive_day {
- *   background-color: rgba(120,120,120,0.5) !important;
- * }
- */
-
-// ---------- Types for Gantt items ----------
-interface DhtmlxTaskItem {
-  id: string | number;
-  text: string;
-  start_date: string; // e.g. "2025-01-10 00:00"
-  end_date: string; // e.g. "2025-01-20 00:00"
-  parent?: string | number;
+interface RfiDoc {
+  id: string;
+  rfiNumber?: number;
+  subject: string;
+  question?: string;
+  status?: string;
+  importance?: string;
+  officialResponse?: string;
+  assignedTo?: string;
+  distributionList?: string[];
+  dueDate?: Date | null;
+  attachments?: string[];
+  createdAt?: { seconds: number; nanoseconds: number };
+  updatedAt?: { seconds: number; nanoseconds: number };
 }
 
-interface DhtmlxLink {
-  id: string | number;
-  source: string | number;
-  target: string | number;
-  type: number; // 0 => finish-to-start
-}
-
-interface DhtmlxGanttData {
-  data: DhtmlxTaskItem[];
-  links: DhtmlxLink[];
-}
-
-/** Helper: convert a Firestore/Date to "YYYY-MM-DD HH:mm" local-midnight */
-function safeDateString(val: any): string {
-  if (!val) return "2024-01-01 00:00";
-  let d: Date;
-  if (val instanceof Date) {
-    d = val;
-  } else if (typeof val === "string" && /^\d{4}-\d{2}-\d{2}T/.test(val)) {
-    d = new Date(val);
-  } else if (val && typeof val === "object" && "seconds" in val) {
-    d = new Date(val.seconds * 1000);
-  } else {
-    d = new Date("2024-01-01T00:00:00");
-  }
-  if (isNaN(d.getTime())) return "2024-01-01 00:00";
-  const yy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yy}-${mm}-${dd} 00:00`;
-}
-
-/** Build the Gantt data from your Firestore tasks, respecting orderIndex. */
-function buildGanttData(taskDocs: TaskDoc[]): DhtmlxGanttData {
-  const data: DhtmlxTaskItem[] = [];
-  const links: DhtmlxLink[] = [];
-
-  for (const main of taskDocs) {
-    data.push({
-      id: main.id,
-      text: main.title,
-      start_date: safeDateString(main.startDate),
-      end_date: safeDateString(main.endDate),
-      parent: "0",
-    });
-
-    if (main.predecessors?.length) {
-      for (const pred of main.predecessors) {
-        links.push({
-          id: `${pred}->${main.id}`,
-          source: pred,
-          target: main.id,
-          type: 0,
-        });
-      }
-    }
-
-    if (main.subtasks?.length) {
-      for (const sub of main.subtasks) {
-        data.push({
-          id: sub.id,
-          text: sub.title,
-          start_date: safeDateString(sub.startDate),
-          end_date: safeDateString(sub.endDate),
-          parent: main.id,
-        });
-
-        if (sub.predecessors?.length) {
-          for (const sp of sub.predecessors) {
-            links.push({
-              id: `${sp}->${sub.id}`,
-              source: sp,
-              target: sub.id,
-              type: 0,
-            });
-          }
-        }
-      }
-    }
-  }
-
-  return { data, links };
-}
-
-/** A scrollable card for the main tasks table. */
-function ScrollableCard({ children }: { children: React.ReactNode }) {
-  return (
-    <section
-      className={`
-        dark:bg-neutral-900 bg-white
-        dark:text-neutral-100 text-black
-        border border-neutral-700 dark:border-neutral-800
-        rounded-lg
-        p-6
-        w-full
-        h-[calc(100vh-200px)]
-        overflow-auto
-      `}
-    >
-      {children}
-    </section>
-  );
-}
-
-// We skip weekends + a holiday
-const DEFAULT_BLOCKED_WEEKDAYS = [0, 6];
-const DEFAULT_BLOCKED_DATES = ["2024-01-01"];
-
-// ---------- The main Gantt page (and table) ----------
-export default function TasksGanttPage() {
-  const { orgId, projectId, subProjectId } = useParams() as {
+export default function RfiDetailPage() {
+  const { orgId, projectId, subProjectId, rfiId } = useParams() as {
     orgId: string;
     projectId: string;
     subProjectId: string;
+    rfiId: string;
   };
 
-  const [tasks, setTasks] = useState<TaskDoc[]>([]);
-  const [ganttData, setGanttData] = useState<DhtmlxGanttData>({ data: [], links: [] });
+  const [rfi, setRfi] = useState<RfiDoc | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [showContent, setShowContent] = useState(false);
 
-  // For blocking out weekends, etc.
-  const [blockedWeekdays, setBlockedWeekdays] = useState<number[]>(
-    DEFAULT_BLOCKED_WEEKDAYS
-  );
-  const [blockedDates, setBlockedDates] = useState<string[]>(DEFAULT_BLOCKED_DATES);
+  // Editing states
+  const [status, setStatus] = useState("draft");
+  const [importance, setImportance] = useState("normal");
+  const [officialResponse, setOfficialResponse] = useState("");
 
-  // For table reorder
-  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  // Distribution
+  const [distListInput, setDistListInput] = useState("");
+  // Activity
+  const [activityLog, setActivityLog] = useState<any[]>([]);
+  const [newComment, setNewComment] = useState("");
 
-  // For "Add Main Task"
-  const [newTaskTitle, setNewTaskTitle] = useState("");
-  const [newTaskAssignedTo, setNewTaskAssignedTo] = useState("");
-  const [newTaskDescription, setNewTaskDescription] = useState("");
-  const [newTaskStart, setNewTaskStart] = useState("");
-  const [newTaskEnd, setNewTaskEnd] = useState("");
-  const [newTaskDuration, setNewTaskDuration] = useState(0);
+  // New attachments
+  const [newFiles, setNewFiles] = useState<FileList | null>(null);
+  const [newPhotoFile, setNewPhotoFile] = useState<FileList | null>(null);
 
-  // ---------- 1) Load tasks from Firestore once ----------
-  useEffect(() => {
-    if (!orgId || !projectId || !subProjectId) return;
-    loadEverything();
-  }, [orgId, projectId, subProjectId]);
-
-  async function loadEverything() {
+  // 1. Fetch the RFI + activity log
+  async function loadFullData() {
     try {
       setLoading(true);
-      const all = await fetchAllTasks(orgId, projectId, subProjectId);
+      const data = await fetchRfi(orgId, projectId, subProjectId, rfiId);
+      const rfiData = data as RfiDoc;
 
-      // coerce main + subtask dates
-      let data = all.map((t) => {
-        // parse main
-        let c = coerceTaskDates(t);
-        // parse subs
-        let s = (c.subtasks || []).map(coerceSubtaskDates);
-        c = { ...c, subtasks: s };
-        return c;
+      setRfi(rfiData);
+      setStatus(rfiData.status || "draft");
+      setImportance(rfiData.importance || "normal");
+      setOfficialResponse(rfiData.officialResponse || "");
+
+      const logData = await fetchActivityLog(orgId, projectId, subProjectId, rfiId);
+      const sorted = logData.sort((a: any, b: any) => {
+        const aTime = a.createdAt?.seconds || 0;
+        const bTime = b.createdAt?.seconds || 0;
+        return aTime - bTime;
       });
-
-      // sort by orderIndex
-      data.sort((a, b) => {
-        const aIdx = (a as any).orderIndex ?? 99999;
-        const bIdx = (b as any).orderIndex ?? 99999;
-        return aIdx - bIdx;
-      });
-
-      setTasks(data);
-      setGanttData(buildGanttData(data));
+      setActivityLog(sorted);
     } catch (err: any) {
-      console.error("Gantt fetch error:", err);
-      setError(err.message || "Failed to load tasks for Gantt.");
+      console.error("Load RFI error:", err);
+      setError("Failed to load RFI");
     } finally {
       setLoading(false);
-      setTimeout(() => setShowContent(true), 100);
     }
   }
 
-  // ---------- 2) Gantt event handlers (dragging tasks, links, etc.) ----------
+  useEffect(() => {
+    if (orgId && projectId && subProjectId && rfiId) {
+      loadFullData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId, projectId, subProjectId, rfiId]);
 
-  // a) If user drags/resizes a bar => partial update
-  async function handleGanttTaskUpdated(ganttTask: any) {
+  // 2. Update RFI
+  async function handleUpdate() {
+    if (!rfi) return;
     try {
-      const newStart = new Date(ganttTask.start_date);
-      const newEnd = new Date(ganttTask.end_date);
+      await updateRfi(orgId, projectId, subProjectId, rfiId, {
+        status,
+        importance,
+        officialResponse,
+        distributionList: rfi.distributionList || [],
+      });
 
-      // If parent=0 => main
-      if (String(ganttTask.parent) === "0") {
-        await updateTask(orgId, projectId, subProjectId, String(ganttTask.id), {
-          startDate: newStart,
-          endDate: newEnd,
-          title: ganttTask.text,
-        });
-      } else {
-        // subtask => find parent
-        const all = await fetchAllTasks(orgId, projectId, subProjectId);
-        const parentDoc = all.find((m) =>
-          m.subtasks?.some((s) => String(s.id) === String(ganttTask.id))
+      // Log
+      await addActivity(orgId, projectId, subProjectId, rfiId, {
+        message: `RFI updated => status:${status}, importance:${importance}`,
+        userId: auth.currentUser?.uid,
+      });
+
+      loadFullData();
+    } catch (err: any) {
+      console.error("Update RFI error:", err);
+      setError("Failed to update RFI");
+    }
+  }
+
+  // 3. Add comment
+  async function handleAddComment() {
+    if (!newComment.trim()) return;
+    try {
+      await addActivity(orgId, projectId, subProjectId, rfiId, {
+        message: newComment.trim(),
+        userId: auth.currentUser?.uid,
+      });
+      setNewComment("");
+      loadFullData();
+    } catch (err: any) {
+      console.error("Add comment error:", err);
+      setError("Failed to add comment");
+    }
+  }
+
+  // 4. Manage distribution list
+  async function handleAddEmailToList() {
+    if (!rfi) return;
+    const newEmail = distListInput.trim();
+    if (!newEmail) return;
+    setDistListInput("");
+
+    const newList = rfi.distributionList ? [...rfi.distributionList] : [];
+    if (!newList.includes(newEmail)) {
+      newList.push(newEmail);
+    }
+
+    try {
+      await updateRfi(orgId, projectId, subProjectId, rfiId, {
+        distributionList: newList,
+      });
+      loadFullData();
+    } catch (err: any) {
+      console.error("Error adding email:", err);
+      setError("Failed to add email");
+    }
+  }
+
+  async function handleRemoveEmail(email: string) {
+    if (!rfi || !rfi.distributionList) return;
+    const newList = rfi.distributionList.filter((e) => e !== email);
+
+    try {
+      await updateRfi(orgId, projectId, subProjectId, rfiId, {
+        distributionList: newList,
+      });
+      loadFullData();
+    } catch (err: any) {
+      console.error("Error removing email:", err);
+      setError("Failed to remove email");
+    }
+  }
+
+  // 5. Attach new files
+  async function handleAttachNewFiles() {
+    if (!rfi) return;
+    try {
+      // Merge newFiles + newPhotoFile
+      let merged: FileList | null = newFiles;
+      if (newPhotoFile && newPhotoFile.length > 0) {
+        if (!merged) {
+          merged = newPhotoFile;
+        } else {
+          const dt = new DataTransfer();
+          for (let i = 0; i < merged.length; i++) {
+            dt.items.add(merged[i]);
+          }
+          for (let i = 0; i < newPhotoFile.length; i++) {
+            dt.items.add(newPhotoFile[i]);
+          }
+          merged = dt.files;
+        }
+      }
+
+      if (!merged || merged.length === 0) {
+        alert("No files selected.");
+        return;
+      }
+
+      const storage = getStorage();
+      const newUrls: string[] = [];
+
+      for (let i = 0; i < merged.length; i++) {
+        const file = merged[i];
+        const fileRef = ref(
+          storage,
+          `rfis/${orgId}/${projectId}/${subProjectId}/${rfiId}/${file.name}`
         );
-        if (!parentDoc) return;
-
-        const newSubs = (parentDoc.subtasks || []).map((sub) => {
-          if (String(sub.id) === String(ganttTask.id)) {
-            return {
-              ...sub,
-              startDate: newStart,
-              endDate: newEnd,
-              title: ganttTask.text,
-            };
-          }
-          return sub;
-        });
-        await updateTask(orgId, projectId, subProjectId, parentDoc.id, {
-          subtasks: newSubs,
-        });
+        await uploadBytes(fileRef, file);
+        const downloadURL = await getDownloadURL(fileRef);
+        newUrls.push(downloadURL);
       }
 
-      // reload
-      await loadEverything();
+      const updatedAttachments = [...(rfi.attachments || []), ...newUrls];
+
+      await updateRfi(orgId, projectId, subProjectId, rfiId, {
+        attachments: updatedAttachments,
+      });
+
+      // Log
+      await addActivity(orgId, projectId, subProjectId, rfiId, {
+        message: `Uploaded ${merged.length} new file(s).`,
+        userId: auth.currentUser?.uid,
+      });
+
+      setNewFiles(null);
+      setNewPhotoFile(null);
+
+      loadFullData();
     } catch (err: any) {
-      console.error("handleGanttTaskUpdated error:", err);
-      setError("Error updating => " + (err.message || ""));
+      console.error("Attach new files error:", err);
+      setError("Failed to upload new files.");
     }
   }
 
-  // b) If user adds a link => new dependency
-  async function handleGanttLinkAdded(link: DhtmlxLink) {
-    try {
-      const predecessorId = String(link.source);
-      const successorId = String(link.target);
-
-      // same logic as your handleLinkAdded in previous code
-      // partial updates -> then reload
-      let predDoc = await fetchTask(orgId, projectId, subProjectId, predecessorId).catch(
-        () => null
-      );
-      let succDoc = await fetchTask(orgId, projectId, subProjectId, successorId).catch(
-        () => null
-      );
-
-      if (predDoc) {
-        const newSucc = new Set(predDoc.successors || []);
-        newSucc.add(successorId);
-        await updateTask(orgId, projectId, subProjectId, predDoc.id, {
-          successors: Array.from(newSucc),
-        });
-      } else {
-        // sub
-        const all = await fetchAllTasks(orgId, projectId, subProjectId);
-        for (const m of all) {
-          const subIdx = (m.subtasks || []).findIndex((s) => s.id === predecessorId);
-          if (subIdx >= 0) {
-            const subarray = [...(m.subtasks || [])];
-            const old = subarray[subIdx];
-            const newSucc = new Set(old.successors || []);
-            newSucc.add(successorId);
-            subarray[subIdx] = { ...old, successors: Array.from(newSucc) };
-            await updateTask(orgId, projectId, subProjectId, m.id, {
-              subtasks: subarray,
-            });
-            break;
-          }
-        }
-      }
-
-      // do the successor side => add predecessor
-      if (succDoc) {
-        const newPred = new Set(succDoc.predecessors || []);
-        newPred.add(predecessorId);
-        await updateTask(orgId, projectId, subProjectId, succDoc.id, {
-          predecessors: Array.from(newPred),
-        });
-      } else {
-        // sub
-        const all = await fetchAllTasks(orgId, projectId, subProjectId);
-        for (const m of all) {
-          const subIdx = (m.subtasks || []).findIndex((s) => s.id === successorId);
-          if (subIdx >= 0) {
-            const subarray = [...(m.subtasks || [])];
-            const old = subarray[subIdx];
-            const newPred = new Set(old.predecessors || []);
-            newPred.add(predecessorId);
-            subarray[subIdx] = { ...old, predecessors: Array.from(newPred) };
-            await updateTask(orgId, projectId, subProjectId, m.id, {
-              subtasks: subarray,
-            });
-            break;
-          }
-        }
-      }
-
-      // reload
-      await loadEverything();
-    } catch (err: any) {
-      console.error("handleGanttLinkAdded error:", err);
-      setError("Error adding link => " + (err.message || ""));
-    }
-  }
-
-  // c) If user deletes a link
-  async function handleGanttLinkDeleted(link: DhtmlxLink) {
-    try {
-      const predecessorId = String(link.source);
-      const successorId = String(link.target);
-
-      // same logic as handleLinkDeleted previously
-      // partial updates -> then reload
-      let predDoc = await fetchTask(orgId, projectId, subProjectId, predecessorId).catch(
-        () => null
-      );
-      if (predDoc) {
-        const newSucc = new Set(predDoc.successors || []);
-        newSucc.delete(successorId);
-        await updateTask(orgId, projectId, subProjectId, predDoc.id, {
-          successors: Array.from(newSucc),
-        });
-      } else {
-        // sub
-        const all = await fetchAllTasks(orgId, projectId, subProjectId);
-        for (const m of all) {
-          const subIdx = (m.subtasks || []).findIndex((s) => s.id === predecessorId);
-          if (subIdx >= 0) {
-            const subs = [...(m.subtasks || [])];
-            const old = subs[subIdx];
-            const newSucc = new Set(old.successors || []);
-            newSucc.delete(successorId);
-            subs[subIdx] = { ...old, successors: Array.from(newSucc) };
-            await updateTask(orgId, projectId, subProjectId, m.id, { subtasks: subs });
-            break;
-          }
-        }
-      }
-
-      // successor side
-      let succDoc = await fetchTask(orgId, projectId, subProjectId, successorId).catch(
-        () => null
-      );
-      if (succDoc) {
-        const newPred = new Set(succDoc.predecessors || []);
-        newPred.delete(predecessorId);
-        await updateTask(orgId, projectId, subProjectId, succDoc.id, {
-          predecessors: Array.from(newPred),
-        });
-      } else {
-        // sub
-        const all = await fetchAllTasks(orgId, projectId, subProjectId);
-        for (const m of all) {
-          const subIdx = (m.subtasks || []).findIndex((s) => s.id === successorId);
-          if (subIdx >= 0) {
-            const subs = [...(m.subtasks || [])];
-            const old = subs[subIdx];
-            const newPred = new Set(old.predecessors || []);
-            newPred.delete(predecessorId);
-            subs[subIdx] = { ...old, predecessors: Array.from(newPred) };
-            await updateTask(orgId, projectId, subProjectId, m.id, { subtasks: subs });
-            break;
-          }
-        }
-      }
-
-      // reload
-      await loadEverything();
-    } catch (err: any) {
-      console.error("handleGanttLinkDeleted error:", err);
-      setError("Error removing link => " + (err.message || ""));
-    }
-  }
-
-  // ---------- 3) Gantt Component with custom "gray out columns" approach ----------
-  function GanttChart() {
-    const ganttContainer = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-      gantt.clearAll();
-
-      gantt.config.xml_date = "%Y-%m-%d %H:%i";
-      gantt.config.scales = [
-        { unit: "day", step: 1, format: "%d %M %Y" },
-        { unit: "day", step: 1, format: "%D" },
-      ];
-      gantt.config.min_column_width = 50;
-
-      // We disable highlight_non_working_time if it's not working well for you
-      // We'll do a "gray out" approach with templates instead:
-      gantt.config.work_time = false; // or true, but see below
-      gantt.config.highlight_non_working_time = false;
-
-      // columns
-      gantt.config.columns = [
-        { name: "text", label: "Task Name", width: 220, tree: true },
-        { name: "start_date", label: "Start", align: "center", width: 90 },
-        { name: "end_date", label: "End", align: "center", width: 90 },
-      ];
-
-      // #A. Use scale_cell_class => to color top scale if day is blocked
-      gantt.templates.scale_cell_class = function (date) {
-        if (isDayBlocked(date)) {
-          return "gantt_inactive_day";
-        }
-        return "";
-      };
-
-      // #B. Use timeline_cell_class => to color timeline cells if day is blocked
-      gantt.templates.timeline_cell_class = function (item, date) {
-        if (isDayBlocked(date)) {
-          return "gantt_inactive_day";
-        }
-        return "";
-      };
-
-      // onAfterTaskUpdate => we call handleGanttTaskUpdated
-      gantt.attachEvent("onAfterTaskUpdate", function (id, updatedTask) {
-        handleGanttTaskUpdated({ ...updatedTask, id });
-        return true;
-      });
-
-      // onBeforeLinkAdd => if user tries weird link => we can do partial checks
-      gantt.attachEvent("onBeforeLinkAdd", function (id, link) {
-        const sourceTask = gantt.getTask(link.source);
-        const targetTask = gantt.getTask(link.target);
-        if (!sourceTask || !targetTask) return false;
-
-        const sEnd = new Date(sourceTask.end_date);
-        const tStart = new Date(targetTask.start_date);
-        if (sEnd > tStart) {
-          // flip
-          const temp = link.source;
-          link.source = link.target;
-          link.target = temp;
-        }
-        link.type = 0;
-        return true;
-      });
-
-      // onAfterLinkAdd => handleGanttLinkAdded
-      gantt.attachEvent("onAfterLinkAdd", function (id, link) {
-        handleGanttLinkAdded({ ...link, id });
-        return true;
-      });
-
-      // onAfterLinkDelete => handleGanttLinkDeleted
-      gantt.attachEvent("onAfterLinkDelete", function (id, link) {
-        handleGanttLinkDeleted({ ...link, id });
-        return true;
-      });
-
-      // pick min/max
-      const minMax = computeMinMaxDates(ganttData.data);
-      if (minMax) {
-        gantt.config.start_date = new Date(minMax.minDate.getTime() - 4 * 86400000);
-        gantt.config.end_date = new Date(minMax.maxDate.getTime() + 4 * 86400000);
-      }
-
-      if (ganttContainer.current) {
-        gantt.init(ganttContainer.current);
-        gantt.parse(ganttData);
-      }
-
-      return () => {
-        gantt.clearAll();
-      };
-    }, [ganttData]);
-
-    // A small helper that checks if a date is a blocked weekday or in blockedDates
-    function isDayBlocked(date: Date): boolean {
-      const dow = date.getDay();
-      if (blockedWeekdays.includes(dow)) return true;
-      const iso = date.toISOString().slice(0, 10);
-      if (blockedDates.includes(iso)) return true;
-      return false;
-    }
-
-    function computeMinMaxDates(items: DhtmlxTaskItem[]) {
-      if (!items.length) return null;
-      let minDate = new Date(items[0].start_date);
-      let maxDate = new Date(items[0].end_date);
-      for (const it of items) {
-        const sd = new Date(it.start_date);
-        const ed = new Date(it.end_date);
-        if (sd < minDate) minDate = sd;
-        if (ed > maxDate) maxDate = ed;
-      }
-      return { minDate, maxDate };
-    }
-
-    return (
-      <div style={{ width: "100%", overflowX: "auto" }}>
-        <div ref={ganttContainer} style={{ width: "2400px", height: "600px" }} />
-      </div>
-    );
-  }
-
-  // ---------- 4) Table logic (like your main tasks table) ----------
-
-  // parse user input date => Date
-  function parseDateInput(val: string): Date | null {
-    if (!val) return null;
-    const [yyyy, mm, dd] = val.split("-").map(Number);
-    if (!yyyy || !mm || !dd) return null;
-    return new Date(yyyy, mm - 1, dd, 0, 0, 0);
-  }
-
-  function handleChangeTask(taskId: string, field: keyof TaskDoc, value: any) {
-    // same as your existing logic
-    // ...
-  }
-
-  // etc. (we’ll keep your existing table logic)...
-
-  // For the sake of brevity, I'll only show where we build our table:
-  function renderTaskTable() {
-    return (
-      <ScrollableCard>
-        {/* same table code */}
-        {/* We'll just map tasks => rows, with drag & drop to reorder */}
-        ...
-      </ScrollableCard>
-    );
-  }
-
-  // ---------- RENDER ----------
+  // Loading or error states
   if (loading) {
-    return <PageContainer>Loading tasks for Gantt...</PageContainer>;
+    return <div className="p-6 text-sm">Loading RFI...</div>;
   }
   if (error) {
-    return (
-      <PageContainer>
-        <p className="text-red-600">{error}</p>
-      </PageContainer>
-    );
+    return <div className="p-6 text-red-600">{error}</div>;
+  }
+  if (!rfi) {
+    return <div className="p-6">No RFI found.</div>;
   }
 
   return (
-    <PageContainer className="dark:bg-neutral-900 dark:text-neutral-100 max-w-full">
-      <TasksHeaderNav orgId={orgId} projectId={projectId} subProjectId={subProjectId} />
+    <PageContainer>
+      {/* Back link */}
+      <div className="flex items-center justify-between">
+        <Link
+          href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/rfis`}
+          className="
+            text-sm font-medium text-blue-600 underline 
+            hover:text-blue-700 dark:text-blue-400 
+            dark:hover:text-blue-300 transition-colors
+          "
+        >
+          &larr; Back to RFIs
+        </Link>
+      </div>
 
-      <h1 className="text-2xl font-bold mb-4">Tasks + Gantt</h1>
+      {/* RFI Header */}
+      <div className="space-y-1">
+        <h1 className="text-2xl font-semibold">
+          {rfi.rfiNumber ? `RFI #${rfi.rfiNumber}: ` : ""}
+          {rfi.subject}
+        </h1>
+        {rfi.question && (
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">{rfi.question}</p>
+        )}
+      </div>
 
-      {/* (Optional) Some instructions or UI for blocking days */}
-      {/* ... your forms to add blockedWeekdays & blockedDates ... */}
+      {/* Primary Details Card */}
+      <Card>
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Column 1: Basic Fields */}
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+                Assigned To
+              </p>
+              <p className="text-base">
+                {rfi.assignedTo || <span className="opacity-70">N/A</span>}
+              </p>
+            </div>
 
-      <Card className="mb-4">{renderTaskTable()}</Card>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+                Due Date
+              </p>
+              <p className="text-base">
+                {rfi.dueDate ? new Date(rfi.dueDate).toLocaleDateString() : "No due date"}
+              </p>
+            </div>
 
-      <Card className="relative overflow-hidden">
-        <GanttChart />
+            <div className="flex flex-col sm:flex-row gap-4">
+              {/* Status */}
+              <div className="space-y-1">
+                <label
+                  htmlFor="status"
+                  className="block text-sm font-medium text-neutral-600 dark:text-neutral-400"
+                >
+                  Status
+                </label>
+                <select
+                  id="status"
+                  className="
+                    border bg-white dark:bg-neutral-800 
+                    dark:text-white p-2 rounded
+                    w-full sm:w-auto
+                  "
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                >
+                  <option value="draft">Draft</option>
+                  <option value="open">Open</option>
+                  <option value="inReview">In Review</option>
+                  <option value="resolved">Resolved</option>
+                  <option value="closed">Closed</option>
+                </select>
+              </div>
+
+              {/* Importance */}
+              <div className="space-y-1">
+                <label
+                  htmlFor="importance"
+                  className="block text-sm font-medium text-neutral-600 dark:text-neutral-400"
+                >
+                  Importance
+                </label>
+                <select
+                  id="importance"
+                  className="
+                    border bg-white dark:bg-neutral-800 
+                    dark:text-white p-2 rounded
+                    w-full sm:w-auto
+                  "
+                  value={importance}
+                  onChange={(e) => setImportance(e.target.value)}
+                >
+                  <option value="normal">Normal</option>
+                  <option value="high">High</option>
+                  <option value="critical">Critical</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Column 2: Official Response */}
+          <div className="space-y-1">
+            <label
+              htmlFor="officialResponse"
+              className="block text-sm font-medium text-neutral-600 dark:text-neutral-400"
+            >
+              Official Response
+            </label>
+            <textarea
+              id="officialResponse"
+              rows={5}
+              className="
+                w-full border p-2 rounded 
+                bg-white text-black dark:bg-neutral-800 dark:text-white
+              "
+              value={officialResponse}
+              onChange={(e) => setOfficialResponse(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Update RFI button */}
+        <div>
+          <GrayButton onClick={handleUpdate}>Save Changes</GrayButton>
+        </div>
+      </Card>
+
+      {/* Distribution List + Attachments */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Distribution List Card */}
+        <Card>
+          <h2 className="text-lg font-semibold">Distribution List</h2>
+          {rfi.distributionList && rfi.distributionList.length > 0 ? (
+            <ul className="space-y-1 text-sm">
+              {rfi.distributionList.map((email) => (
+                <li key={email} className="flex items-center justify-between">
+                  <span>{email}</span>
+                  <button
+                    onClick={() => handleRemoveEmail(email)}
+                    className="
+                      text-xs text-red-600 underline 
+                      hover:text-red-700 
+                      dark:hover:text-red-400
+                    "
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-neutral-500">No emails added yet.</p>
+          )}
+
+          <div className="flex gap-2">
+            <input
+              type="email"
+              placeholder="someone@example.com"
+              className="
+                border p-2 rounded w-full
+                bg-white text-black
+                dark:bg-neutral-800 dark:text-white
+              "
+              value={distListInput}
+              onChange={(e) => setDistListInput(e.target.value)}
+            />
+            <GrayButton onClick={handleAddEmailToList}>Add</GrayButton>
+          </div>
+        </Card>
+
+        {/* Attachments Card */}
+        <Card>
+          <h2 className="text-lg font-semibold">Attachments</h2>
+          {rfi.attachments && rfi.attachments.length > 0 ? (
+            <ul className="space-y-1 text-sm">
+              {rfi.attachments.map((url, i) => (
+                <li key={i}>
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="
+                      underline text-blue-600 
+                      hover:text-blue-700
+                      dark:text-blue-400 dark:hover:text-blue-300
+                    "
+                  >
+                    {url.split("/").pop()}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-neutral-500">No attachments yet.</p>
+          )}
+
+          <div className="text-sm space-y-3">
+            <div>
+              <label className="block text-sm font-medium mb-1">Docs / PDFs</label>
+              <input
+                type="file"
+                multiple
+                onChange={(e) => setNewFiles(e.target.files)}
+                className="
+                  file:mr-2 file:py-2 file:px-3 
+                  file:border-0 file:rounded 
+                  file:bg-gray-300 file:text-black
+                  hover:file:bg-gray-400
+                  dark:file:bg-gray-700 dark:file:text-white
+                  dark:hover:file:bg-gray-600
+                "
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Photos (capture or upload)
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={(e) => setNewPhotoFile(e.target.files)}
+                className="
+                  file:mr-2 file:py-2 file:px-3 
+                  file:border-0 file:rounded 
+                  file:bg-gray-300 file:text-black
+                  hover:file:bg-gray-400
+                  dark:file:bg-gray-700 dark:file:text-white
+                  dark:hover:file:bg-gray-600
+                "
+              />
+            </div>
+
+            <GrayButton onClick={handleAttachNewFiles}>Upload</GrayButton>
+          </div>
+        </Card>
+      </div>
+
+      {/* Activity / Comments Card */}
+      <Card>
+        <h2 className="text-lg font-semibold">Activity / Comments</h2>
+        {activityLog.length === 0 ? (
+          <p className="text-sm text-neutral-500">No activity yet.</p>
+        ) : (
+          <ul className="space-y-2 text-sm">
+            {activityLog.map((act) => (
+              <li key={act.id} className="p-2 rounded">
+                <p>
+                  {act.message}{" "}
+                  {act.createdAt && (
+                    <span className="ml-2 text-xs opacity-75">
+                      {new Date(act.createdAt.seconds * 1000).toLocaleString()}
+                    </span>
+                  )}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div className="flex gap-2 items-center">
+          <input
+            type="text"
+            placeholder="Add a comment..."
+            className="
+              flex-1 border p-2 rounded
+              bg-white text-black
+              dark:bg-neutral-800 dark:text-white
+            "
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+          />
+          <GrayButton onClick={handleAddComment}>Comment</GrayButton>
+        </div>
       </Card>
     </PageContainer>
   );
