@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { firestore } from "@/lib/firebaseConfig";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 // Shared UI
 import { PageContainer } from "@/components/ui/PageContainer";
@@ -25,6 +26,7 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const router = useRouter();
 
   useEffect(() => {
     async function fetchProjects() {
@@ -56,12 +58,9 @@ export default function ProjectsPage() {
       )}
       <Link
         href={`/dashboard/organizations/${orgId}/projects/${project.id}/subprojects`}
-        className="
-          text-blue-600 underline text-sm mt-2 inline-block
-          hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300
-        "
+        className="mt-2 inline-block"
       >
-        View Project
+        <GrayButton>View Project</GrayButton>
       </Link>
     </Card>
   );
@@ -77,16 +76,19 @@ export default function ProjectsPage() {
   return (
     <PageContainer>
       {/* Back to all organizations */}
-      <Link
-        href="/dashboard/organizations"
+      <button
+        onClick={() => router.push("/dashboard/organizations")}
         className="
-          text-sm font-medium text-blue-600 underline
-          hover:text-blue-700 dark:text-blue-400
-          dark:hover:text-blue-300 transition-colors
+          bg-gray-300 text-black
+          hover:bg-gray-400
+          dark:bg-gray-700 dark:text-white
+          dark:hover:bg-gray-600
+          transition-colors
+          px-4 py-2 rounded-xl text-sm
         "
       >
         &larr; Back to Organizations
-      </Link>
+      </button>
 
       <div className="flex justify-between items-center mt-4">
         <h1 className="text-2xl font-bold">Projects under Org {orgId}</h1>

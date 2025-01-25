@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { firestore } from "@/lib/firebaseConfig";
 import Link from "next/link";
@@ -20,6 +20,7 @@ interface SubProject {
 }
 
 export default function SubProjectsPage() {
+  const router = useRouter();
   const { orgId, projectId } = useParams() as { orgId: string; projectId: string };
   const [subProjects, setSubProjects] = useState<SubProject[]>([]);
   const [mainProjectName, setMainProjectName] = useState("");
@@ -71,12 +72,9 @@ export default function SubProjectsPage() {
       <p className="text-sm">Status: {sp.status || "active"}</p>
       <Link
         href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${sp.id}`}
-        className="
-          text-blue-600 hover:underline text-sm mt-2 inline-block
-          hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300
-        "
+        className="mt-2 inline-block"
       >
-        Open Project
+        <GrayButton>Open Project</GrayButton>
       </Link>
     </Card>
   );
@@ -91,17 +89,20 @@ export default function SubProjectsPage() {
 
   return (
     <PageContainer>
-      {/* Back link to main project */}
-      <Link
-        href={`/dashboard/organizations/${orgId}/projects`}
+      {/* Back button to main project */}
+      <button
+        onClick={() => router.push(`/dashboard/organizations/${orgId}/projects`)}
         className="
-          text-sm font-medium text-blue-600 underline
-          hover:text-blue-700 dark:text-blue-400
-          dark:hover:text-blue-300 transition-colors
+          bg-gray-300 text-black
+          hover:bg-gray-400
+          dark:bg-gray-700 dark:text-white
+          dark:hover:bg-gray-600
+          transition-colors
+          px-4 py-2 rounded-xl text-sm
         "
       >
         &larr; Back to {mainProjectName}
-      </Link>
+      </button>
 
       <h1 className="text-2xl font-bold mt-4">Sub-Projects under {mainProjectName}</h1>
 

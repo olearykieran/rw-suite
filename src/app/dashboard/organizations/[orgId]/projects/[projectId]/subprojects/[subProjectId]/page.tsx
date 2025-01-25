@@ -117,18 +117,25 @@ export default function SubProjectOverview() {
           ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
         `}
       >
-        {/* Back link */}
+        {/* Back button */}
         <div className="flex items-center justify-between mb-4">
-          <Link
-            href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects`}
+          <button
+            onClick={() =>
+              router.push(
+                `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects`
+              )
+            }
             className="
-              text-sm font-medium text-blue-600 underline
-              hover:text-blue-700 dark:text-blue-400
-              dark:hover:text-blue-300 transition-colors
+              bg-gray-300 text-black
+              hover:bg-gray-400
+              dark:bg-gray-700 dark:text-white
+              dark:hover:bg-gray-600
+              transition-colors
+              px-4 py-2 rounded-xl text-sm
             "
           >
             &larr; Back to Sub-Projects of {mainProjectName}
-          </Link>
+          </button>
         </div>
 
         {/* Sub-Project Header */}
@@ -136,7 +143,7 @@ export default function SubProjectOverview() {
           className="
             bg-white dark:bg-neutral-900
             border border-neutral-200 dark:border-gray-600
-            rounded-lg p-6 space-y-4
+            rounded-xl p-6 space-y-4
           "
         >
           <div className="flex justify-between items-center">
@@ -151,7 +158,7 @@ export default function SubProjectOverview() {
                 dark:bg-gray-700 dark:text-white
                 dark:hover:bg-gray-600
                 transition-colors
-                px-4 py-2 rounded text-sm
+                px-6 py-3 rounded-xl text-base
               "
             >
               Deselect
@@ -174,7 +181,7 @@ export default function SubProjectOverview() {
           className="
             bg-white dark:bg-neutral-900
             border border-neutral-200 dark:border-gray-600
-            rounded-lg p-6 space-y-4
+            rounded-xl p-6 space-y-4
           "
         >
           <h2 className="text-xl font-semibold">Sub-Project Features</h2>
@@ -185,7 +192,7 @@ export default function SubProjectOverview() {
               className="
                 bg-white dark:bg-neutral-700
                 border border-neutral-200 dark:border-gray-600
-                rounded p-4 shadow-sm hover:shadow-md
+                rounded-xl p-6 shadow-sm hover:shadow-md
                 transition
               "
             >
@@ -201,7 +208,7 @@ export default function SubProjectOverview() {
               className="
                 bg-white dark:bg-neutral-700
                 border border-neutral-200 dark:border-gray-600
-                rounded p-4 shadow-sm hover:shadow-md
+                rounded-xl p-6 shadow-sm hover:shadow-md
                 transition
               "
             >
@@ -215,7 +222,7 @@ export default function SubProjectOverview() {
               className="
                 bg-white dark:bg-neutral-700
                 border border-neutral-200 dark:border-gray-600
-                rounded p-4 shadow-sm hover:shadow-md
+                rounded-xl p-6 shadow-sm hover:shadow-md
                 transition
               "
             >
@@ -229,7 +236,7 @@ export default function SubProjectOverview() {
               className="
                 bg-white dark:bg-neutral-700
                 border border-neutral-200 dark:border-gray-600
-                rounded p-4 shadow-sm hover:shadow-md
+                rounded-xl p-6 shadow-sm hover:shadow-md
                 transition
               "
             >
@@ -243,7 +250,7 @@ export default function SubProjectOverview() {
               className="
                 bg-white dark:bg-neutral-700
                 border border-neutral-200 dark:border-gray-600
-                rounded p-4 shadow-sm hover:shadow-md
+                rounded-xl p-6 shadow-sm hover:shadow-md
                 transition
               "
             >
@@ -257,7 +264,7 @@ export default function SubProjectOverview() {
               className="
                 bg-white dark:bg-neutral-700
                 border border-neutral-200 dark:border-gray-600
-                rounded p-4 shadow-sm hover:shadow-md
+                rounded-xl p-6 shadow-sm hover:shadow-md
                 transition
               "
             >
@@ -271,7 +278,7 @@ export default function SubProjectOverview() {
               className="
                 bg-white dark:bg-neutral-700
                 border border-neutral-200 dark:border-gray-600
-                rounded p-4 shadow-sm hover:shadow-md
+                rounded-xl p-6 shadow-sm hover:shadow-md
                 transition
               "
             >
@@ -287,7 +294,7 @@ export default function SubProjectOverview() {
               className="
                 bg-white dark:bg-neutral-700
                 border border-neutral-200 dark:border-gray-600
-                rounded p-4 shadow-sm hover:shadow-md
+                rounded-xl p-6 shadow-sm hover:shadow-md
                 transition
               "
             >
@@ -303,7 +310,7 @@ export default function SubProjectOverview() {
               className="
                 bg-white dark:bg-neutral-700
                 border border-neutral-200 dark:border-gray-600
-                rounded p-4 shadow-sm hover:shadow-md
+                rounded-xl p-6 shadow-sm hover:shadow-md
                 transition
               "
             >

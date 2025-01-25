@@ -58,10 +58,7 @@ export default function OrganizationsPage() {
       )}
       <Link
         href={`/dashboard/organizations/${org.id}/projects`}
-        className="
-          text-blue-600 hover:underline text-sm mt-2 inline-block
-          hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300
-        "
+        className="mt-2 inline-block"
       >
         <GrayButton>View Organization</GrayButton>
       </Link>

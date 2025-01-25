@@ -1,4 +1,3 @@
-// src/lib/services/RfiService.ts
 import { firestore, auth } from "@/lib/firebaseConfig";
 import {
   doc,
@@ -12,6 +11,46 @@ import {
   runTransaction,
 } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+
+export async function parsePdfWithPdfplumber(pdfUrl: string): Promise<string> {
+  try {
+    const response = await fetch("/api/parse-pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pdfUrl }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to parse PDF: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.text;
+  } catch (error) {
+    console.error("Error parsing PDF:", error);
+    throw error;
+  }
+}
+
+async function getNextRfiNumber(): Promise<number> {
+  const counterRef = doc(firestore, "counters", "rfiCounter");
+  let newVal = 1;
+
+  await runTransaction(firestore, async (transaction) => {
+    const snap = await transaction.get(counterRef);
+    if (!snap.exists()) {
+      transaction.set(counterRef, { value: 1 });
+      newVal = 1;
+    } else {
+      const data = snap.data();
+      const currentVal = data.value || 0;
+      newVal = currentVal + 1;
+      transaction.update(counterRef, { value: newVal });
+    }
+  });
+
+  return newVal;
+}
 
 interface CreateRfiInput {
   orgId: string;
@@ -28,34 +67,6 @@ interface CreateRfiInput {
   createdByEmail?: string;
 }
 
-/**
- * Increments a global RFI counter doc and returns the next integer.
- * You can store counters in `counters/rfiCounter` or by org, etc.
- */
-async function getNextRfiNumber(): Promise<number> {
-  const counterRef = doc(firestore, "counters", "rfiCounter");
-  let newVal = 1; // fallback if doc doesn't exist
-
-  await runTransaction(firestore, async (transaction) => {
-    const snap = await transaction.get(counterRef);
-    if (!snap.exists()) {
-      // If doc doesn't exist, create it with initial 1
-      transaction.set(counterRef, { value: 1 });
-      newVal = 1;
-    } else {
-      const data = snap.data();
-      const currentVal = data.value || 0;
-      newVal = currentVal + 1;
-      transaction.update(counterRef, { value: newVal });
-    }
-  });
-
-  return newVal;
-}
-
-/**
- * Creates a new RFI in Firestore, uploading any attachments
- */
 export async function createRfi(input: CreateRfiInput): Promise<string> {
   const {
     orgId,
@@ -74,15 +85,13 @@ export async function createRfi(input: CreateRfiInput): Promise<string> {
 
   console.log("[createRfi] user:", auth.currentUser?.uid);
 
-  // 1) Generate the numeric rfiNumber
   const rfiNumber = await getNextRfiNumber();
-
-  // 2) Generate doc ID from subject or random
   const rfiId =
     subject.toLowerCase().replace(/\s+/g, "-") || Math.random().toString(36).slice(2);
 
-  // 3) Upload attachments (if any)
   const attachmentUrls: string[] = [];
+  let pdfTexts: string[] = [];
+
   if (files && files.length > 0) {
     const storage = getStorage();
     for (let i = 0; i < files.length; i++) {
@@ -95,6 +104,17 @@ export async function createRfi(input: CreateRfiInput): Promise<string> {
       const downloadURL = await getDownloadURL(fileRef);
       attachmentUrls.push(downloadURL);
       console.log("[createRfi] uploaded:", file.name, "->", downloadURL);
+
+      if (file.type === "application/pdf") {
+        try {
+          const pdfText = await parsePdfWithPdfplumber(downloadURL);
+          if (pdfText) {
+            pdfTexts.push(pdfText);
+          }
+        } catch (error) {
+          console.error(`Failed to parse PDF ${file.name}:`, error);
+        }
+      }
     }
   }
 
@@ -120,6 +140,7 @@ export async function createRfi(input: CreateRfiInput): Promise<string> {
     status,
     importance,
     attachments: attachmentUrls,
+    pdfTexts,
     createdAt: serverTimestamp(),
     createdBy: auth.currentUser?.uid || null,
     createdByEmail: createdByEmail || null,
@@ -132,7 +153,6 @@ export async function createRfi(input: CreateRfiInput): Promise<string> {
 
   console.log("[createRfi] doc created with rfiNumber:", rfiNumber);
 
-  // Add initial activity
   await addActivity(orgId, projectId, subProjectId, rfiId, {
     message: `RFI #${rfiNumber} created: "${subject}"`,
     userId: auth.currentUser?.uid,
@@ -141,9 +161,6 @@ export async function createRfi(input: CreateRfiInput): Promise<string> {
   return rfiId;
 }
 
-/**
- * fetchRfi - retrieves a single RFI by doc ID
- */
 export async function fetchRfi(
   orgId: string,
   projectId: string,
@@ -168,9 +185,6 @@ export async function fetchRfi(
   return { id: snap.id, ...snap.data() };
 }
 
-/**
- * updateRfi - partial update of an RFI doc
- */
 export async function updateRfi(
   orgId: string,
   projectId: string,
@@ -196,9 +210,6 @@ export async function updateRfi(
   });
 }
 
-/**
- * fetchAllRfis - returns all RFI docs in subcollection
- */
 export async function fetchAllRfis(
   orgId: string,
   projectId: string,
@@ -224,9 +235,6 @@ interface ActivityPayload {
   additionalData?: Record<string, any>;
 }
 
-/**
- * addActivity - logs a message in /activities subcollection
- */
 export async function addActivity(
   orgId: string,
   projectId: string,
@@ -252,9 +260,6 @@ export async function addActivity(
   });
 }
 
-/**
- * fetchActivityLog - returns array of activity docs
- */
 export async function fetchActivityLog(
   orgId: string,
   projectId: string,
@@ -274,5 +279,52 @@ export async function fetchActivityLog(
     "activities"
   );
   const snap = await getDocs(activityColl);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+export async function saveRfiVersion(
+  orgId: string,
+  projectId: string,
+  subProjectId: string,
+  rfiId: string,
+  snapshot: Record<string, any>
+) {
+  const versionsRef = collection(
+    firestore,
+    "organizations",
+    orgId,
+    "projects",
+    projectId,
+    "subprojects",
+    subProjectId,
+    "rfis",
+    rfiId,
+    "rfiVersions"
+  );
+  await addDoc(versionsRef, {
+    ...snapshot,
+    savedAt: serverTimestamp(),
+  });
+}
+
+export async function fetchRfiVersions(
+  orgId: string,
+  projectId: string,
+  subProjectId: string,
+  rfiId: string
+) {
+  const versionsRef = collection(
+    firestore,
+    "organizations",
+    orgId,
+    "projects",
+    projectId,
+    "subprojects",
+    subProjectId,
+    "rfis",
+    rfiId,
+    "rfiVersions"
+  );
+  const snap = await getDocs(versionsRef);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }

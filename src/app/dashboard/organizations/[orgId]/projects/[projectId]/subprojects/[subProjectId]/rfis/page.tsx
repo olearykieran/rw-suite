@@ -3,7 +3,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { fetchAllRfis } from "@/lib/services/RfiService";
 import { useLoading } from "@/components/ui/LoadingProvider";
@@ -28,6 +28,7 @@ export default function RfiListPage() {
     projectId: string;
     subProjectId: string;
   };
+  const router = useRouter();
 
   const [rfis, setRfis] = useState<RfiItem[]>([]);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -86,14 +87,25 @@ export default function RfiListPage() {
 
   return (
     <PageContainer>
-      {/* Back link */}
+      {/* Back button */}
       <div className="flex items-center justify-between">
-        <Link
-          href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`}
-          className="text-sm font-medium text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+        <button
+          onClick={() =>
+            router.push(
+              `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`
+            )
+          }
+          className="
+            bg-gray-300 text-black
+            hover:bg-gray-400
+            dark:bg-gray-700 dark:text-white
+            dark:hover:bg-gray-600
+            transition-colors
+            px-4 py-2 rounded-xl text-sm
+          "
         >
           &larr; Back to Sub-Project
-        </Link>
+        </button>
       </div>
 
       {/* Title + Create RFI button */}
@@ -166,9 +178,9 @@ export default function RfiListPage() {
                     <td className="p-3">
                       <Link
                         href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/rfis/${rfi.id}`}
-                        className="text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                        className="inline-block"
                       >
-                        View
+                        <GrayButton>View</GrayButton>
                       </Link>
                     </td>
                   </tr>
@@ -183,9 +195,9 @@ export default function RfiListPage() {
                   <h2 className="font-bold text-lg">RFI #{rfi.rfiNumber || "--"}</h2>
                   <Link
                     href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/rfis/${rfi.id}`}
-                    className="text-blue-600 underline text-sm hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                    className="inline-block"
                   >
-                    View
+                    <GrayButton>View</GrayButton>
                   </Link>
                 </div>
                 <p className="text-sm mt-1">
