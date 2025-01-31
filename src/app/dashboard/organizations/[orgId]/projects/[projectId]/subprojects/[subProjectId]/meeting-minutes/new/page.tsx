@@ -14,7 +14,18 @@ import {
   createMeeting,
   uploadMeetingAttachment,
   updateMeeting,
+  Attendee,
+  ActionItem,
 } from "@/lib/services/MeetingMinutesService";
+
+/**
+ * Attempt to parse date from string
+ */
+function tryParseDate(raw: string): Date | null {
+  if (!raw.trim()) return null;
+  const d = new Date(raw);
+  return isNaN(d.getTime()) ? null : d;
+}
 
 export default function NewMeetingPage() {
   const router = useRouter();
@@ -24,53 +35,147 @@ export default function NewMeetingPage() {
     subProjectId: string;
   };
 
-  // Form states
+  // Basic fields
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
-  const [attendees, setAttendees] = useState("");
   const [agenda, setAgenda] = useState("");
   const [notes, setNotes] = useState("");
   const [nextMeetingDate, setNextMeetingDate] = useState("");
 
-  // For handling file uploads
+  // We store attendees & action items as JSON text
+  const [attendeesJSON, setAttendeesJSON] = useState("[]");
+  const [actionItemsJSON, setActionItemsJSON] = useState("[]");
+
+  // For the raw summary for ChatGPT
+  const [rawSummary, setRawSummary] = useState("");
+
+  // File attachments
   const [files, setFiles] = useState<FileList | null>(null);
 
-  // Error/loading
+  // UI states
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [parsing, setParsing] = useState(false);
 
+  // ===========================
+  // 1) "Parse with ChatGPT"
+  // ===========================
+  async function handleParseAI() {
+    setParsing(true);
+    setError("");
+
+    try {
+      if (!rawSummary.trim()) {
+        setError("Please paste your raw meeting summary first.");
+        setParsing(false);
+        return;
+      }
+
+      const res = await fetch("/api/parse-meeting", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rawSummary }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Parse failed, status ${res.status}`);
+      }
+
+      const { data } = await res.json();
+      if (!data) {
+        throw new Error("No data returned from ChatGPT");
+      }
+
+      // data => { title, date, attendees: [...], agenda, notes, nextMeetingDate, actionItems: [...] }
+      setTitle(data.title || "");
+      setAgenda(data.agenda || "");
+      setNotes(data.notes || "");
+
+      // date
+      if (data.date) {
+        const d = tryParseDate(data.date);
+        if (d) {
+          const localStr = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+            .toISOString()
+            .slice(0, 16);
+          setDate(localStr);
+        }
+      }
+
+      // nextMeetingDate
+      if (data.nextMeetingDate) {
+        const nd = tryParseDate(data.nextMeetingDate);
+        if (nd) {
+          const localStr = new Date(nd.getTime() - nd.getTimezoneOffset() * 60000)
+            .toISOString()
+            .slice(0, 16);
+          setNextMeetingDate(localStr);
+        }
+      }
+
+      // attendees => array of { name, email, phone, company }
+      if (Array.isArray(data.attendees)) {
+        setAttendeesJSON(JSON.stringify(data.attendees, null, 2));
+      }
+
+      // actionItems => array of { status, owner, open, notes }
+      if (Array.isArray(data.actionItems)) {
+        setActionItemsJSON(JSON.stringify(data.actionItems, null, 2));
+      }
+    } catch (err: any) {
+      console.error("Parse error:", err);
+      setError(err.message || "Failed to parse with ChatGPT");
+    } finally {
+      setParsing(false);
+    }
+  }
+
+  // ===========================
+  // 2) "Create Meeting"
+  // ===========================
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      // Convert form strings to dates if present
-      let dateObj: Date | null = null;
-      if (date) dateObj = new Date(date);
+      // parse date
+      const dateObj = tryParseDate(date) || null;
+      const nextObj = tryParseDate(nextMeetingDate) || null;
 
-      let nextObj: Date | null = null;
-      if (nextMeetingDate) nextObj = new Date(nextMeetingDate);
+      let attendeesArr: Attendee[] = [];
+      let actionItemsArr: ActionItem[] = [];
 
-      // Convert comma-separated attendees to array
-      const attArr = attendees
-        .split(",")
-        .map((a) => a.trim())
-        .filter(Boolean);
+      // parse attendees from JSON
+      try {
+        attendeesArr = JSON.parse(attendeesJSON);
+      } catch (jsonErr) {
+        console.warn("Could not parse attendees JSON:", jsonErr);
+        attendeesArr = [];
+      }
 
-      // 1) Create the meeting doc
+      // parse action items from JSON
+      try {
+        actionItemsArr = JSON.parse(actionItemsJSON);
+      } catch (jsonErr) {
+        console.warn("Could not parse actionItems JSON:", jsonErr);
+        actionItemsArr = [];
+      }
+
+      // create doc
       const meetingId = await createMeeting(orgId, projectId, subProjectId, {
         title,
         date: dateObj,
-        attendees: attArr,
         agenda,
         notes,
         nextMeetingDate: nextObj,
+        attendees: attendeesArr,
+        actionItems: actionItemsArr,
       });
 
-      // 2) If files exist, upload them and update doc with attachments
+      // attachments
       if (files && files.length > 0) {
-        const uploadedUrls: string[] = [];
+        const uploaded: string[] = [];
         for (let i = 0; i < files.length; i++) {
           const file = files[i];
           const url = await uploadMeetingAttachment(
@@ -80,16 +185,16 @@ export default function NewMeetingPage() {
             meetingId,
             file
           );
-          uploadedUrls.push(url);
+          uploaded.push(url);
         }
-        if (uploadedUrls.length > 0) {
+        if (uploaded.length > 0) {
           await updateMeeting(orgId, projectId, subProjectId, meetingId, {
-            attachments: uploadedUrls,
+            attachments: uploaded,
           });
         }
       }
 
-      // 3) Redirect
+      // redirect
       router.push(
         `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/meeting-minutes`
       );
@@ -101,15 +206,20 @@ export default function NewMeetingPage() {
     }
   }
 
+  // ===========================
+  // Cancel
+  // ===========================
   function handleCancel() {
     router.push(
       `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/meeting-minutes`
     );
   }
 
+  // ===========================
+  // Render
+  // ===========================
   return (
     <PageContainer>
-      {/* Top bar: Title + Cancel */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Create Meeting Minutes</h1>
         <GrayButton onClick={handleCancel}>Cancel</GrayButton>
@@ -118,15 +228,31 @@ export default function NewMeetingPage() {
       {error && <p className="text-red-600">{error}</p>}
 
       <Card>
+        {/* RAW SUMMARY + AI PARSE */}
+        <div className="mb-6">
+          <label className="block font-medium mb-1">Paste Raw Meeting Summary</label>
+          <textarea
+            className="border p-2 w-full rounded bg-white dark:bg-neutral-800 dark:text-white"
+            rows={5}
+            placeholder="Paste entire transcript or summary..."
+            value={rawSummary}
+            onChange={(e) => setRawSummary(e.target.value)}
+          />
+          <GrayButton onClick={handleParseAI} disabled={parsing}>
+            {parsing ? "Parsing..." : "Parse with ChatGPT"}
+          </GrayButton>
+          <p className="text-xs text-gray-500 mt-1">
+            This calls our AI endpoint to auto-fill the fields below.
+          </p>
+        </div>
+
+        {/* MAIN FORM */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Title */}
           <div>
             <label className="block font-medium mb-1">Title</label>
             <input
-              className="
-                border p-2 w-full rounded
-                bg-white dark:bg-neutral-800 dark:text-white
-              "
+              className="border p-2 w-full rounded bg-white dark:bg-neutral-800 dark:text-white"
               placeholder="Project Coordination Meeting"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -139,26 +265,9 @@ export default function NewMeetingPage() {
             <label className="block font-medium mb-1">Date of Meeting</label>
             <input
               type="datetime-local"
-              className="
-                border p-2 w-full rounded
-                bg-white dark:bg-neutral-800 dark:text-white
-              "
+              className="border p-2 w-full rounded bg-white dark:bg-neutral-800 dark:text-white"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-            />
-          </div>
-
-          {/* Attendees */}
-          <div>
-            <label className="block font-medium mb-1">Attendees (comma-separated)</label>
-            <input
-              className="
-                border p-2 w-full rounded
-                bg-white dark:bg-neutral-800 dark:text-white
-              "
-              placeholder="Alice, Bob, Charlie"
-              value={attendees}
-              onChange={(e) => setAttendees(e.target.value)}
             />
           </div>
 
@@ -166,29 +275,21 @@ export default function NewMeetingPage() {
           <div>
             <label className="block font-medium mb-1">Agenda</label>
             <textarea
-              className="
-                border p-2 w-full rounded
-                bg-white dark:bg-neutral-800 dark:text-white
-              "
-              rows={3}
+              className="border p-2 w-full rounded bg-white dark:bg-neutral-800 dark:text-white"
+              rows={2}
               value={agenda}
               onChange={(e) => setAgenda(e.target.value)}
-              placeholder="Agenda items..."
             />
           </div>
 
-          {/* Meeting Notes */}
+          {/* Notes */}
           <div>
             <label className="block font-medium mb-1">Meeting Notes</label>
             <textarea
-              className="
-                border p-2 w-full rounded
-                bg-white dark:bg-neutral-800 dark:text-white
-              "
+              className="border p-2 w-full rounded bg-white dark:bg-neutral-800 dark:text-white"
               rows={3}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Meeting summary, decisions made..."
             />
           </div>
 
@@ -197,12 +298,53 @@ export default function NewMeetingPage() {
             <label className="block font-medium mb-1">Next Meeting Date (optional)</label>
             <input
               type="datetime-local"
-              className="
-                border p-2 w-full rounded
-                bg-white dark:bg-neutral-800 dark:text-white
-              "
+              className="border p-2 w-full rounded bg-white dark:bg-neutral-800 dark:text-white"
               value={nextMeetingDate}
               onChange={(e) => setNextMeetingDate(e.target.value)}
+            />
+          </div>
+
+          {/* Attendees JSON */}
+          <div>
+            <label className="block font-medium mb-1">Attendees (JSON)</label>
+            <textarea
+              className="border p-2 w-full rounded bg-white dark:bg-neutral-800 dark:text-white"
+              rows={4}
+              value={attendeesJSON}
+              onChange={(e) => setAttendeesJSON(e.target.value)}
+              placeholder={`Example:
+[
+  {
+    "name": "Alice",
+    "email": "alice@example.com",
+    "phone": "555-111-2222",
+    "company": "ACME"
+  },
+  ...
+]
+`}
+            />
+          </div>
+
+          {/* Action Items JSON */}
+          <div>
+            <label className="block font-medium mb-1">Action Items (JSON)</label>
+            <textarea
+              className="border p-2 w-full rounded bg-white dark:bg-neutral-800 dark:text-white"
+              rows={4}
+              value={actionItemsJSON}
+              onChange={(e) => setActionItemsJSON(e.target.value)}
+              placeholder={`Example:
+[
+  {
+    "status": "Remove pews",
+    "owner": "Kieran",
+    "open": true,
+    "notes": "Store them in the basement"
+  },
+  ...
+]
+`}
             />
           </div>
 
@@ -214,17 +356,14 @@ export default function NewMeetingPage() {
               multiple
               onChange={(e) => setFiles(e.target.files)}
               className="
-                file:mr-2 file:py-2 file:px-3 
-                file:border-0 file:rounded 
+                file:mr-2 file:py-2 file:px-3
+                file:border-0 file:rounded
                 file:bg-gray-300 file:text-black
                 hover:file:bg-gray-400
                 dark:file:bg-gray-700 dark:file:text-white
                 dark:hover:file:bg-gray-600
               "
             />
-            <p className="text-sm">
-              Add PDFs, images, or other relevant docs for the meeting.
-            </p>
           </div>
 
           <GrayButton type="submit" disabled={loading}>

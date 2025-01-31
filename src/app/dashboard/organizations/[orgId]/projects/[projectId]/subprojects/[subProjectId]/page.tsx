@@ -320,6 +320,23 @@ export default function SubProjectOverview() {
                 close-out.
               </p>
             </Link>
+
+            {/* Site Visits - NEW FEATURE */}
+            <Link
+              href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/site-visits`}
+              className="
+                bg-white dark:bg-neutral-700
+                border border-neutral-200 dark:border-gray-600
+                rounded-xl p-6 shadow-sm hover:shadow-md
+                transition
+              "
+            >
+              <h3 className="font-bold mb-1">Site Visits</h3>
+              <p className="text-sm">
+                Record details, upload/annotate photos, and attach voice notes from site
+                visits.
+              </p>
+            </Link>
           </div>
         </div>
       </div>
