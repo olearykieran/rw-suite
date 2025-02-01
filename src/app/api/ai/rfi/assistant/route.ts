@@ -7,11 +7,23 @@ const openai = new OpenAI({
 
 const MAX_TOKENS_PER_PDF = 4000;
 
+// Define a type for the possible modes
+type ModeType =
+  | "summary"
+  | "riskAnalysis"
+  | "bestPractices"
+  | "lessonsLearned"
+  | "subDraft"
+  | "default";
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { mode, rfiSubject, rfiQuestion, officialResponse, pdfTexts, existingHistory } =
       body;
+
+    // Ensure mode is of the correct type
+    const validMode: ModeType = mode as ModeType;
 
     console.log("Received RFI data:", {
       subject: rfiSubject,
@@ -21,7 +33,7 @@ export async function POST(req: NextRequest) {
       rawPdfTexts: JSON.stringify(pdfTexts).slice(0, 200) + "...",
     });
 
-    const validPdfTexts = [];
+    const validPdfTexts: string[] = [];
     if (pdfTexts) {
       if (!Array.isArray(pdfTexts)) {
         console.error("PDF texts not in expected array format:", typeof pdfTexts);
@@ -61,7 +73,7 @@ export async function POST(req: NextRequest) {
       systemPrompt += `\nHistorical info: ${existingHistory}`;
     }
 
-    const prompts = {
+    const prompts: Record<ModeType, string> = {
       summary: "Summarize RFI details and PDF extracts, highlighting key points.",
       riskAnalysis: "Analyze potential schedule/cost impacts and risks.",
       bestPractices: "Suggest relevant code compliance and industry standards.",
@@ -70,7 +82,7 @@ export async function POST(req: NextRequest) {
       default: "Provide general analysis of the RFI.",
     };
 
-    const userPrompt = prompts[mode] || prompts.default;
+    const userPrompt = prompts[validMode] || prompts.default;
     console.log("Using prompt:", userPrompt);
 
     const completion = await openai.chat.completions.create({

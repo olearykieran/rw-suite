@@ -1,3 +1,4 @@
+// src/app/api/parse-meeting/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 
@@ -15,15 +16,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // We'll ask ChatGPT to parse the rawSummary into a strict JSON structure.
+    // We'll ask ChatGPT to parse the rawSummary into a strict JSON structure,
+    // now using headings/enumerations style in "notes" as requested.
     const systemPrompt = `
-You are a meeting minutes parser.
-You will receive a raw meeting summary. 
+You are a meeting minutes parser. You will receive a raw meeting summary.
 
-1) You must not leave out any important detail. 
-2) Each bullet or subtopic must appear verbatim in the final JSON under the proper field.
+1) You must not leave out any important detail.
+2) Each major heading or topic from the raw text should be reflected in the "notes" field, using headings or enumerations similar to the user's example:
+   "Key Topics Discussed
+    1. Some Heading
+    Sub-Heading
+    (description)
 
-Output ONLY valid JSON with exactly these fields:
+    2. Next Heading
+    (lines)...
+
+   etc."
+3) The final output MUST be valid JSON with exactly these fields:
+
 {
   "title": string,
   "date": string,
@@ -38,24 +48,23 @@ Output ONLY valid JSON with exactly these fields:
   ]
 }
 
-- "attendees": For each attendee, fill as many fields as possible. 
-- "agenda": short bullet or topic list of the main theme. 
-- "notes": DO NOT OMIT any bullet from the raw text. Combine them if you wish, but do NOT remove details. 
-- "actionItems": array for tasks. If a bullet looks like a task, move it here. 
-  - If the raw text indicates a task is finished or resolved, set "open" to false. Otherwise, default to true.
-  - Add a "notes" property for extra details.
-  
-Return no disclaimers or markdown. If unsure, leave fields blank. Only JSON, no code fences.
-    `;
+Rules:
+- "attendees": fill as many fields as possible.
+- "agenda": short bullet or line list of the main topics.
+- "notes": a multiline, text-based outline with headings and enumerations (like the example). Keep the raw details. No bulleting with '-' for every line. Instead, use headings, enumerations, or subheadings.
+- "actionItems": array of tasks. If the raw text indicates a task is finished, "open": false; else default "open": true.
+
+Return no disclaimers or markdown. If unsure, leave fields blank. Output only JSON—no extra text or code fences.
+`;
 
     const userPrompt = `
-      Here is the raw meeting summary:
-      ${rawSummary}
-    `;
+Here is the raw meeting summary:
+${rawSummary}
+`;
 
     // Call GPT
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o", // or "gpt-3.5-turbo", or "gpt-4o" if you have that
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
@@ -73,12 +82,12 @@ Return no disclaimers or markdown. If unsure, leave fields blank. Only JSON, no 
       );
     }
 
-    // Optionally log for debugging:
+    // Optionally log for debugging
     console.log("=== ChatGPT RAW ===");
     console.log(aiContent);
     console.log("=== END RAW ===");
 
-    // Strip any triple-backtick fences if they sneak in
+    // Strip any triple-backtick fences if they appear
     aiContent = aiContent
       .replace(/^```(\w+)?/gm, "") // remove ```json or ```
       .replace(/```$/gm, "")

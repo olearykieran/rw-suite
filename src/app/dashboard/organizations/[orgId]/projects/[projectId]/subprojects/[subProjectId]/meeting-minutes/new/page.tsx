@@ -19,12 +19,61 @@ import {
 } from "@/lib/services/MeetingMinutesService";
 
 /**
- * Attempt to parse date from string
+ * parseDateTime: tries to parse user input into a valid Date.
+ * If no year is specified, default to current year.
+ * If no time is specified, default to 12:00 (noon).
+ *
+ * Examples:
+ * - "05-15" => "YYYY-05-15T12:00"
+ * - "2023-05-15" => "2023-05-15T12:00"
+ * - "05-15T09:30" => "YYYY-05-15T09:30"
+ * - "2023-05-15T09:00" => valid as is
  */
-function tryParseDate(raw: string): Date | null {
-  if (!raw.trim()) return null;
-  const d = new Date(raw);
-  return isNaN(d.getTime()) ? null : d;
+function parseDateTime(raw: string): Date | null {
+  let val = raw.trim();
+  if (!val) return null;
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+
+  // If user typed something like "05-15" or "5-15" => no year => add year
+  const mmddRegex = /^(\d{1,2})-(\d{1,2})(?:T(\d{2}):(\d{2}))?$/;
+  // ex: "05-15", "5-7", "05-15T09:30"
+
+  // If user typed "YYYY-MM-DD" or "YYYY-M-D" => check for time
+  const yyyymmddRegex = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:T(\d{2}):(\d{2}))?$/;
+
+  // 1) See if it matches MM-DD first
+  let match = mmddRegex.exec(val);
+  if (match) {
+    let mm = match[1].padStart(2, "0");
+    let dd = match[2].padStart(2, "0");
+    let HH = match[3] || "12"; // default to noon
+    let MM = match[4] || "00";
+    // Insert current year
+    val = `${currentYear}-${mm}-${dd}T${HH}:${MM}`;
+  } else {
+    // 2) See if it matches YYYY-MM-DD
+    match = yyyymmddRegex.exec(val);
+    if (match) {
+      let year = match[1];
+      let mm = match[2].padStart(2, "0");
+      let dd = match[3].padStart(2, "0");
+      let HH = match[4] || "12";
+      let MM = match[5] || "00";
+      val = `${year}-${mm}-${dd}T${HH}:${MM}`;
+    } else {
+      // 3) Try to parse as-is
+      // e.g. "2023-05-15T09:30"
+    }
+  }
+
+  const d = new Date(val);
+  if (isNaN(d.getTime())) {
+    console.warn(`Invalid date/time format: "${raw}" => after parse: "${val}"`);
+    return null;
+  }
+  return d;
 }
 
 export default function NewMeetingPage() {
@@ -46,7 +95,7 @@ export default function NewMeetingPage() {
   const [attendeesJSON, setAttendeesJSON] = useState("[]");
   const [actionItemsJSON, setActionItemsJSON] = useState("[]");
 
-  // For the raw summary for ChatGPT
+  // For the raw summary to feed into ChatGPT
   const [rawSummary, setRawSummary] = useState("");
 
   // File attachments
@@ -93,7 +142,7 @@ export default function NewMeetingPage() {
 
       // date
       if (data.date) {
-        const d = tryParseDate(data.date);
+        const d = parseDateTime(data.date);
         if (d) {
           const localStr = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
             .toISOString()
@@ -104,7 +153,7 @@ export default function NewMeetingPage() {
 
       // nextMeetingDate
       if (data.nextMeetingDate) {
-        const nd = tryParseDate(data.nextMeetingDate);
+        const nd = parseDateTime(data.nextMeetingDate);
         if (nd) {
           const localStr = new Date(nd.getTime() - nd.getTimezoneOffset() * 60000)
             .toISOString()
@@ -140,8 +189,8 @@ export default function NewMeetingPage() {
 
     try {
       // parse date
-      const dateObj = tryParseDate(date) || null;
-      const nextObj = tryParseDate(nextMeetingDate) || null;
+      const dateObj = parseDateTime(date) || null;
+      const nextObj = parseDateTime(nextMeetingDate) || null;
 
       let attendeesArr: Attendee[] = [];
       let actionItemsArr: ActionItem[] = [];
@@ -242,7 +291,8 @@ export default function NewMeetingPage() {
             {parsing ? "Parsing..." : "Parse with ChatGPT"}
           </GrayButton>
           <p className="text-xs text-gray-500 mt-1">
-            This calls our AI endpoint to auto-fill the fields below.
+            This calls our AI endpoint to auto-fill the fields below. The 'notes' field
+            will come back with headings and enumerations like your example.
           </p>
         </div>
 
@@ -269,6 +319,10 @@ export default function NewMeetingPage() {
               value={date}
               onChange={(e) => setDate(e.target.value)}
             />
+            <p className="text-xs text-gray-500 mt-1">
+              If you leave out the year, it will default to {new Date().getFullYear()}. If
+              you leave out time, it defaults to 12:00 PM.
+            </p>
           </div>
 
           {/* Agenda */}
@@ -284,13 +338,19 @@ export default function NewMeetingPage() {
 
           {/* Notes */}
           <div>
-            <label className="block font-medium mb-1">Meeting Notes</label>
+            <label className="block font-medium mb-1">
+              Meeting Notes (with headings/enumerations)
+            </label>
             <textarea
               className="border p-2 w-full rounded bg-white dark:bg-neutral-800 dark:text-white"
-              rows={3}
+              rows={8}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
+            <p className="text-xs text-gray-500 mt-1">
+              The AI output will have something like "Key Topics Discussed\\n1. ...\\n 2.
+              ...\\n" etc. Feel free to adjust.
+            </p>
           </div>
 
           {/* Next Meeting Date */}
@@ -302,6 +362,9 @@ export default function NewMeetingPage() {
               value={nextMeetingDate}
               onChange={(e) => setNextMeetingDate(e.target.value)}
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Year/time defaults if missing, same as above.
+            </p>
           </div>
 
           {/* Attendees JSON */}
@@ -319,8 +382,7 @@ export default function NewMeetingPage() {
     "email": "alice@example.com",
     "phone": "555-111-2222",
     "company": "ACME"
-  },
-  ...
+  }
 ]
 `}
             />
@@ -341,8 +403,7 @@ export default function NewMeetingPage() {
     "owner": "Kieran",
     "open": true,
     "notes": "Store them in the basement"
-  },
-  ...
+  }
 ]
 `}
             />

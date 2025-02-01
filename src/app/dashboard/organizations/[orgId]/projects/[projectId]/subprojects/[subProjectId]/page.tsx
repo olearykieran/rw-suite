@@ -321,7 +321,7 @@ export default function SubProjectOverview() {
               </p>
             </Link>
 
-            {/* Site Visits - NEW FEATURE */}
+            {/* Site Visits */}
             <Link
               href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/site-visits`}
               className="
@@ -336,6 +336,36 @@ export default function SubProjectOverview() {
                 Record details, upload/annotate photos, and attach voice notes from site
                 visits.
               </p>
+            </Link>
+
+            {/* Master Takeoff (NEW) */}
+            <Link
+              href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/master-takeoff`}
+              className="
+                bg-white dark:bg-neutral-700
+                border border-neutral-200 dark:border-gray-600
+                rounded-xl p-6 shadow-sm hover:shadow-md
+                transition
+              "
+            >
+              <h3 className="font-bold mb-1">Master Takeoff</h3>
+              <p className="text-sm">
+                Import or create a master list of items to compare against bids.
+              </p>
+            </Link>
+
+            {/* Bid Leveler */}
+            <Link
+              href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/bid-leveler`}
+              className="
+                bg-white dark:bg-neutral-700
+                border border-neutral-200 dark:border-gray-600
+                rounded-xl p-6 shadow-sm hover:shadow-md
+                transition
+              "
+            >
+              <h3 className="font-bold mb-1">Bid Leveler</h3>
+              <p className="text-sm">Compare contractor bids and identify scope gaps.</p>
             </Link>
           </div>
         </div>

@@ -1,4 +1,4 @@
-// src/lib/services/MeetingMinutesService.ts
+// src/lib/services/BidLevelerService.ts
 
 import { firestore, auth } from "@/lib/firebaseConfig";
 import {
@@ -13,51 +13,38 @@ import {
 } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
-export interface Attendee {
-  name: string;
-  email: string;
-  phone?: string;
-  company?: string;
-}
-
-export interface ActionItem {
-  status: string;
-  owner: string;
-  open: boolean;
-  notes?: string;
-}
-
-export interface MeetingMinutesDoc {
-  id: string;
-  title: string;
-  date?: Date | null;
-  attendees?: Attendee[];
-  agenda?: string;
-  notes?: string;
-  nextMeetingDate?: Date | null;
-  attachments?: string[];
-  actionItems?: ActionItem[];
+/**
+ * BidDoc - the interface for storing a single bid in Firestore
+ */
+export interface BidDoc {
+  id: string; // Firestore document ID
+  trade: string; // e.g. "Plumbing", "Electrical"
+  contractor: string; // e.g. "P.H. Works Inc."
+  bidAmount?: number; // total cost from the bid
+  submissionDate?: Date | null;
+  notes?: string; // any text note, e.g. "Excludes permits"
+  scopeOfWork?: string; // or you could store a JSON array
+  exclusions?: string; // or a JSON array of strings
+  attachments?: string[]; // file URLs
+  // Timestamps
   createdAt?: any;
   createdBy?: string | null;
   updatedAt?: any;
   updatedBy?: string | null;
-  [key: string]: any; // for extras like propertyCode, etc.
+  [key: string]: any; // for other fields like propertyCode, etc.
 }
 
 /**
- * Convert a Firestore Timestamp or null into a JS Date
+ * coerceFirestoreDate(value) - convert a Firestore timestamp into a JS Date
  */
 function coerceFirestoreDate(value: any): Date | null {
   if (!value) return null;
-  // If Firestore recognized it as a timestamp, we can do .toDate()
   if (value.toDate) {
     return value.toDate();
   }
-  // If it's already a JS Date
   if (value instanceof Date) {
     return value;
   }
-  // If it has .seconds
   if (typeof value.seconds === "number") {
     return new Date(value.seconds * 1000);
   }
@@ -65,14 +52,13 @@ function coerceFirestoreDate(value: any): Date | null {
 }
 
 /**
- * createMeeting - adds a new doc
- * If you pass a JS Date, Firestore should store it as a Timestamp automatically
+ * createBid - create a new bid doc in Firestore
  */
-export async function createMeeting(
+export async function createBid(
   orgId: string,
   projectId: string,
   subProjectId: string,
-  data: Omit<MeetingMinutesDoc, "id">
+  data: Omit<BidDoc, "id">
 ): Promise<string> {
   const collRef = collection(
     firestore,
@@ -82,7 +68,7 @@ export async function createMeeting(
     projectId,
     "subprojects",
     subProjectId,
-    "meeting-minutes"
+    "bids" // the new sub-collection name
   );
 
   const docRef = await addDoc(collRef, {
@@ -96,14 +82,14 @@ export async function createMeeting(
 }
 
 /**
- * fetchMeeting - get a single doc, converting Timestamps => Date
+ * fetchBid - retrieve a single bid doc by ID
  */
-export async function fetchMeeting(
+export async function fetchBid(
   orgId: string,
   projectId: string,
   subProjectId: string,
-  meetingId: string
-): Promise<MeetingMinutesDoc> {
+  bidId: string
+): Promise<BidDoc> {
   const docRef = doc(
     firestore,
     "organizations",
@@ -112,30 +98,28 @@ export async function fetchMeeting(
     projectId,
     "subprojects",
     subProjectId,
-    "meeting-minutes",
-    meetingId
+    "bids",
+    bidId
   );
   const snap = await getDoc(docRef);
   if (!snap.exists()) {
-    throw new Error("Meeting record not found.");
+    throw new Error("Bid record not found.");
   }
-  const data = snap.data() || {};
 
-  // Convert Timestamp fields
-  data.date = coerceFirestoreDate(data.date);
-  data.nextMeetingDate = coerceFirestoreDate(data.nextMeetingDate);
+  const raw = snap.data() || {};
+  raw.submissionDate = coerceFirestoreDate(raw.submissionDate);
 
-  return { id: snap.id, ...data } as MeetingMinutesDoc;
+  return { id: snap.id, ...raw } as BidDoc;
 }
 
 /**
- * fetchAllMeetings - list all docs under subproject, converting date fields
+ * fetchAllBids - list all the bids under a specific subProject
  */
-export async function fetchAllMeetings(
+export async function fetchAllBids(
   orgId: string,
   projectId: string,
   subProjectId: string
-): Promise<MeetingMinutesDoc[]> {
+): Promise<BidDoc[]> {
   const collRef = collection(
     firestore,
     "organizations",
@@ -144,27 +128,27 @@ export async function fetchAllMeetings(
     projectId,
     "subprojects",
     subProjectId,
-    "meeting-minutes"
+    "bids"
   );
+
   const snap = await getDocs(collRef);
 
   return snap.docs.map((d) => {
     const raw = d.data() || {};
-    raw.date = coerceFirestoreDate(raw.date);
-    raw.nextMeetingDate = coerceFirestoreDate(raw.nextMeetingDate);
-    return { id: d.id, ...raw } as MeetingMinutesDoc;
+    raw.submissionDate = coerceFirestoreDate(raw.submissionDate);
+    return { id: d.id, ...raw } as BidDoc;
   });
 }
 
 /**
- * updateMeeting - partial update
+ * updateBid - partial update of an existing bid
  */
-export async function updateMeeting(
+export async function updateBid(
   orgId: string,
   projectId: string,
   subProjectId: string,
-  meetingId: string,
-  updates: Partial<MeetingMinutesDoc>
+  bidId: string,
+  updates: Partial<BidDoc>
 ) {
   const docRef = doc(
     firestore,
@@ -174,11 +158,10 @@ export async function updateMeeting(
     projectId,
     "subprojects",
     subProjectId,
-    "meeting-minutes",
-    meetingId
+    "bids",
+    bidId
   );
-  console.log("Updating Firestore with:", updates);
-  // Rely on Firestore to auto-convert a JS Date => Timestamp
+
   await updateDoc(docRef, {
     ...updates,
     updatedAt: serverTimestamp(),
@@ -187,13 +170,13 @@ export async function updateMeeting(
 }
 
 /**
- * deleteMeeting
+ * deleteBid - remove a bid doc
  */
-export async function deleteMeeting(
+export async function deleteBid(
   orgId: string,
   projectId: string,
   subProjectId: string,
-  meetingId: string
+  bidId: string
 ) {
   const docRef = doc(
     firestore,
@@ -203,27 +186,28 @@ export async function deleteMeeting(
     projectId,
     "subprojects",
     subProjectId,
-    "meeting-minutes",
-    meetingId
+    "bids",
+    bidId
   );
   await deleteDoc(docRef);
 }
 
 /**
- * uploadMeetingAttachment
+ * uploadBidAttachment
+ * - store attachments under "bids/{orgId}/{projectId}/{subProjectId}/{bidId}/..."
  */
-export async function uploadMeetingAttachment(
+export async function uploadBidAttachment(
   orgId: string,
   projectId: string,
   subProjectId: string,
-  meetingId: string,
+  bidId: string,
   file: File
 ): Promise<string> {
   const storage = getStorage();
   const fileRef = ref(
     storage,
-    `meeting-minutes/${orgId}/${projectId}/${subProjectId}/${meetingId}/${file.name}`
+    `bids/${orgId}/${projectId}/${subProjectId}/${bidId}/${file.name}`
   );
   await uploadBytes(fileRef, file);
-  return getDownloadURL(fileRef);
+  return await getDownloadURL(fileRef);
 }

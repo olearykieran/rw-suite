@@ -17,36 +17,48 @@ import {
   ActionItem,
 } from "@/lib/services/MeetingMinutesService";
 
-// PDF generator (pdfmake)
 import {
   generateMeetingMinutesPDF,
   MeetingPDFData,
 } from "@/lib/services/MeetingPDFGenerator";
 
-// DOCX generator (docx)
 import {
   generateMeetingMinutesDoc,
   MeetingDocData,
 } from "@/lib/services/MeetingDocGenerator";
 
-/** Convert <input type="datetime-local" /> => Date or null */
+/**
+ * Attempt to parse a string from <input type="datetime-local" /> into a JS Date.
+ * - If there's no "T" in the string, we'll append "T00:00" so that YYYY-MM-DD alone is accepted.
+ * - If the result is an invalid JS Date, we return null.
+ */
 function parseDateTime(value: string): Date | null {
   if (!value) return null;
+
+  // If user only typed YYYY-MM-DD (no T in it), append T00:00
+  if (!value.includes("T")) {
+    value += "T00:00";
+  }
+
   const d = new Date(value);
-  return isNaN(d.getTime()) ? null : d;
+  if (isNaN(d.getTime())) {
+    // It's invalid
+    return null;
+  }
+  return d;
 }
 
-/** Convert Date => "YYYY-MM-DDTHH:mm" for <input type="datetime-local" /> */
+/** Convert a JS Date => "YYYY-MM-DDTHH:mm" for <input type="datetime-local" /> */
 function formatDateTime(d: any): string {
   if (!d) return "";
   const dt = new Date(d);
   if (isNaN(dt.getTime())) return "";
-  const yy = dt.getFullYear();
-  const mm = String(dt.getMonth() + 1).padStart(2, "0");
-  const dd = String(dt.getDate()).padStart(2, "0");
-  const hh = String(dt.getHours()).padStart(2, "0");
-  const mn = String(dt.getMinutes()).padStart(2, "0");
-  return `${yy}-${mm}-${dd}T${hh}:${mn}`;
+  const year = dt.getFullYear();
+  const month = String(dt.getMonth() + 1).padStart(2, "0");
+  const day = String(dt.getDate()).padStart(2, "0");
+  const hours = String(dt.getHours()).padStart(2, "0");
+  const mins = String(dt.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${mins}`;
 }
 
 export default function MeetingDetailPage() {
@@ -80,12 +92,12 @@ export default function MeetingDetailPage() {
   // Attachments
   const [files, setFiles] = useState<FileList | null>(null);
 
-  // Fade-in
+  // Fade-in effect
   const [showContent, setShowContent] = useState(false);
 
-  // =========================================
+  // ---------------------------------------
   // 1) Load Meeting
-  // =========================================
+  // ---------------------------------------
   useEffect(() => {
     async function load() {
       try {
@@ -97,11 +109,13 @@ export default function MeetingDetailPage() {
 
         // Fill local states
         setTitle(data.title || "");
-        setPropertyCode((data as any).propertyCode || "");
-        setPreparedBy((data as any).preparedBy || "");
-        setLocation((data as any).location || "");
+        setPropertyCode(data.propertyCode || "");
+        setPreparedBy(data.preparedBy || "");
+        setLocation(data.location || "");
         setAgenda(data.agenda || "");
         setNotes(data.notes || "");
+
+        // Format the DB Date => <input type="datetime-local" />
         setDate(formatDateTime(data.date));
         setNextMeetingDate(formatDateTime(data.nextMeetingDate));
 
@@ -119,18 +133,34 @@ export default function MeetingDetailPage() {
     load();
   }, [orgId, projectId, subProjectId, meetingId]);
 
-  // =========================================
-  // 2) Update meeting
-  // =========================================
+  // ---------------------------------------
+  // 2) Update Meeting
+  // ---------------------------------------
   async function handleUpdate(e: FormEvent) {
     e.preventDefault();
     if (!meeting) return;
 
     try {
+      // Attempt to parse the date fields
       const dateObj = parseDateTime(date);
       const nextObj = parseDateTime(nextMeetingDate);
 
-      // Parse Attendees + Action Items from JSON
+      // If either is a weird string that couldn't parse => dateObj is null
+      // We can either let Firestore store "null" or we can show an error to the user
+      if (date && dateObj === null) {
+        alert(
+          `The Date field is invalid: "${date}".\n\nPlease use the format YYYY-MM-DDTHH:mm`
+        );
+        return; // do not proceed
+      }
+      if (nextMeetingDate && nextObj === null) {
+        alert(
+          `The Next Meeting Date field is invalid: "${nextMeetingDate}".\n\nPlease use the format YYYY-MM-DDTHH:mm`
+        );
+        return; // do not proceed
+      }
+
+      // Parse JSON fields
       let parsedAttendees: Attendee[] = [];
       let parsedActionItems: ActionItem[] = [];
       try {
@@ -144,6 +174,7 @@ export default function MeetingDetailPage() {
         console.warn("Could not parse actionItems JSON:", jsonErr);
       }
 
+      // Save to Firestore
       await updateMeeting(orgId, projectId, subProjectId, meeting.id, {
         title,
         propertyCode,
@@ -156,6 +187,7 @@ export default function MeetingDetailPage() {
         attendees: parsedAttendees,
         actionItems: parsedActionItems,
       });
+
       alert("Meeting updated!");
     } catch (err: any) {
       console.error("Update meeting error:", err);
@@ -163,12 +195,11 @@ export default function MeetingDetailPage() {
     }
   }
 
-  // =========================================
+  // ---------------------------------------
   // 3) Upload attachments
-  // =========================================
+  // ---------------------------------------
   async function handleUpload() {
     if (!meeting || !files || files.length === 0) return;
-
     try {
       const updatedAttachments = [...(meeting.attachments || [])];
       for (let i = 0; i < files.length; i++) {
@@ -182,11 +213,9 @@ export default function MeetingDetailPage() {
         );
         updatedAttachments.push(url);
       }
-      // Update doc
       await updateMeeting(orgId, projectId, subProjectId, meeting.id, {
         attachments: updatedAttachments,
       });
-      // Locally update
       setMeeting({ ...meeting, attachments: updatedAttachments });
       setFiles(null);
       alert("Attachments uploaded!");
@@ -196,17 +225,17 @@ export default function MeetingDetailPage() {
     }
   }
 
-  // =========================================
-  // 4) Download as PDF
-  // =========================================
+  // ---------------------------------------
+  // 4) PDF
+  // ---------------------------------------
   async function handleDownloadPDF() {
     if (!meeting) return;
     const pdfData: MeetingPDFData = {
       title: meeting.title || "",
-      propertyCode: (meeting as any).propertyCode || "",
+      propertyCode: meeting.propertyCode || "",
       date: meeting.date ? meeting.date.toString() : "",
-      preparedBy: (meeting as any).preparedBy || "",
-      location: (meeting as any).location || "",
+      preparedBy: meeting.preparedBy || "",
+      location: meeting.location || "",
       attendees: meeting.attendees || [],
       notes: meeting.notes || "",
       actionItems: meeting.actionItems || [],
@@ -216,45 +245,41 @@ export default function MeetingDetailPage() {
     generateMeetingMinutesPDF(pdfData);
   }
 
-  // =========================================
-  // 5) Download as DOCX
-  // =========================================
+  // ---------------------------------------
+  // 5) DOCX
+  // ---------------------------------------
   async function handleDownloadDoc() {
     if (!meeting) return;
-
     const docAttendees = (meeting.attendees || []).map((a) => ({
       name: a.name,
       email: a.email,
       phone: a.phone,
       company: a.company,
     }));
-
     const docActions = (meeting.actionItems || []).map((ai) => ({
       status: ai.status,
       owner: ai.owner,
       open: ai.open,
       notes: ai.notes,
     }));
-
     const docData: MeetingDocData = {
       title: meeting.title || "",
-      propertyCode: (meeting as any).propertyCode || "",
+      propertyCode: meeting.propertyCode || "",
       date: meeting.date ? meeting.date.toString() : "",
-      preparedBy: (meeting as any).preparedBy || "",
-      location: (meeting as any).location || "",
+      preparedBy: meeting.preparedBy || "",
+      location: meeting.location || "",
       attendees: docAttendees,
       notes: meeting.notes || "",
       actionItems: docActions,
     };
-
     const logoUrl =
       "https://firebasestorage.googleapis.com/v0/b/rw-project-management.firebasestorage.app/o/rw-logo-title.png?alt=media&token=03a42c6c-980c-4857-ae0d-f84c37baa2fe";
     await generateMeetingMinutesDoc(docData, logoUrl);
   }
 
-  // =========================================
+  // ---------------------------------------
   // Render
-  // =========================================
+  // ---------------------------------------
   if (loading) {
     return <div className="p-6 text-sm">Loading Meeting...</div>;
   }
@@ -357,6 +382,9 @@ export default function MeetingDetailPage() {
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
               />
+              <p className="text-xs text-neutral-400">
+                Must be YYYY-MM-DDTHH:mm (e.g. 2025-01-31T12:30)
+              </p>
             </div>
 
             {/* Agenda */}
@@ -396,6 +424,9 @@ export default function MeetingDetailPage() {
                 value={nextMeetingDate}
                 onChange={(e) => setNextMeetingDate(e.target.value)}
               />
+              <p className="text-xs text-neutral-400">
+                Must be YYYY-MM-DDTHH:mm (e.g. 2025-02-15T09:00)
+              </p>
             </div>
 
             {/* Attendees (JSON) */}
@@ -410,8 +441,7 @@ export default function MeetingDetailPage() {
                 onChange={(e) => setAttendeesJSON(e.target.value)}
               />
               <p className="text-xs text-neutral-500 mt-1">
-                Edit your attendees array in JSON. e.g. [{"{"}
-                "name":"Alice","email":"alice@example.com"{"}"} ]
+                E.g. [{"{"}"name":"Alice","email":"alice@example.com"{"}"}]
               </p>
             </div>
 
@@ -427,8 +457,7 @@ export default function MeetingDetailPage() {
                 onChange={(e) => setActionItemsJSON(e.target.value)}
               />
               <p className="text-xs text-neutral-500 mt-1">
-                Edit your action items array in JSON. e.g. [{"{"}"status":"Do
-                X","owner":"Bob","open":true{"}"} ]
+                E.g. [{"{"}"status":"Do X","owner":"Bob","open":true{"}"}]
               </p>
             </div>
 
@@ -554,7 +583,7 @@ export default function MeetingDetailPage() {
         </Card>
       </div>
 
-      {/* ===== Raw JSON (optional) ===== */}
+      {/* ===== Raw JSON ===== */}
       <div
         className={`
           opacity-0 transition-all duration-500 ease-out delay-[500ms]
