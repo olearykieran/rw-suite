@@ -14,6 +14,13 @@ import {
   deleteMasterTakeoff,
 } from "@/lib/services/MasterTakeoffService";
 
+/**
+ * MasterTakeoffDetailPage
+ *
+ * This page allows you to view and edit a Master Takeoff document.
+ * We have added a new navigation button ("View Report") which
+ * takes you to a reporting page for this takeoff.
+ */
 export default function MasterTakeoffDetailPage() {
   const { orgId, projectId, subProjectId, takeoffId } = useParams() as {
     orgId: string;
@@ -27,7 +34,7 @@ export default function MasterTakeoffDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Editable fields
+  // Editable fields for the master takeoff.
   const [name, setName] = useState("");
   const [itemsJSON, setItemsJSON] = useState("[]");
 
@@ -89,6 +96,7 @@ export default function MasterTakeoffDetailPage() {
 
   return (
     <PageContainer>
+      {/* Navigation section */}
       <div className="flex items-center justify-between mb-4">
         <button
           onClick={() =>
@@ -100,12 +108,24 @@ export default function MasterTakeoffDetailPage() {
         >
           &larr; Back
         </button>
-        <GrayButton
-          onClick={handleDelete}
-          className="bg-red-600 hover:bg-red-700 text-white"
-        >
-          Delete
-        </GrayButton>
+        <div className="flex gap-2">
+          {/* New "View Report" button navigates to the reporting page for this takeoff */}
+          <GrayButton
+            onClick={() =>
+              router.push(
+                `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/master-takeoff/${takeoff.id}/reporting`
+              )
+            }
+          >
+            View Report
+          </GrayButton>
+          <GrayButton
+            onClick={handleDelete}
+            className="bg-red-600 hover:bg-red-700 text-white"
+          >
+            Delete
+          </GrayButton>
+        </div>
       </div>
 
       <Card>
