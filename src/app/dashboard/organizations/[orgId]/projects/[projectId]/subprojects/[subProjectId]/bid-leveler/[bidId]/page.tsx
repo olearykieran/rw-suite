@@ -356,6 +356,16 @@ export default function BidDetailPage() {
             >
               View Leveling
             </GrayButton>
+
+            <GrayButton
+              onClick={() =>
+                router.push(
+                  `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/bid-leveler/${bidId}/allocation`
+                )
+              }
+            >
+              View Allocation
+            </GrayButton>
           </div>
         </Card>
       </div>
