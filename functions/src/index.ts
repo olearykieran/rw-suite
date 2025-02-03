@@ -94,8 +94,6 @@ export const onNewProject = onDocumentCreated(
  * 2) Import & export the onRfiWrite function from sendRfiNotification.ts
  * This function triggers on new or updated RFI documents and sends email.
  */
-import { onRfiWrite } from "./sendRfiNotification";
-export { onRfiWrite };
 
 import { onSubmittalWrite } from "./sendSubmittalNotification";
 export { onSubmittalWrite };

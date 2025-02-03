@@ -1,5 +1,3 @@
-// File: src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/site-visits/new/page.tsx
-
 "use client";
 
 import { FormEvent, useState } from "react";
@@ -20,8 +18,8 @@ export default function NewSiteVisitPage() {
   const [visitDate, setVisitDate] = useState("");
   const [participants, setParticipants] = useState("");
   const [notes, setNotes] = useState("");
-  const [files, setFiles] = useState<FileList | null>(null); // Photos
-  const [audioFiles, setAudioFiles] = useState<FileList | null>(null); // Voice notes
+  const [files, setFiles] = useState<FileList | null>(null);
+  const [audioFiles, setAudioFiles] = useState<FileList | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -35,7 +33,6 @@ export default function NewSiteVisitPage() {
         .split(",")
         .map((p) => p.trim())
         .filter(Boolean);
-
       await createSiteVisit(orgId, projectId, subProjectId, {
         visitDate,
         participants: participantsArray,
@@ -62,7 +59,7 @@ export default function NewSiteVisitPage() {
   return (
     <PageContainer>
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-semibold">Create New Site Visit</h1>
+        <h1 className="text-2xl font-bold">Create New Site Visit</h1>
         <GrayButton onClick={handleCancel}>Cancel</GrayButton>
       </div>
       {error && <p className="text-red-600 bg-red-50 p-2 rounded mb-4">{error}</p>}
@@ -73,7 +70,7 @@ export default function NewSiteVisitPage() {
             <label className="block mb-1 font-medium text-sm">Visit Date</label>
             <input
               type="date"
-              className="border p-2 rounded w-full"
+              className="border p-2 rounded w-full bg-neutral-300 text-black"
               value={visitDate}
               onChange={(e) => setVisitDate(e.target.value)}
               required
@@ -85,7 +82,7 @@ export default function NewSiteVisitPage() {
             </label>
             <input
               type="text"
-              className="border p-2 rounded w-full"
+              className="border p-2 rounded w-full bg-neutral-300 text-black"
               placeholder="John Doe, Jane Smith"
               value={participants}
               onChange={(e) => setParticipants(e.target.value)}
@@ -94,7 +91,7 @@ export default function NewSiteVisitPage() {
           <div>
             <label className="block mb-1 font-medium text-sm">Notes</label>
             <textarea
-              className="border p-2 rounded w-full"
+              className="border p-2 rounded w-full bg-neutral-300 text-black"
               rows={3}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}

@@ -367,6 +367,22 @@ export default function SubProjectOverview() {
               <h3 className="font-bold mb-1">Bid Leveler</h3>
               <p className="text-sm">Compare contractor bids and identify scope gaps.</p>
             </Link>
+
+            {/* Lighting Schedule */}
+            <Link
+              href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/lighting-schedule`}
+              className="
+                bg-white dark:bg-neutral-700
+                border border-neutral-200 dark:border-gray-600
+                rounded-xl p-6 shadow-sm hover:shadow-md
+                transition
+              "
+            >
+              <h3 className="font-bold mb-1">Lighting Schedule</h3>
+              <p className="text-sm">
+                Estimate lighting costs and schedule installation.
+              </p>
+            </Link>
           </div>
         </div>
       </div>

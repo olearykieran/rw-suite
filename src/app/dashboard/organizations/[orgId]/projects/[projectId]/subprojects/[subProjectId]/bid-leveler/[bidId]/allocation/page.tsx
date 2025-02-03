@@ -35,12 +35,12 @@ function getItemKey(item: any, index: number): string {
 /**
  * BidAllocationPage
  *
- * This page lets you level a lump-sum bid against a master takeoff.
- * It loads the bid and master takeoffs, lets you select a master takeoff,
- * provides a multi-select filter populated by the unique trade names from the master takeoff (with an "All" option),
- * computes default (proportional) allocations over the filtered items (unless you manually edit them),
- * allows you to adjust individual allocated bid amounts,
- * displays totals and a pie chart visualization, and saves the final allocation breakdown.
+ * This page lets you level a lump‑sum bid against a master takeoff.
+ * It loads the bid and master takeoffs, allows selection of a master takeoff,
+ * provides a multi‑select filter (populated by the unique trade names from the master takeoff plus an "all" option),
+ * computes default (proportional) allocations over the filtered items (unless manually edited),
+ * allows manual adjustment of allocated bid amounts,
+ * shows an enhanced totals section and a pie chart, and saves the final allocation breakdown.
  */
 export default function BidAllocationPage() {
   const { orgId, projectId, subProjectId, bidId } = useParams() as {
@@ -57,9 +57,11 @@ export default function BidAllocationPage() {
   const [selectedMasterId, setSelectedMasterId] = useState("");
   const [masterTakeoff, setMasterTakeoff] = useState<MasterTakeoffDoc | null>(null);
   const [allocations, setAllocations] = useState<Allocations>({});
-  // selectedTrades: an array of trade strings; "All" is a special option.
-  const [selectedTrades, setSelectedTrades] = useState<string[]>(["All"]);
+  // selectedTrades is stored in lower case; "all" is a special value.
+  const [selectedTrades, setSelectedTrades] = useState<string[]>(["all"]);
   const [hasUserEdited, setHasUserEdited] = useState(false);
+  const [editedKeys, setEditedKeys] = useState<Set<string>>(new Set());
+  const [autoBalance, setAutoBalance] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -81,46 +83,52 @@ export default function BidAllocationPage() {
     loadData();
   }, [orgId, projectId, subProjectId, bidId]);
 
-  // When a master takeoff is selected, update masterTakeoff and set the trade filter.
+  // When a master takeoff is selected, update masterTakeoff and reset manual edit state.
   useEffect(() => {
     if (!selectedMasterId) {
       setMasterTakeoff(null);
       setAllocations({});
-      setSelectedTrades(["All"]);
+      setSelectedTrades(["all"]);
       setHasUserEdited(false);
+      setEditedKeys(new Set());
       return;
     }
     const selected = masters.find((m) => m.id === selectedMasterId) || null;
     setMasterTakeoff(selected);
     setHasUserEdited(false);
+    setEditedKeys(new Set());
     if (selected && selected.items.length > 0) {
       // Extract unique trades from the master takeoff items.
       const availableTrades = Array.from(
-        new Set(selected.items.map((item) => String(item.trade).trim()))
+        new Set(selected.items.map((item) => String(item.trade).trim().toLowerCase()))
       );
       console.log("Available trades from selected master:", availableTrades);
-      // Default selection is "All" so that all items are shown.
-      setSelectedTrades(["All"]);
+      // Default selection is "all" so that all items are shown.
+      setSelectedTrades(["all"]);
     }
   }, [selectedMasterId, masters, bid]);
 
-  // Compute default allocations if the user has not manually edited.
+  // Compute default allocations if not manually edited.
   useEffect(() => {
     if (!masterTakeoff || !bid || (bid.bidAmount ?? 0) === 0) {
       setAllocations({});
       return;
     }
     if (hasUserEdited) {
-      console.log("User has manually edited allocations; skipping defaults.");
+      console.log(
+        "User has manually edited allocations; skipping default recalculation."
+      );
       return;
     }
     let filteredItems;
-    if (selectedTrades.includes("All")) {
+    if (selectedTrades.includes("all")) {
       filteredItems = masterTakeoff.items;
     } else {
-      const tradesToFilter = selectedTrades.map((t) => t.trim());
+      const tradesToFilter = selectedTrades.map((t) => t.trim().toLowerCase());
       filteredItems = masterTakeoff.items.filter((item) => {
-        const trade = String(item.trade || "").trim();
+        const trade = String(item.trade || "")
+          .trim()
+          .toLowerCase();
         return tradesToFilter.includes(trade);
       });
     }
@@ -146,17 +154,70 @@ export default function BidAllocationPage() {
     setAllocations(newAllocations);
   }, [selectedTrades, masterTakeoff, bid, hasUserEdited]);
 
-  // Calculate totals.
+  // Auto‑balance: When autoBalance is on and manual edits exist, rebalance the remaining items.
+  function rebalanceAllocations() {
+    if (!masterTakeoff || !bid) return;
+    let filteredItems = masterTakeoff.items;
+    if (!selectedTrades.includes("all")) {
+      const tradesToFilter = selectedTrades.map((t) => t.trim().toLowerCase());
+      filteredItems = masterTakeoff.items.filter((item) => {
+        const trade = String(item.trade || "")
+          .trim()
+          .toLowerCase();
+        return tradesToFilter.includes(trade);
+      });
+    }
+    let sumEdited = 0;
+    let totalEstUnedited = 0;
+    filteredItems.forEach((item, index) => {
+      const key = getItemKey(item, index);
+      if (editedKeys.has(key)) {
+        sumEdited += allocations[key] || 0;
+      } else {
+        totalEstUnedited += Number(item.estimatedCost || 0);
+      }
+    });
+    const remaining = bid.bidAmount - sumEdited;
+    const newAllocations = { ...allocations };
+    filteredItems.forEach((item, index) => {
+      const key = getItemKey(item, index);
+      if (!editedKeys.has(key)) {
+        if (totalEstUnedited > 0) {
+          const newAlloc = (Number(item.estimatedCost) / totalEstUnedited) * remaining;
+          newAllocations[key] = parseFloat(newAlloc.toFixed(2));
+        } else {
+          newAllocations[key] = 0;
+        }
+      }
+    });
+    console.log("Rebalanced allocations:", newAllocations);
+    setAllocations(newAllocations);
+  }
+
+  // Trigger rebalancing whenever autoBalance is on and a manual edit exists.
+  useEffect(() => {
+    if (autoBalance && editedKeys.size > 0) {
+      rebalanceAllocations();
+    }
+  }, [allocations, autoBalance, editedKeys]);
+
+  // Totals calculations.
   const totalAllocated = Object.values(allocations).reduce((sum, val) => sum + val, 0);
   const bidTotal = bid?.bidAmount ?? 0;
-  const difference = bidTotal - totalAllocated;
+  const takeoffTotal = masterTakeoff
+    ? masterTakeoff.items.reduce((sum, item) => sum + Number(item.estimatedCost || 0), 0)
+    : 0;
+  const diffTakeoffBid = bidTotal - takeoffTotal;
+  const diffBidAllocated = bidTotal - totalAllocated;
 
-  // Filter items for rendering.
+  // Filter items for rendering. (All if "all" is selected; otherwise, only items whose trade (lowercased) is in selectedTrades.)
   const filteredItems =
-    masterTakeoff && !selectedTrades.includes("All")
+    masterTakeoff && !selectedTrades.includes("all")
       ? masterTakeoff.items.filter((item, index) => {
-          const trade = String(item.trade || "").trim();
-          return selectedTrades.includes(trade);
+          const trade = String(item.trade || "")
+            .trim()
+            .toLowerCase();
+          return selectedTrades.map((t) => t.trim().toLowerCase()).includes(trade);
         })
       : masterTakeoff?.items || [];
   console.log("Rendering filtered items:", filteredItems);
@@ -213,9 +274,10 @@ export default function BidAllocationPage() {
     },
   };
 
-  // When a user manually changes an allocation, update that item's allocation.
+  // When a user changes an allocation, update that item and mark it as manually edited.
   function handleAllocationChange(key: string, value: string) {
     setHasUserEdited(true);
+    setEditedKeys((prev) => new Set(prev).add(key));
     const num = parseFloat(value);
     setAllocations((prev) => ({ ...prev, [key]: isNaN(num) ? 0 : num }));
     console.log(`Allocation for ${key} updated to: ${value}`);
@@ -226,13 +288,14 @@ export default function BidAllocationPage() {
     if (!bid) return;
     try {
       setLoading(true);
-      // Build breakdown using all items (if "All" is selected) or only filtered ones.
       const breakdown =
         (masterTakeoff?.items || [])
-          .filter((item) => {
-            const trade = String(item.trade || "").trim();
-            if (selectedTrades.includes("All")) return true;
-            return selectedTrades.includes(trade);
+          .filter((item, index) => {
+            const trade = String(item.trade || "")
+              .trim()
+              .toLowerCase();
+            if (selectedTrades.includes("all")) return true;
+            return selectedTrades.map((t) => t.trim().toLowerCase()).includes(trade);
           })
           .map((item, index) => {
             const key = getItemKey(item, index);
@@ -264,13 +327,17 @@ export default function BidAllocationPage() {
     ? Array.from(
         new Set(
           masterTakeoff.items
-            .map((item) => String(item.trade || "").trim())
+            .map((item) =>
+              String(item.trade || "")
+                .trim()
+                .toLowerCase()
+            )
             .filter(Boolean)
         )
       )
     : [];
-  // Build the trade filter options with "All" at the front.
-  const tradesForFilter = ["All", ...availableTrades];
+  // Build filter options with "all" at the front.
+  const tradesForFilter = ["all", ...availableTrades];
   console.log("Available trades for filter:", tradesForFilter);
   console.log("Currently selected trades:", selectedTrades);
 
@@ -288,12 +355,44 @@ export default function BidAllocationPage() {
       </div>
 
       <Card className="bg-gray-700 text-white p-6">
-        {/* Bid Summary */}
+        {/* Enhanced Totals Section */}
         <div className="mb-4">
           <p className="text-sm">
-            Bid from: <strong>{bid.contractor}</strong> for <strong>{bid.trade}</strong>{" "}
-            with a total bid of <strong>${bidTotal.toLocaleString()}</strong>
+            <strong>Takeoff Total:</strong> ${takeoffTotal.toLocaleString()}
           </p>
+          <p className="text-sm">
+            <strong>Bid Total:</strong> ${bidTotal.toLocaleString()}
+          </p>
+          <p className="text-sm">
+            <strong>Total Allocated:</strong> ${totalAllocated.toLocaleString()}
+          </p>
+          <p className="text-sm">
+            <strong>Difference (Takeoff vs. Bid):</strong> $
+            {diffTakeoffBid.toLocaleString()}
+          </p>
+          <p className="text-sm">
+            <strong>Difference (Bid vs. Allocated):</strong> $
+            {diffBidAllocated.toLocaleString()}
+          </p>
+        </div>
+
+        {/* Auto‑Balance Toggle */}
+        <div className="mb-4">
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={autoBalance}
+              onChange={(e) => {
+                setAutoBalance(e.target.checked);
+                if (e.target.checked) {
+                  // Rebalance immediately if toggled on.
+                  rebalanceAllocations();
+                }
+              }}
+              className="mr-2"
+            />
+            <span>Auto‑Balance Allocations</span>
+          </label>
         </div>
 
         {/* Master Takeoff Selection */}
@@ -333,6 +432,7 @@ export default function BidAllocationPage() {
                 console.log("New selected trades:", selectedOptions);
                 setSelectedTrades(selectedOptions);
                 setHasUserEdited(false);
+                setEditedKeys(new Set());
               }}
             >
               {tradesForFilter.map((trade, index) => (
@@ -366,11 +466,29 @@ export default function BidAllocationPage() {
                     <th className="border px-2 py-1">Item Description</th>
                     <th className="border px-2 py-1">Estimated Cost</th>
                     <th className="border px-2 py-1">Allocated Bid Cost</th>
+                    <th className="border px-2 py-1">Deviation</th>
                   </tr>
                 </thead>
                 <tbody className="bg-gray-700">
                   {filteredItems.map((item, index) => {
                     const key = getItemKey(item, index);
+                    // Calculate the default baseline allocation for this item.
+                    const totalEst = filteredItems.reduce(
+                      (s, it) => s + Number(it.estimatedCost || 0),
+                      0
+                    );
+                    const baseline =
+                      totalEst > 0
+                        ? (Number(item.estimatedCost) / totalEst) * bidTotal
+                        : 0;
+                    const current = allocations[key] || 0;
+                    const deviation = baseline
+                      ? (((current - baseline) / baseline) * 100).toFixed(1)
+                      : "0";
+                    const deviationStyle =
+                      Math.abs(Number(deviation)) > 20
+                        ? "text-red-500 font-bold"
+                        : "text-green-500";
                     return (
                       <tr key={key} className="hover:bg-gray-600">
                         <td className="border px-2 py-1">{item.description || key}</td>
@@ -390,6 +508,9 @@ export default function BidAllocationPage() {
                             className="w-full p-1 text-black border rounded"
                           />
                         </td>
+                        <td className={`border px-2 py-1 text-right ${deviationStyle}`}>
+                          {deviation}%
+                        </td>
                       </tr>
                     );
                   })}
@@ -397,14 +518,24 @@ export default function BidAllocationPage() {
               </table>
             </div>
 
-            {/* Totals and Difference */}
+            {/* Enhanced Totals Section */}
             <div className="mb-4 border p-2 rounded">
+              <p className="text-sm">
+                <strong>Takeoff Total:</strong> ${takeoffTotal.toLocaleString()}
+              </p>
+              <p className="text-sm">
+                <strong>Bid Total:</strong> ${bidTotal.toLocaleString()}
+              </p>
               <p className="text-sm">
                 <strong>Total Allocated:</strong> ${totalAllocated.toLocaleString()}
               </p>
               <p className="text-sm">
-                <strong>Difference (Bid Total - Allocated):</strong> $
-                {difference.toLocaleString()}
+                <strong>Difference (Takeoff vs. Bid):</strong> $
+                {diffTakeoffBid.toLocaleString()}
+              </p>
+              <p className="text-sm">
+                <strong>Difference (Bid vs. Allocated):</strong> $
+                {diffBidAllocated.toLocaleString()}
               </p>
             </div>
 

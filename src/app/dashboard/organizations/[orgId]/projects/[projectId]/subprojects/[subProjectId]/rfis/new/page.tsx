@@ -1,102 +1,112 @@
-// src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/rfis/new/page.tsx
-
 "use client";
 
 import { FormEvent, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useAuthState } from "react-firebase-hooks/auth";
-import { createRfi } from "@/lib/services/RfiService";
-import { auth } from "@/lib/firebaseConfig";
-
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Card } from "@/components/ui/Card";
 import { GrayButton } from "@/components/ui/GrayButton";
 
-enum Step {
-  SUBJECT_QUESTION,
-  ASSIGNMENT,
-  DATES_FILES,
-  REVIEW_SUBMIT,
-}
+import { createRfi, uploadRfiAttachment } from "@/lib/services/RfiService";
+import { auth } from "@/lib/firebaseConfig";
 
-export default function NewRfiWizardPage() {
-  const router = useRouter();
+/**
+ * NewRfiPage allows a user to paste a raw RFI summary, parse it using ChatGPT,
+ * edit the parsed fields, attach files if necessary, and finally create a new RFI.
+ */
+export default function NewRfiPage() {
   const { orgId, projectId, subProjectId } = useParams() as {
     orgId: string;
     projectId: string;
     subProjectId: string;
   };
 
-  const [authUser] = useAuthState(auth);
+  const router = useRouter();
 
-  // Form states
+  // Raw summary input to be parsed
+  const [rawSummary, setRawSummary] = useState("");
+
+  // RFI fields (parsed and editable)
   const [subject, setSubject] = useState("");
   const [question, setQuestion] = useState("");
   const [assignedTo, setAssignedTo] = useState("");
   const [distributionList, setDistributionList] = useState("");
   const [dueDate, setDueDate] = useState("");
-
-  // We'll unify doc + photo files later
-  const [files, setFiles] = useState<FileList | null>(null);
-  const [photoFile, setPhotoFile] = useState<FileList | null>(null);
-
   const [status, setStatus] = useState("draft");
   const [importance, setImportance] = useState("normal");
+  const [officialResponse, setOfficialResponse] = useState("");
 
-  const [currentStep, setCurrentStep] = useState<Step>(Step.SUBJECT_QUESTION);
+  // File attachments
+  const [files, setFiles] = useState<FileList | null>(null);
+
+  // UI states
+  const [parsing, setParsing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  function nextStep() {
-    if (currentStep < Step.REVIEW_SUBMIT) {
-      setCurrentStep((prev) => prev + 1);
+  // -------------------------------
+  // 1) Parse raw summary using ChatGPT
+  // -------------------------------
+  async function handleParseAI() {
+    setParsing(true);
+    setError("");
+
+    try {
+      if (!rawSummary.trim()) {
+        setError("Please paste your raw RFI summary first.");
+        setParsing(false);
+        return;
+      }
+
+      const res = await fetch("/api/parse-rfi", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rawSummary }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Parse failed, status ${res.status}`);
+      }
+
+      const { data } = await res.json();
+      if (!data) {
+        throw new Error("No data returned from ChatGPT");
+      }
+
+      // Update form fields with parsed data (provide defaults if missing)
+      setSubject(data.subject || "");
+      setQuestion(data.question || "");
+      setAssignedTo(data.assignedTo || "");
+      setDistributionList(
+        Array.isArray(data.distributionList) ? data.distributionList.join(", ") : ""
+      );
+      setDueDate(data.dueDate || "");
+      setStatus(data.status || "draft");
+      setImportance(data.importance || "normal");
+      setOfficialResponse(data.officialResponse || "");
+    } catch (err: any) {
+      console.error("Parse error:", err);
+      setError(err.message || "Failed to parse with ChatGPT");
+    } finally {
+      setParsing(false);
     }
   }
 
-  function prevStep() {
-    if (currentStep > Step.SUBJECT_QUESTION) {
-      setCurrentStep((prev) => prev - 1);
-    }
-  }
-
-  function handleCancel() {
-    router.push(
-      `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/rfis`
-    );
-  }
-
+  // -------------------------------
+  // 2) Create RFI
+  // -------------------------------
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      // Convert distribution list to array
+      // Convert distribution list input (comma separated) into an array
       const distArray = distributionList
         .split(",")
         .map((d) => d.trim())
         .filter(Boolean);
 
-      // Combine doc files + photo files into one array
-      let allFiles: FileList | null = files;
-      if (photoFile && photoFile.length > 0) {
-        if (!allFiles) {
-          allFiles = photoFile;
-        } else {
-          // Merge them using DataTransfer
-          const dt = new DataTransfer();
-          for (let i = 0; i < allFiles.length; i++) {
-            dt.items.add(allFiles[i]);
-          }
-          for (let i = 0; i < photoFile.length; i++) {
-            dt.items.add(photoFile[i]);
-          }
-          allFiles = dt.files;
-        }
-      }
-
-      const creatorEmail = authUser?.email ?? "";
-
+      // Create the RFI using your existing service
       await createRfi({
         orgId,
         projectId,
@@ -108,15 +118,18 @@ export default function NewRfiWizardPage() {
         dueDate,
         status,
         importance,
-        files: allFiles,
-        createdByEmail: creatorEmail,
+        // Pass files to your service if needed (your createRfi function should handle attachments)
+        files,
+        createdByEmail: auth.currentUser?.email || "",
+        // Optionally include officialResponse if you want to prefill that field.
       });
 
+      // Redirect to the RFI list page after creation
       router.push(
         `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/rfis`
       );
     } catch (err: any) {
-      console.error("Create RFI Wizard error:", err);
+      console.error("Create RFI error:", err);
       setError(err.message || "Failed to create RFI");
     } finally {
       setLoading(false);
@@ -125,228 +138,166 @@ export default function NewRfiWizardPage() {
 
   return (
     <PageContainer>
-      {/* Page title + Cancel */}
+      {/* Page title and navigation */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Create New RFI (Wizard)</h1>
-        <GrayButton onClick={handleCancel}>Cancel</GrayButton>
+        <h1 className="text-2xl font-bold">Create New RFI</h1>
+        <GrayButton
+          onClick={() =>
+            router.push(
+              `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/rfis`
+            )
+          }
+        >
+          Cancel
+        </GrayButton>
       </div>
 
-      {/* Error message */}
-      {error && (
-        <p className="text-red-600 bg-red-50 dark:bg-red-900 p-2 rounded">{error}</p>
-      )}
+      {error && <p className="text-red-600 mt-2">{error}</p>}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Wizard step card */}
-        <Card>
-          {/* Step 1: Subject & Question */}
-          {currentStep === Step.SUBJECT_QUESTION && (
-            <div className="space-y-4">
-              <div>
-                <label className="block mb-1 font-medium">Subject</label>
-                <input
-                  className="
-                    border p-2 w-full
-                    bg-white text-black
-                    dark:bg-neutral-800 dark:text-white
-                  "
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  placeholder="RFI Subject"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block mb-1 font-medium">Question / Description</label>
-                <textarea
-                  className="
-                    border p-2 w-full
-                    bg-white text-black
-                    dark:bg-neutral-800 dark:text-white
-                  "
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  placeholder="Details about this RFI..."
-                  rows={3}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Step 2: Assignment */}
-          {currentStep === Step.ASSIGNMENT && (
-            <div className="space-y-4">
-              <div>
-                <label className="block mb-1 font-medium">
-                  Assigned To (email or userId)
-                </label>
-                <input
-                  className="
-                    border p-2 w-full
-                    bg-white text-black
-                    dark:bg-neutral-800 dark:text-white
-                  "
-                  value={assignedTo}
-                  onChange={(e) => setAssignedTo(e.target.value)}
-                  placeholder="someone@example.com"
-                />
-              </div>
-              <div>
-                <label className="block mb-1 font-medium">
-                  Distribution List (comma-separated emails)
-                </label>
-                <input
-                  className="
-                    border p-2 w-full
-                    bg-white text-black
-                    dark:bg-neutral-800 dark:text-white
-                  "
-                  value={distributionList}
-                  onChange={(e) => setDistributionList(e.target.value)}
-                  placeholder="user1@example.com, user2@example.com"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Due Date & File Upload */}
-          {currentStep === Step.DATES_FILES && (
-            <div className="space-y-4">
-              <div>
-                <label className="block mb-1 font-medium">Due Date</label>
-                <input
-                  type="date"
-                  className="
-                    border p-2 w-full
-                    bg-white text-black
-                    dark:bg-neutral-800 dark:text-white
-                  "
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="block mb-1 font-medium">
-                  Attach PDF / docs (multiple)
-                </label>
-                <input
-                  type="file"
-                  multiple
-                  onChange={(e) => setFiles(e.target.files)}
-                  className="
-                    file:mr-2 file:py-2 file:px-3 
-                    file:border-0 file:rounded 
-                    file:bg-gray-300 file:text-black
-                    hover:file:bg-gray-400
-                    dark:file:bg-gray-700 dark:file:text-white
-                    dark:hover:file:bg-gray-600
-                    transition-colors
-                  "
-                />
-              </div>
-
-              <div>
-                <label className="block mb-1 font-medium">
-                  Take or Upload Photo (mobile)
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={(e) => setPhotoFile(e.target.files)}
-                  className="
-                    file:mr-2 file:py-2 file:px-3 
-                    file:border-0 file:rounded 
-                    file:bg-gray-300 file:text-black
-                    hover:file:bg-gray-400
-                    dark:file:bg-gray-700 dark:file:text-white
-                    dark:hover:file:bg-gray-600
-                    transition-colors
-                  "
-                />
-                <p className="text-sm mt-1 text-neutral-600 dark:text-neutral-400">
-                  On mobile, this should open the camera; on desktop, a file dialog.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Step 4: Review & Submit */}
-          {currentStep === Step.REVIEW_SUBMIT && (
-            <div className="space-y-4">
-              <div>
-                <label className="block mb-1 font-medium">Status</label>
-                <select
-                  className="
-                    border p-2
-                    bg-white text-black
-                    dark:bg-neutral-800 dark:text-white
-                  "
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                >
-                  <option value="draft">Draft</option>
-                  <option value="open">Open</option>
-                  <option value="inReview">In Review</option>
-                  <option value="resolved">Resolved</option>
-                  <option value="closed">Closed</option>
-                </select>
-              </div>
-              <div>
-                <label className="block mb-1 font-medium">Importance</label>
-                <select
-                  className="
-                    border p-2
-                    bg-white text-black
-                    dark:bg-neutral-800 dark:text-white
-                  "
-                  value={importance}
-                  onChange={(e) => setImportance(e.target.value)}
-                >
-                  <option value="normal">Normal</option>
-                  <option value="high">High</option>
-                  <option value="critical">Critical</option>
-                </select>
-              </div>
-              <p className="font-medium">Summary: You are about to create an RFI with:</p>
-              <ul className="list-disc ml-5 space-y-1">
-                <li>Subject: {subject}</li>
-                <li>Description: {question}</li>
-                <li>Assigned To: {assignedTo}</li>
-                <li>Distribution: {distributionList}</li>
-                <li>Due Date: {dueDate || "N/A"}</li>
-                <li>Status: {status}</li>
-                <li>Importance: {importance}</li>
-                <li>
-                  Attachments: {(files?.length || 0) + (photoFile?.length || 0)} file(s)
-                </li>
-              </ul>
-            </div>
-          )}
-        </Card>
-
-        {/* Wizard Buttons */}
-        <div className="flex gap-4">
-          {currentStep !== Step.SUBJECT_QUESTION && (
-            <GrayButton type="button" onClick={prevStep}>
-              Back
-            </GrayButton>
-          )}
-
-          {currentStep !== Step.REVIEW_SUBMIT && (
-            <GrayButton type="button" onClick={nextStep}>
-              Next
-            </GrayButton>
-          )}
-
-          {currentStep === Step.REVIEW_SUBMIT && (
-            <GrayButton type="submit" disabled={loading}>
-              {loading ? "Creating..." : "Submit RFI"}
-            </GrayButton>
-          )}
+      <Card className="mt-4">
+        {/* RAW SUMMARY + AI PARSE */}
+        <div className="mb-6">
+          <label className="block font-medium mb-1">Paste Raw RFI Summary</label>
+          <textarea
+            className="border p-2 w-full rounded bg-white text-black"
+            rows={5}
+            placeholder="Paste the raw summary of the RFI here..."
+            value={rawSummary}
+            onChange={(e) => setRawSummary(e.target.value)}
+          />
+          <GrayButton onClick={handleParseAI} disabled={parsing} className="mt-2">
+            {parsing ? "Parsing..." : "Parse with ChatGPT"}
+          </GrayButton>
+          <p className="text-xs text-gray-500 mt-1">
+            This will auto-fill the fields below based on the summary.
+          </p>
         </div>
-      </form>
+
+        {/* MAIN FORM */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Subject */}
+          <div>
+            <label className="block font-medium mb-1">Subject</label>
+            <input
+              className="border p-2 w-full rounded bg-white text-black"
+              placeholder="RFI Subject"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              required
+            />
+          </div>
+
+          {/* Question / Description */}
+          <div>
+            <label className="block font-medium mb-1">Question / Description</label>
+            <textarea
+              className="border p-2 w-full rounded bg-white text-black"
+              rows={4}
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              placeholder="Describe the RFI in detail..."
+              required
+            />
+          </div>
+
+          {/* Assigned To */}
+          <div>
+            <label className="block font-medium mb-1">Assigned To</label>
+            <input
+              className="border p-2 w-full rounded bg-white text-black"
+              placeholder="user@example.com"
+              value={assignedTo}
+              onChange={(e) => setAssignedTo(e.target.value)}
+            />
+          </div>
+
+          {/* Distribution List */}
+          <div>
+            <label className="block font-medium mb-1">
+              Distribution List (comma-separated)
+            </label>
+            <input
+              className="border p-2 w-full rounded bg-white text-black"
+              placeholder="user1@example.com, user2@example.com"
+              value={distributionList}
+              onChange={(e) => setDistributionList(e.target.value)}
+            />
+          </div>
+
+          {/* Due Date */}
+          <div>
+            <label className="block font-medium mb-1">Due Date</label>
+            <input
+              type="date"
+              className="border p-2 w-full rounded bg-white text-black"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
+          </div>
+
+          {/* Status */}
+          <div>
+            <label className="block font-medium mb-1">Status</label>
+            <select
+              className="border p-2 w-full rounded bg-white text-black"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+            >
+              <option value="draft">Draft</option>
+              <option value="open">Open</option>
+              <option value="inReview">In Review</option>
+              <option value="resolved">Resolved</option>
+              <option value="closed">Closed</option>
+            </select>
+          </div>
+
+          {/* Importance */}
+          <div>
+            <label className="block font-medium mb-1">Importance</label>
+            <select
+              className="border p-2 w-full rounded bg-white text-black"
+              value={importance}
+              onChange={(e) => setImportance(e.target.value)}
+            >
+              <option value="normal">Normal</option>
+              <option value="high">High</option>
+              <option value="critical">Critical</option>
+            </select>
+          </div>
+
+          {/* Official Response */}
+          <div>
+            <label className="block font-medium mb-1">Official Response</label>
+            <textarea
+              className="border p-2 w-full rounded bg-white text-black"
+              rows={3}
+              value={officialResponse}
+              onChange={(e) => setOfficialResponse(e.target.value)}
+              placeholder="Any official response details (if applicable)..."
+            />
+          </div>
+
+          {/* File Attachments */}
+          <div>
+            <label className="block font-medium mb-1">Attachments (optional)</label>
+            <input
+              type="file"
+              multiple
+              onChange={(e) => setFiles(e.target.files)}
+              className="
+                file:mr-2 file:py-2 file:px-3
+                file:border-0 file:rounded
+                file:bg-gray-300 file:text-black
+                hover:file:bg-gray-400
+              "
+            />
+          </div>
+
+          <GrayButton type="submit" disabled={loading}>
+            {loading ? "Creating..." : "Create RFI"}
+          </GrayButton>
+        </form>
+      </Card>
     </PageContainer>
   );
 }

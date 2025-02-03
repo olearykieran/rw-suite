@@ -1,5 +1,3 @@
-// File: src/lib/services/SiteVisitService.ts
-
 import { firestore, auth } from "@/lib/firebaseConfig";
 import {
   doc,
@@ -9,25 +7,38 @@ import {
   collection,
   getDocs,
   serverTimestamp,
-  addDoc,
-  runTransaction,
-  DocumentData,
 } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 /**
- * Represents the structure of a Site Visit document
+ * Represents a Site Visit Entry.
+ */
+export interface SiteVisitEntry {
+  id: string;
+  timestamp: string; // ISO date string
+  note?: string;
+  photos?: {
+    url: string;
+    annotations?: any; // JSON data for annotations
+  }[];
+  voiceNotes?: string[];
+}
+
+/**
+ * SiteVisitDoc represents the structure of a Site Visit document.
+ * It now optionally includes an entries array.
  */
 export interface SiteVisitDoc {
   id?: string;
-  visitDate: string; // or store as a Timestamp/Date if you prefer
+  visitDate: string;
   participants: string[];
   notes?: string;
   photos?: {
     url: string;
-    annotations?: any; // JSON for annotation data
+    annotations?: any;
   }[];
-  voiceNotes?: string[]; // Array of audio file URLs
+  voiceNotes?: string[];
+  entries?: SiteVisitEntry[];
   createdAt?: any;
   createdBy?: string | null;
   updatedAt?: any;
@@ -35,7 +46,7 @@ export interface SiteVisitDoc {
 }
 
 /**
- * Create a new Site Visit doc in Firestore
+ * Create a new Site Visit document.
  */
 export async function createSiteVisit(
   orgId: string,
@@ -45,22 +56,15 @@ export async function createSiteVisit(
     visitDate: string;
     participants: string[];
     notes?: string;
-    files?: FileList | null; // optional photos
-    audioFiles?: FileList | null; // optional voice notes
+    files?: FileList | null; // Photos
+    audioFiles?: FileList | null; // Voice notes
   }
 ): Promise<string> {
   const { visitDate, participants, notes, files, audioFiles } = siteVisitData;
-
-  // Generate a doc ID. You can also let Firestore auto-gen if you prefer:
   const siteVisitId = `${Date.now()}`;
-  // Or simply do:
-  // const docRef = doc(collection(firestore, ...));
-  // and use docRef.id
-
   const storage = getStorage();
   const photoData = [];
 
-  // -- Upload images if present
   if (files && files.length > 0) {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -70,15 +74,11 @@ export async function createSiteVisit(
       );
       await uploadBytes(fileRef, file);
       const downloadURL = await getDownloadURL(fileRef);
-      photoData.push({
-        url: downloadURL,
-        annotations: [],
-      });
+      photoData.push({ url: downloadURL, annotations: [] });
     }
   }
 
-  // -- Upload audio if present
-  const audioUrls = [];
+  const audioUrls: string[] = [];
   if (audioFiles && audioFiles.length > 0) {
     for (let i = 0; i < audioFiles.length; i++) {
       const audio = audioFiles[i];
@@ -92,20 +92,19 @@ export async function createSiteVisit(
     }
   }
 
-  // Build doc data
   const docData: SiteVisitDoc = {
     visitDate,
     participants,
     notes: notes || "",
     photos: photoData,
     voiceNotes: audioUrls,
+    entries: [],
     createdAt: serverTimestamp(),
     createdBy: auth.currentUser?.uid || null,
     updatedAt: serverTimestamp(),
     updatedBy: auth.currentUser?.uid || null,
   };
 
-  // Save it to Firestore
   const collectionRef = collection(
     firestore,
     "organizations",
@@ -118,12 +117,11 @@ export async function createSiteVisit(
   );
   const docRef = doc(collectionRef, siteVisitId);
   await setDoc(docRef, docData);
-
   return siteVisitId;
 }
 
 /**
- * Fetch a single Site Visit
+ * Fetch a single Site Visit document.
  */
 export async function fetchSiteVisit(
   orgId: string,
@@ -150,7 +148,7 @@ export async function fetchSiteVisit(
 }
 
 /**
- * Fetch all Site Visits in a subProject
+ * Fetch all Site Visits for a subProject.
  */
 export async function fetchAllSiteVisits(
   orgId: string,
@@ -176,7 +174,7 @@ export async function fetchAllSiteVisits(
 }
 
 /**
- * Update a Site Visit
+ * Update a Site Visit document.
  */
 export async function updateSiteVisit(
   orgId: string,
@@ -204,7 +202,7 @@ export async function updateSiteVisit(
 }
 
 /**
- * For updating or inserting an annotation on a photo
+ * Update or insert annotations on a photo.
  */
 export async function updatePhotoAnnotation(
   orgId: string,
@@ -214,21 +212,13 @@ export async function updatePhotoAnnotation(
   photoUrl: string,
   newAnnotations: any
 ) {
-  // 1) Fetch site visit
   const siteVisitData = await fetchSiteVisit(orgId, projectId, subProjectId, siteVisitId);
-
-  // 2) Find the photo in the siteVisitData.photos array
   const newPhotos = siteVisitData.photos?.map((photo) => {
     if (photo.url === photoUrl) {
-      return {
-        ...photo,
-        annotations: newAnnotations,
-      };
+      return { ...photo, annotations: newAnnotations };
     }
     return photo;
   });
-
-  // 3) Update doc
   await updateSiteVisit(orgId, projectId, subProjectId, siteVisitId, {
     photos: newPhotos,
   });

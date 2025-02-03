@@ -1,30 +1,204 @@
-// File: src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/site-visits/[siteVisitId]/page.tsx
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ReactPictureAnnotation } from "react-picture-annotation";
+import { ReactMediaRecorder } from "react-media-recorder";
+import { v4 as uuidv4 } from "uuid";
 
 import {
   fetchSiteVisit,
   updateSiteVisit,
   updatePhotoAnnotation,
-  SiteVisitDoc,
+  ExtendedSiteVisitDoc,
+  SiteVisitEntry,
 } from "@/lib/services/SiteVisitService";
 
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Card } from "@/components/ui/Card";
 import { GrayButton } from "@/components/ui/GrayButton";
 
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+// --------------------------------------------------------------------
+// NewEntryModal Component
+// --------------------------------------------------------------------
+function NewEntryModal({
+  onClose,
+  onSave,
+}: {
+  onClose: () => void;
+  onSave: (entry: SiteVisitEntry) => void;
+}) {
+  const [entryNote, setEntryNote] = useState("");
+  const [photoFiles, setPhotoFiles] = useState<FileList | null>(null);
+  const [voiceFiles, setVoiceFiles] = useState<FileList | null>(null);
+  const [annotations, setAnnotations] = useState<any[]>([]);
+  const [tempImage, setTempImage] = useState<string | null>(null);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const storage = getStorage();
 
-// For photo annotation
-import { ReactPictureAnnotation } from "react-picture-annotation";
+  async function uploadFile(file: File, folder: string): Promise<string> {
+    const uniqueName = `${uuidv4()}-${file.name}`;
+    const fileRef = ref(storage, `${folder}/${uniqueName}`);
+    await uploadBytes(fileRef, file);
+    return await getDownloadURL(fileRef);
+  }
 
-// For recording audio
-import { ReactMediaRecorder } from "react-media-recorder";
+  function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.files && e.target.files.length > 0) {
+      setPhotoFiles(e.target.files);
+      // Use the first photo for annotation preview.
+      const file = e.target.files[0];
+      setTempImage(URL.createObjectURL(file));
+      setSelectedImageUrl(null);
+      setAnnotations([]);
+    }
+  }
 
+  async function handleSaveEntry() {
+    try {
+      const photoData: { url: string; annotations?: any }[] = [];
+      if (photoFiles && photoFiles.length > 0) {
+        for (let i = 0; i < photoFiles.length; i++) {
+          const file = photoFiles[i];
+          const url = await uploadFile(file, "siteVisitPhotos");
+          let photoEntry = { url, annotations: [] };
+          if (tempImage && selectedImageUrl === tempImage && annotations.length > 0) {
+            photoEntry.annotations = annotations;
+          }
+          photoData.push(photoEntry);
+        }
+      }
+      const voiceNotes: string[] = [];
+      if (voiceFiles && voiceFiles.length > 0) {
+        for (let i = 0; i < voiceFiles.length; i++) {
+          const audio = voiceFiles[i];
+          const url = await uploadFile(audio, "siteVisitVoiceNotes");
+          voiceNotes.push(url);
+        }
+      }
+      const newEntry: SiteVisitEntry = {
+        id: uuidv4(),
+        timestamp: new Date().toISOString(),
+        note: entryNote,
+        photos: photoData,
+        voiceNotes,
+      };
+      onSave(newEntry);
+      onClose();
+    } catch (err: any) {
+      console.error("Error saving entry:", err);
+      alert("Failed to save entry.");
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded p-6 max-w-2xl w-full relative overflow-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="text-2xl font-bold mb-4">New Site Visit Entry</h2>
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-1">Entry Note</label>
+          <textarea
+            className="w-full border p-2 rounded"
+            rows={3}
+            value={entryNote}
+            onChange={(e) => setEntryNote(e.target.value)}
+            placeholder="Enter your notes for this entry..."
+          />
+        </div>
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-1">Add Photos</label>
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={handlePhotoChange}
+            className="w-full"
+          />
+          {tempImage && (
+            <div className="mt-2">
+              <p className="text-sm font-medium mb-1">Annotate Photo:</p>
+              <ReactPictureAnnotation
+                image={tempImage}
+                width={600}
+                height={400}
+                annotationData={annotations}
+                onChange={(data) => setAnnotations(data)}
+                onSelect={() => {}}
+                selectedId={null}
+              />
+              <p className="text-xs text-gray-500">
+                Draw on the image as desired. Annotations will be saved with this photo.
+              </p>
+            </div>
+          )}
+        </div>
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-1">
+            Add Voice Notes (Record or Upload)
+          </label>
+          <ReactMediaRecorder
+            audio
+            render={({ status, startRecording, stopRecording, mediaBlobUrl }) => (
+              <div className="mb-2">
+                <p className="text-xs text-gray-600">Recording Status: {status}</p>
+                <div className="flex gap-2 mb-2">
+                  <GrayButton onClick={startRecording}>Start</GrayButton>
+                  <GrayButton onClick={stopRecording}>Stop</GrayButton>
+                </div>
+                {mediaBlobUrl && (
+                  <div className="mb-2">
+                    <audio controls src={mediaBlobUrl} className="w-full" />
+                    <GrayButton
+                      onClick={async () => {
+                        const blob = await fetch(mediaBlobUrl).then((r) => r.blob());
+                        const file = new File([blob], `voice-note-${Date.now()}.wav`, {
+                          type: "audio/wav",
+                        });
+                        const dt = new DataTransfer();
+                        dt.items.add(file);
+                        setVoiceFiles(dt.files);
+                      }}
+                      className="mt-2"
+                    >
+                      Save Recorded Voice Note
+                    </GrayButton>
+                  </div>
+                )}
+              </div>
+            )}
+          />
+          <input
+            type="file"
+            multiple
+            accept="audio/*"
+            onChange={(e) => {
+              if (e.target.files && e.target.files.length > 0) {
+                setVoiceFiles(e.target.files);
+              }
+            }}
+            className="w-full"
+          />
+        </div>
+        <div className="flex justify-end gap-4">
+          <GrayButton onClick={onClose}>Cancel</GrayButton>
+          <GrayButton onClick={handleSaveEntry}>Save Entry</GrayButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --------------------------------------------------------------------
+// SiteVisitDetailPage Component
+// --------------------------------------------------------------------
 export default function SiteVisitDetailPage() {
   const router = useRouter();
   const { orgId, projectId, subProjectId, siteVisitId } = useParams() as {
@@ -34,28 +208,17 @@ export default function SiteVisitDetailPage() {
     siteVisitId: string;
   };
 
-  const [visit, setVisit] = useState<SiteVisitDoc | null>(null);
+  const [visit, setVisit] = useState<ExtendedSiteVisitDoc | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  // For adding new photos or new voice notes
-  const [newPhotos, setNewPhotos] = useState<FileList | null>(null);
-  const [newVoiceNotes, setNewVoiceNotes] = useState<FileList | null>(null);
-
-  // For editing main notes
   const [notes, setNotes] = useState("");
+  const [showNewEntryModal, setShowNewEntryModal] = useState(false);
 
-  // For photo annotation display
-  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
-
-  // ============================================================
-  // 1) Load Site Visit
-  // ============================================================
   useEffect(() => {
     async function loadData() {
       try {
         const data = await fetchSiteVisit(orgId, projectId, subProjectId, siteVisitId);
-        setVisit(data);
+        setVisit({ ...data, entries: data.entries || [] });
         setNotes(data.notes || "");
       } catch (err: any) {
         setError(err.message || "Failed to load site visit");
@@ -68,130 +231,34 @@ export default function SiteVisitDetailPage() {
     }
   }, [orgId, projectId, subProjectId, siteVisitId]);
 
-  // ============================================================
-  // 2) Update Site Visit (general notes)
-  // ============================================================
   async function handleSaveNotes() {
     if (!visit) return;
     try {
-      await updateSiteVisit(orgId, projectId, subProjectId, siteVisitId, {
-        notes,
-      });
-      // Reload
+      await updateSiteVisit(orgId, projectId, subProjectId, siteVisitId, { notes });
       const data = await fetchSiteVisit(orgId, projectId, subProjectId, siteVisitId);
-      setVisit(data);
+      setVisit({ ...data, entries: data.entries || [] });
     } catch (err: any) {
       setError(err.message || "Failed to update notes");
     }
   }
 
-  // ============================================================
-  // 3) Attach new photos
-  // ============================================================
-  async function handleAttachNewPhotos() {
-    if (!visit || !newPhotos) return;
+  async function handleAddEntry(newEntry: SiteVisitEntry) {
+    if (!visit) return;
     try {
-      const storage = getStorage();
-      const newPhotoData = [...(visit.photos || [])];
-
-      for (let i = 0; i < newPhotos.length; i++) {
-        const file = newPhotos[i];
-        const fileRef = ref(
-          storage,
-          `siteVisits/${orgId}/${projectId}/${subProjectId}/${siteVisitId}/photos/${file.name}`
-        );
-        await uploadBytes(fileRef, file);
-        const downloadURL = await getDownloadURL(fileRef);
-        newPhotoData.push({
-          url: downloadURL,
-          annotations: [],
-        });
-      }
-
+      const updatedEntries = visit.entries ? [...visit.entries, newEntry] : [newEntry];
       await updateSiteVisit(orgId, projectId, subProjectId, siteVisitId, {
-        photos: newPhotoData,
+        entries: updatedEntries,
       });
-
-      setNewPhotos(null);
-      // Reload
       const data = await fetchSiteVisit(orgId, projectId, subProjectId, siteVisitId);
-      setVisit(data);
+      setVisit({ ...data, entries: data.entries || [] });
     } catch (err: any) {
-      setError(err.message || "Failed to attach new photos");
+      setError(err.message || "Failed to add entry");
     }
   }
 
-  // ============================================================
-  // 4) Attach new voice notes
-  // ============================================================
-  async function handleAttachNewVoiceNotes() {
-    if (!visit || !newVoiceNotes) return;
-    try {
-      const storage = getStorage();
-      const newAudioList = [...(visit.voiceNotes || [])];
-
-      for (let i = 0; i < newVoiceNotes.length; i++) {
-        const audio = newVoiceNotes[i];
-        const audioRef = ref(
-          storage,
-          `siteVisits/${orgId}/${projectId}/${subProjectId}/${siteVisitId}/voiceNotes/${audio.name}`
-        );
-        await uploadBytes(audioRef, audio);
-        const downloadURL = await getDownloadURL(audioRef);
-        newAudioList.push(downloadURL);
-      }
-
-      await updateSiteVisit(orgId, projectId, subProjectId, siteVisitId, {
-        voiceNotes: newAudioList,
-      });
-
-      setNewVoiceNotes(null);
-      // Reload
-      const data = await fetchSiteVisit(orgId, projectId, subProjectId, siteVisitId);
-      setVisit(data);
-    } catch (err: any) {
-      setError(err.message || "Failed to attach new voice notes");
-    }
-  }
-
-  // ============================================================
-  // 5) Handle photo annotation changes
-  // ============================================================
-  // react-picture-annotation's onChange returns an array of annotation objects
-  // We'll store them in that photo's "annotations" field in Firestore
-  async function handleAnnotationChange(newAnnotation: any) {
-    if (selectedPhotoIndex === null || !visit?.photos) return;
-    const photoUrl = visit.photos[selectedPhotoIndex].url;
-
-    try {
-      await updatePhotoAnnotation(
-        orgId,
-        projectId,
-        subProjectId,
-        siteVisitId,
-        photoUrl,
-        newAnnotation
-      );
-      // Reload
-      const data = await fetchSiteVisit(orgId, projectId, subProjectId, siteVisitId);
-      setVisit(data);
-    } catch (err: any) {
-      setError(err.message || "Failed to update annotation");
-    }
-  }
-
-  // ============================================================
-  // 6) Render
-  // ============================================================
-  if (loading) {
-    return <PageContainer>Loading Site Visit...</PageContainer>;
-  }
-  if (error) {
-    return <PageContainer className="text-red-600">{error}</PageContainer>;
-  }
-  if (!visit) {
-    return <PageContainer>Site Visit not found.</PageContainer>;
-  }
+  if (loading) return <PageContainer>Loading Site Visit...</PageContainer>;
+  if (error) return <PageContainer className="text-red-600">{error}</PageContainer>;
+  if (!visit) return <PageContainer>Site Visit not found.</PageContainer>;
 
   return (
     <PageContainer>
@@ -202,17 +269,18 @@ export default function SiteVisitDetailPage() {
         >
           &larr; Back to Site Visits
         </Link>
+        <GrayButton onClick={() => setShowNewEntryModal(true)}>+ New Entry</GrayButton>
       </div>
 
-      <Card>
-        <h1 className="text-xl font-semibold mb-1">
+      <Card className="mb-4 p-4">
+        <h1 className="text-2xl font-bold mb-1">
           Site Visit: {new Date(visit.visitDate).toLocaleDateString()}
         </h1>
-        <p className="text-sm text-neutral-600 mb-4">
+        <p className="text-sm text-gray-600 mb-2">
           Participants: {visit.participants.join(", ") || "N/A"}
         </p>
-        <div className="mt-2">
-          <label className="block text-sm font-medium mb-1">Notes</label>
+        <div>
+          <label className="block text-sm font-medium mb-1">Main Notes</label>
           <textarea
             className="border p-2 w-full rounded"
             rows={3}
@@ -220,176 +288,71 @@ export default function SiteVisitDetailPage() {
             onChange={(e) => setNotes(e.target.value)}
           />
           <div className="mt-2">
-            <GrayButton onClick={handleSaveNotes}>Save Notes</GrayButton>
+            <GrayButton onClick={handleSaveNotes}>Save Main Notes</GrayButton>
           </div>
         </div>
       </Card>
 
-      {/* Photos */}
-      <Card>
-        <h2 className="text-lg font-semibold mb-2">Photos</h2>
-        {visit.photos && visit.photos.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {visit.photos.map((photo, idx) => (
-              <div key={photo.url} className="w-48 h-48 relative border rounded p-1">
-                <img
-                  src={photo.url}
-                  alt="Site visit photo"
-                  className="w-full h-full object-cover cursor-pointer"
-                  onClick={() => setSelectedPhotoIndex(idx)}
-                />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-neutral-600">No photos yet.</p>
-        )}
-
-        <div className="mt-4 text-sm space-y-3">
-          <div>
-            <label className="block mb-1 font-medium">Add/Upload Photos</label>
-            <input
-              type="file"
-              multiple
-              accept="image/*"
-              capture="environment"
-              onChange={(e) => setNewPhotos(e.target.files)}
-              className="file:mr-2 file:py-2 file:px-3 file:border-0 file:rounded file:bg-gray-300 file:text-black hover:file:bg-gray-400"
-            />
-          </div>
-          <GrayButton onClick={handleAttachNewPhotos} disabled={!newPhotos}>
-            Upload Photos
-          </GrayButton>
-        </div>
-
-        {/* Photo annotation modal or panel */}
-        {selectedPhotoIndex !== null && visit.photos && (
-          <AnnotationOverlay
-            photo={visit.photos[selectedPhotoIndex]}
-            onClose={() => setSelectedPhotoIndex(null)}
-            onSave={(newAnnotations) => handleAnnotationChange(newAnnotations)}
-          />
-        )}
-      </Card>
-
-      {/* Voice Notes */}
-      <Card>
-        <h2 className="text-lg font-semibold mb-2">Voice Notes</h2>
-        {visit.voiceNotes && visit.voiceNotes.length > 0 ? (
-          <ul className="space-y-2">
-            {visit.voiceNotes.map((audioUrl, index) => (
-              <li key={index}>
-                <audio controls src={audioUrl} className="w-full" />
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-neutral-600">No voice notes yet.</p>
-        )}
-
-        {/* Record new voice note inline (using react-media-recorder) */}
-        <div className="mt-4">
-          <h3 className="text-sm font-medium mb-1">Record a New Voice Note</h3>
-          <ReactMediaRecorder
-            audio
-            render={({ status, startRecording, stopRecording, mediaBlobUrl }) => (
-              <div className="flex flex-col gap-2">
-                <p className="text-xs text-neutral-500">Status: {status}</p>
-                <div className="flex gap-2">
-                  <GrayButton onClick={startRecording}>Start Recording</GrayButton>
-                  <GrayButton onClick={stopRecording}>Stop Recording</GrayButton>
-                </div>
-                {mediaBlobUrl && (
-                  <div className="flex flex-col gap-2 mt-2">
-                    <audio src={mediaBlobUrl} controls className="w-full" />
-                    <GrayButton
-                      onClick={async () => {
-                        // Upload the recorded audio blob to Firebase
-                        const blob = await fetch(mediaBlobUrl).then((r) => r.blob());
-                        const file = new File([blob], `voice-note-${Date.now()}.wav`, {
-                          type: "audio/wav",
-                        });
-                        const dt = new DataTransfer();
-                        dt.items.add(file);
-                        setNewVoiceNotes(dt.files);
-                      }}
-                    >
-                      Save Voice Note
-                    </GrayButton>
+      {/* Entries List */}
+      <div className="space-y-4">
+        {visit.entries && visit.entries.length > 0 ? (
+          visit.entries
+            .sort(
+              (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+            )
+            .map((entry) => (
+              <Card key={entry.id} className="p-4">
+                <p className="text-sm text-gray-500">
+                  {new Date(entry.timestamp).toLocaleString()}
+                </p>
+                {entry.note && <p className="mt-2 text-sm text-gray-700">{entry.note}</p>}
+                {entry.photos && entry.photos.length > 0 && (
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {entry.photos.map((photo, idx) => (
+                      <div key={idx} className="relative border rounded p-1">
+                        <img
+                          src={photo.url}
+                          alt="Entry photo"
+                          className="w-full h-40 object-cover cursor-pointer"
+                          onClick={() =>
+                            router.push(
+                              `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/site-visits/${siteVisitId}/annotation?photoUrl=${encodeURIComponent(
+                                photo.url
+                              )}&entryId=${entry.id}`
+                            )
+                          }
+                        />
+                      </div>
+                    ))}
                   </div>
+                  
                 )}
-              </div>
-            )}
-          />
-        </div>
-
-        {/* Or attach existing audio files */}
-        <div className="mt-4">
-          <label className="block mb-1 text-sm font-medium">Attach Audio File(s)</label>
-          <input
-            type="file"
-            multiple
-            accept="audio/*"
-            onChange={(e) => setNewVoiceNotes(e.target.files)}
-            className="file:mr-2 file:py-2 file:px-3 file:border-0 file:rounded file:bg-gray-300 file:text-black hover:file:bg-gray-400"
-          />
-          <div className="mt-2">
-            <GrayButton onClick={handleAttachNewVoiceNotes} disabled={!newVoiceNotes}>
-              Upload Voice Note(s)
-            </GrayButton>
-          </div>
-        </div>
-      </Card>
-    </PageContainer>
-  );
-}
-
-/**
- * Simple modal/popup for annotation
- */
-function AnnotationOverlay({
-  photo,
-  onClose,
-  onSave,
-}: {
-  photo: { url: string; annotations?: any };
-  onClose: () => void;
-  onSave: (newAnnotations: any) => void;
-}) {
-  // We'll store annotation state locally, so we can "cancel" if needed
-  const [annotationData, setAnnotationData] = useState<any>(photo.annotations || []);
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white max-w-3xl w-full h-[80vh] p-4 relative overflow-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className="text-lg font-semibold mb-2">Annotate Photo</h2>
-        <ReactPictureAnnotation
-          image={photo.url}
-          width={600}
-          height={400}
-          annotationData={annotationData}
-          onChange={(data) => setAnnotationData(data)}
-          onSelect={() => {}}
-          selectedId={null}
-        />
-        <div className="mt-4 flex gap-2">
-          <GrayButton onClick={() => onClose()}>Cancel</GrayButton>
-          <GrayButton
-            onClick={() => {
-              onSave(annotationData);
-              onClose();
-            }}
-          >
-            Save Annotation
-          </GrayButton>
-        </div>
+                {entry.voiceNotes && entry.voiceNotes.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {entry.voiceNotes.map((audioUrl, idx) => (
+                      <audio key={idx} controls src={audioUrl} className="w-full" />
+                    ))}
+                  </div>
+                  
+                )}
+              </Card>
+            ))
+        ) : (
+          <Card className="p-4">
+            <p className="text-sm text-gray-600">
+              No entries have been added for this site visit.
+            </p>
+          </Card>
+        )}
       </div>
-    </div>
+
+      {/* New Entry Modal */}
+      {showNewEntryModal && (
+        <NewEntryModal
+          onClose={() => setShowNewEntryModal(false)}
+          onSave={handleAddEntry}
+        />
+      )}
+    </PageContainer>
   );
 }
