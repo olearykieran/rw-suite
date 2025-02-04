@@ -261,7 +261,7 @@ function buildResponseTable(response: string) {
 function buildDistributionTable(distributionList: string[]) {
   const body = [[{ text: "Email", style: "tableHeader" }]];
   distributionList.forEach((email) => {
-    body.push([email]);
+    body.push([{ text: email, style: "tableCell" }]);
   });
   return {
     table: {
@@ -280,7 +280,7 @@ function buildAttachmentsTable(attachments: string[]) {
   const body = [[{ text: "Attachment Filename", style: "tableHeader" }]];
   attachments.forEach((url) => {
     const filename = url.split("/").pop() || "";
-    body.push([filename]);
+    body.push([{ text: filename, style: "tableCell" }]);
   });
   return {
     table: {

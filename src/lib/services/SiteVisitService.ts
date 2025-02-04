@@ -19,14 +19,14 @@ export interface SiteVisitEntry {
   note?: string;
   photos?: {
     url: string;
-    annotations?: any; // JSON data for annotations
+    annotations?: any; // JSON data for annotations; you may define a more strict type if needed
   }[];
   voiceNotes?: string[];
 }
 
 /**
  * SiteVisitDoc represents the structure of a Site Visit document.
- * It now optionally includes an entries array.
+ * It optionally includes an entries array.
  */
 export interface SiteVisitDoc {
   id?: string;
@@ -43,6 +43,13 @@ export interface SiteVisitDoc {
   createdBy?: string | null;
   updatedAt?: any;
   updatedBy?: string | null;
+}
+
+/**
+ * ExtendedSiteVisitDoc extends SiteVisitDoc to ensure that entries is always defined.
+ */
+export interface ExtendedSiteVisitDoc extends SiteVisitDoc {
+  entries: SiteVisitEntry[];
 }
 
 /**
@@ -63,7 +70,7 @@ export async function createSiteVisit(
   const { visitDate, participants, notes, files, audioFiles } = siteVisitData;
   const siteVisitId = `${Date.now()}`;
   const storage = getStorage();
-  const photoData = [];
+  const photoData: { url: string; annotations?: any }[] = [];
 
   if (files && files.length > 0) {
     for (let i = 0; i < files.length; i++) {

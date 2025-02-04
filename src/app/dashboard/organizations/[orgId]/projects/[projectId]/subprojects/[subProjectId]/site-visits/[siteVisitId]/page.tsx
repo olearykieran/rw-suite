@@ -21,6 +21,19 @@ import { Card } from "@/components/ui/Card";
 import { GrayButton } from "@/components/ui/GrayButton";
 
 // --------------------------------------------------------------------
+// Define an Annotation interface for picture annotations
+// --------------------------------------------------------------------
+interface Annotation {
+  id: string;
+  mark: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  comment?: string;
+}
+
+// --------------------------------------------------------------------
 // NewEntryModal Component
 // --------------------------------------------------------------------
 function NewEntryModal({
@@ -33,11 +46,12 @@ function NewEntryModal({
   const [entryNote, setEntryNote] = useState("");
   const [photoFiles, setPhotoFiles] = useState<FileList | null>(null);
   const [voiceFiles, setVoiceFiles] = useState<FileList | null>(null);
-  const [annotations, setAnnotations] = useState<any[]>([]);
+  const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [tempImage, setTempImage] = useState<string | null>(null);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const storage = getStorage();
 
+  // Upload file and return its download URL
   async function uploadFile(file: File, folder: string): Promise<string> {
     const uniqueName = `${uuidv4()}-${file.name}`;
     const fileRef = ref(storage, `${folder}/${uniqueName}`);
@@ -45,6 +59,7 @@ function NewEntryModal({
     return await getDownloadURL(fileRef);
   }
 
+  // Handle photo selection and set up for annotation
   function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files && e.target.files.length > 0) {
       setPhotoFiles(e.target.files);
@@ -56,14 +71,15 @@ function NewEntryModal({
     }
   }
 
+  // Save the new site visit entry
   async function handleSaveEntry() {
     try {
-      const photoData: { url: string; annotations?: any }[] = [];
+      const photoData: { url: string; annotations?: Annotation[] }[] = [];
       if (photoFiles && photoFiles.length > 0) {
         for (let i = 0; i < photoFiles.length; i++) {
           const file = photoFiles[i];
           const url = await uploadFile(file, "siteVisitPhotos");
-          let photoEntry = { url, annotations: [] };
+          let photoEntry = { url, annotations: [] as Annotation[] };
           if (tempImage && selectedImageUrl === tempImage && annotations.length > 0) {
             photoEntry.annotations = annotations;
           }
@@ -130,7 +146,7 @@ function NewEntryModal({
                 width={600}
                 height={400}
                 annotationData={annotations}
-                onChange={(data) => setAnnotations(data)}
+                onChange={(data: any[]) => setAnnotations(data as Annotation[])}
                 onSelect={() => {}}
                 selectedId={null}
               />
@@ -208,6 +224,7 @@ export default function SiteVisitDetailPage() {
     siteVisitId: string;
   };
 
+  // Using ExtendedSiteVisitDoc ensures that entries is always an array.
   const [visit, setVisit] = useState<ExtendedSiteVisitDoc | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -245,7 +262,7 @@ export default function SiteVisitDetailPage() {
   async function handleAddEntry(newEntry: SiteVisitEntry) {
     if (!visit) return;
     try {
-      const updatedEntries = visit.entries ? [...visit.entries, newEntry] : [newEntry];
+      const updatedEntries = [...(visit.entries || []), newEntry];
       await updateSiteVisit(orgId, projectId, subProjectId, siteVisitId, {
         entries: updatedEntries,
       });
@@ -298,9 +315,10 @@ export default function SiteVisitDetailPage() {
         {visit.entries && visit.entries.length > 0 ? (
           visit.entries
             .sort(
-              (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+              (a: SiteVisitEntry, b: SiteVisitEntry) =>
+                new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
             )
-            .map((entry) => (
+            .map((entry: SiteVisitEntry) => (
               <Card key={entry.id} className="p-4">
                 <p className="text-sm text-gray-500">
                   {new Date(entry.timestamp).toLocaleString()}
@@ -308,32 +326,35 @@ export default function SiteVisitDetailPage() {
                 {entry.note && <p className="mt-2 text-sm text-gray-700">{entry.note}</p>}
                 {entry.photos && entry.photos.length > 0 && (
                   <div className="mt-2 grid grid-cols-2 gap-2">
-                    {entry.photos.map((photo, idx) => (
-                      <div key={idx} className="relative border rounded p-1">
-                        <img
-                          src={photo.url}
-                          alt="Entry photo"
-                          className="w-full h-40 object-cover cursor-pointer"
-                          onClick={() =>
-                            router.push(
-                              `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/site-visits/${siteVisitId}/annotation?photoUrl=${encodeURIComponent(
-                                photo.url
-                              )}&entryId=${entry.id}`
-                            )
-                          }
-                        />
-                      </div>
-                    ))}
+                    {entry.photos.map(
+                      (
+                        photo: { url: string; annotations?: Annotation[] },
+                        idx: number
+                      ) => (
+                        <div key={idx} className="relative border rounded p-1">
+                          <img
+                            src={photo.url}
+                            alt="Entry photo"
+                            className="w-full h-40 object-cover cursor-pointer"
+                            onClick={() =>
+                              router.push(
+                                `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/site-visits/${siteVisitId}/annotation?photoUrl=${encodeURIComponent(
+                                  photo.url
+                                )}&entryId=${entry.id}`
+                              )
+                            }
+                          />
+                        </div>
+                      )
+                    )}
                   </div>
-                  
                 )}
                 {entry.voiceNotes && entry.voiceNotes.length > 0 && (
                   <div className="mt-2 space-y-1">
-                    {entry.voiceNotes.map((audioUrl, idx) => (
+                    {entry.voiceNotes.map((audioUrl: string, idx: number) => (
                       <audio key={idx} controls src={audioUrl} className="w-full" />
                     ))}
                   </div>
-                  
                 )}
               </Card>
             ))

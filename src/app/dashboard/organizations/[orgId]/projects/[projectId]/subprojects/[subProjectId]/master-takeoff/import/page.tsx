@@ -9,7 +9,7 @@ import { GrayButton } from "@/components/ui/GrayButton";
 
 import {
   createMasterTakeoff,
-  MasterTakeoffItem
+  MasterTakeoffItem,
 } from "@/lib/services/MasterTakeoffService";
 
 /**
@@ -28,8 +28,8 @@ function chunkString(str: string, size = 2500): string[] {
 
 export default function ImportMasterTakeoffPage() {
   const { orgId, projectId, subProjectId } = useParams() as {
-    orgId: string; 
-    projectId: string; 
+    orgId: string;
+    projectId: string;
     subProjectId: string;
   };
   const router = useRouter();
@@ -127,7 +127,7 @@ export default function ImportMasterTakeoffPage() {
   return (
     <PageContainer>
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Import Master Takeoff (CSV -> GPT)</h1>
+        <h1 className="text-2xl font-bold">Import Master Takeoff (CSV to GPT)</h1>
         <GrayButton onClick={handleCancel}>Cancel</GrayButton>
       </div>
 

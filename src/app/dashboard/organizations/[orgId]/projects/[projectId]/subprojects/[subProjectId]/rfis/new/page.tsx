@@ -6,7 +6,7 @@ import { PageContainer } from "@/components/ui/PageContainer";
 import { Card } from "@/components/ui/Card";
 import { GrayButton } from "@/components/ui/GrayButton";
 
-import { createRfi, uploadRfiAttachment } from "@/lib/services/RfiService";
+import { createRfi } from "@/lib/services/RfiService";
 import { auth } from "@/lib/firebaseConfig";
 
 /**

@@ -6,6 +6,12 @@ import { useAuthState } from "react-firebase-hooks/auth";
 interface UserProfile {
   displayName: string;
   role?: string;
+  issuerName?: string;
+  issuerTitle?: string;
+  issuerCompany?: string;
+  issuerPhone?: string;
+  issuerEmail?: string;
+  submissionMethod?: string;
   // Additional fields you store in user doc
 }
 

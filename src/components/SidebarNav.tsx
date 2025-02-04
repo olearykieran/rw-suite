@@ -2,18 +2,29 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useParams } from "next/navigation";
 import {
   HomeIcon,
   BuildingOffice2Icon,
   UserGroupIcon,
+  DocumentTextIcon,
   Cog6ToothIcon,
+  UserIcon,
 } from "@heroicons/react/24/outline";
 import { useUserProfile } from "@/hooks/useUserProfile";
 
 export default function SidebarNav() {
   const pathname = usePathname();
+  const params = useParams() as { orgId?: string };
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // For the "Contractors" link, extract orgId from the URL if available.
+  let orgIdFromPath = "";
+  if (pathname.startsWith("/dashboard/organizations/")) {
+    const parts = pathname.split("/");
+    // Expected structure: /dashboard/organizations/{orgId}/...
+    orgIdFromPath = parts[3] || "";
+  }
 
   // Real user profile from Firestore
   const { profile, loading, error } = useUserProfile();
@@ -31,6 +42,12 @@ export default function SidebarNav() {
       href: "/dashboard/vendors",
       icon: <UserGroupIcon className="h-5 w-5" />,
     },
+
+    {
+      name: "Contractors",
+      href: "/dashboard/organizations/" + orgIdFromPath + "/contractors",
+      icon: <UserIcon className="h-5 w-5" />,
+    },
     {
       name: "Settings",
       href: "/dashboard/settings",
@@ -41,7 +58,6 @@ export default function SidebarNav() {
   return (
     <aside
       className={`
-        // Hide on mobile (<sm), show at sm+
         hidden sm:flex flex-col h-full
         border-r border-gray-500
         bg-[var(--background)] text-[var(--foreground)]
@@ -51,7 +67,6 @@ export default function SidebarNav() {
     >
       {/* Top row: brand + toggle */}
       <div className="flex items-center justify-between p-3 border-b border-gray-500">
-        {/* Brand text: hidden if collapsed */}
         <span
           className={`
             text-lg font-bold whitespace-nowrap
@@ -60,8 +75,6 @@ export default function SidebarNav() {
         >
           RW Suite
         </span>
-
-        {/* Toggle button: never shrinks */}
         <div className="flex-shrink-0">
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
@@ -76,10 +89,8 @@ export default function SidebarNav() {
               viewBox="0 0 24 24"
             >
               {isCollapsed ? (
-                // "Expand" icon
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
               ) : (
-                // "Collapse" icon
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 5l-7 7 7 7" />
               )}
             </svg>
@@ -106,7 +117,6 @@ export default function SidebarNav() {
               `}
             >
               {item.icon}
-              {/* Hide text if collapsed */}
               <span
                 className={`
                   ${isCollapsed ? "hidden" : "block"}
@@ -122,14 +132,12 @@ export default function SidebarNav() {
 
       {/* Bottom user profile */}
       <div className="p-4 border-t border-gray-500 flex items-center gap-3">
-        {/* Avatar: hide if collapsed? up to you */}
         <div
           className={`
             h-8 w-8 bg-neutral-300 rounded-full flex-shrink-0
             ${isCollapsed ? "hidden" : ""}
           `}
         />
-        {/* Profile info */}
         <div className={`${isCollapsed ? "hidden" : "block"} text-sm`}>
           {loading && <div className="text-xs">Loading…</div>}
           {error && <div className="text-xs text-red-500">{error}</div>}

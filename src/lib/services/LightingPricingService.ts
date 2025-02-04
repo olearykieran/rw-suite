@@ -67,7 +67,7 @@ export async function getFixturePrice(fixtureType: string): Promise<number> {
   const docRef = doc(firestore, PRICING_COLLECTION, fixtureKey);
   const docSnap = await getDoc(docRef);
 
-  let currentPrice: number;
+  let currentPrice: number = 0; // Initialize with a default value
   let shouldUpdate = false;
   const now = Date.now();
 

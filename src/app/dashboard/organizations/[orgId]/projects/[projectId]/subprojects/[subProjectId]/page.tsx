@@ -383,6 +383,15 @@ export default function SubProjectOverview() {
                 Estimate lighting costs and schedule installation.
               </p>
             </Link>
+
+            {/* Bid Management */}
+            <Link
+              href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/bid-management`}
+              className="bg-white dark:bg-neutral-700 rounded-xl p-6 shadow-sm hover:shadow-md transition"
+            >
+              <h3 className="font-bold mb-1">Bid Management</h3>
+              <p className="text-sm">Manage bid submissions and guidelines.</p>
+            </Link>
           </div>
         </div>
       </div>

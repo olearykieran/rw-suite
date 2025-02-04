@@ -77,7 +77,17 @@ export default function NewLightingSchedulePage() {
 
   // Prepare pie chart data based on fixture types and quantities.
   const getPieChartData = () => {
-    if (!parsedData || !parsedData.items) return null;
+    if (!parsedData || !parsedData.items) {
+      return {
+        labels: [],
+        datasets: [
+          {
+            data: [],
+            backgroundColor: [],
+          },
+        ],
+      };
+    }
     const counts: { [key: string]: number } = {};
     parsedData.items.forEach((item: any) => {
       const type = item.fixtureType || "Unknown";

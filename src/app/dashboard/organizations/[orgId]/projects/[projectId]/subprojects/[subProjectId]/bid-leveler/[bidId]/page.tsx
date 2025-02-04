@@ -1,4 +1,3 @@
-// src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/bid-leveler/[bidId]/page.tsx
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
@@ -119,7 +118,7 @@ export default function BidDetailPage() {
 
       await updateBid(orgId, projectId, subProjectId, bid.id, updates);
       alert("Bid updated!");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Update bid error:", err);
       setError("Failed to update bid.");
     }
@@ -164,7 +163,7 @@ export default function BidDetailPage() {
 
   return (
     <PageContainer>
-      {/* Top Nav + Title */}
+      {/* Top Navigation & Title */}
       <div
         className={`opacity-0 transition-all duration-500 ease-out ${
           showContent ? "opacity-100 translate-y-0" : "translate-y-4"
@@ -202,7 +201,6 @@ export default function BidDetailPage() {
                 onChange={(e) => setTrade(e.target.value)}
               />
             </div>
-
             {/* Contractor */}
             <div>
               <label className="block text-sm font-medium mb-1">Contractor</label>
@@ -212,7 +210,6 @@ export default function BidDetailPage() {
                 onChange={(e) => setContractor(e.target.value)}
               />
             </div>
-
             {/* Bid Amount */}
             <div>
               <label className="block text-sm font-medium mb-1">Bid Amount</label>
@@ -224,7 +221,6 @@ export default function BidDetailPage() {
                 onChange={(e) => setBidAmount(e.target.value)}
               />
             </div>
-
             {/* Submission Date */}
             <div>
               <label className="block text-sm font-medium mb-1">Submission Date</label>
@@ -235,7 +231,6 @@ export default function BidDetailPage() {
                 onChange={(e) => setSubmissionDate(e.target.value)}
               />
             </div>
-
             {/* Notes */}
             <div>
               <label className="block text-sm font-medium mb-1">Notes</label>
@@ -246,7 +241,6 @@ export default function BidDetailPage() {
                 onChange={(e) => setNotes(e.target.value)}
               />
             </div>
-
             {/* Scope of Work */}
             <div>
               <label className="block text-sm font-medium mb-1">Scope of Work</label>
@@ -257,7 +251,6 @@ export default function BidDetailPage() {
                 onChange={(e) => setScopeOfWork(e.target.value)}
               />
             </div>
-
             {/* Exclusions */}
             <div>
               <label className="block text-sm font-medium mb-1">Exclusions</label>
@@ -268,7 +261,6 @@ export default function BidDetailPage() {
                 onChange={(e) => setExclusions(e.target.value)}
               />
             </div>
-
             <GrayButton type="submit">Update Bid</GrayButton>
           </form>
         </Card>
@@ -319,14 +311,14 @@ export default function BidDetailPage() {
         </Card>
       </div>
 
-      {/* Buttons to go to parse/confirm/leveling */}
+      {/* Navigation Buttons */}
       <div
         className={`opacity-0 transition-all duration-500 ease-out delay-[300ms] ${
           showContent ? "opacity-100 translate-y-0" : "translate-y-4"
         }`}
       >
         <Card className="space-y-2">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <GrayButton
               onClick={() =>
                 router.push(

@@ -76,7 +76,7 @@ export default function MasterTakeoffListPage() {
           <Link
             href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/master-takeoff/import`}
           >
-            <GrayButton>Import Takeoff (CSV -> GPT)</GrayButton>
+            <GrayButton>Import Takeoff (CSV to GPT)</GrayButton>
           </Link>
         </div>
       </div>

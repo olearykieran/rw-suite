@@ -177,7 +177,8 @@ export default function BidAllocationPage() {
         totalEstUnedited += Number(item.estimatedCost || 0);
       }
     });
-    const remaining = bid.bidAmount - sumEdited;
+    // Fix: Ensure bid.bidAmount is treated as 0 if undefined.
+    const remaining = (bid.bidAmount ?? 0) - sumEdited;
     const newAllocations = { ...allocations };
     filteredItems.forEach((item, index) => {
       const key = getItemKey(item, index);
@@ -210,7 +211,7 @@ export default function BidAllocationPage() {
   const diffTakeoffBid = bidTotal - takeoffTotal;
   const diffBidAllocated = bidTotal - totalAllocated;
 
-  // Filter items for rendering. (All if "all" is selected; otherwise, only items whose trade (lowercased) is in selectedTrades.)
+  // Filter items for rendering.
   const filteredItems =
     masterTakeoff && !selectedTrades.includes("all")
       ? masterTakeoff.items.filter((item, index) => {

@@ -138,7 +138,7 @@ export default function TakeoffReportingPage() {
           }
         },
         font: {
-          weight: "bold",
+          weight: "bold" as "bold", // explicitly cast to the expected type
           size: 14,
         },
       },

@@ -79,7 +79,10 @@ export default function RfiDetailPage() {
     try {
       setLoading(true);
       const data = await fetchRfi(orgId, projectId, subProjectId, rfiId);
-      setRfi(data);
+      // Fix: Ensure that the fetched data has a 'subject' property.
+      // If 'subject' is missing, default it to an empty string.
+      const completeData = { subject: "", ...data } as RfiDoc;
+      setRfi(completeData);
 
       // Load activity log
       const logData = await fetchActivityLog(orgId, projectId, subProjectId, rfiId);
@@ -171,7 +174,7 @@ export default function RfiDetailPage() {
         updatedAt: new Date(),
       });
 
-      // Do not call addActivity here so that no notification is sent
+      // Refresh data and exit edit mode
       loadFullData();
       setIsEditing(false);
     } catch (err: any) {

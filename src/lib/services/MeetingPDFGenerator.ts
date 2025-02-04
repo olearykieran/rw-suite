@@ -241,7 +241,12 @@ function buildAttendeesTable(attendees: MeetingAttendee[]) {
   ];
 
   attendees.forEach((att) => {
-    body.push([att.name || "", att.email || "", att.phone || "", att.company || ""]);
+    body.push([
+      { text: att.name || "", style: "tableCell" },
+      { text: att.email || "", style: "tableCell" },
+      { text: att.phone || "", style: "tableCell" },
+      { text: att.company || "", style: "tableCell" },
+    ]);
   });
 
   return {
@@ -291,7 +296,12 @@ function buildActionItemsTable(actionItems: ActionItem[]) {
 
   actionItems.forEach((item) => {
     const openClosed = item.open ? "Open" : "Closed";
-    body.push([item.status || "", item.owner || "", openClosed, item.notes || ""]);
+    body.push([
+      { text: item.status || "", style: "tableCell" },
+      { text: item.owner || "", style: "tableCell" },
+      { text: openClosed, style: "tableCell" },
+      { text: item.notes || "", style: "tableCell" },
+    ]);
   });
 
   return {
