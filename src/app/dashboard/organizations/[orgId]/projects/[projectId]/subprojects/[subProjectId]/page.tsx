@@ -2,10 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { doc, getDoc } from "firebase/firestore";
+// Import Firestore functions including the count helper functions
+import { doc, getDoc, collection, query, getCountFromServer } from "firebase/firestore";
 import { firestore } from "@/lib/firebaseConfig";
 import Link from "next/link";
+import { useLoading } from "@/components/ui/LoadingProvider";
 
+// Define the interface for the subproject document
 interface SubProjectDoc {
   id: string;
   name?: string;
@@ -21,51 +24,143 @@ export default function SubProjectOverview() {
     subProjectId: string;
   };
 
+  // States for subproject data, main project name, error state, and fade-in flag
   const [subProject, setSubProject] = useState<SubProjectDoc | null>(null);
   const [mainProjectName, setMainProjectName] = useState("");
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  // For fade-in animation
   const [showContent, setShowContent] = useState(false);
 
+  // State for feature counts: key is the route key, value is the count
+  const [counts, setCounts] = useState<Record<string, number>>({});
+
+  // Get the global loading function from our LoadingProvider
+  const { withLoading } = useLoading();
+
+  // Define a mapping for the features.
+  // Each object contains:
+  // • route: the URL segment for routing
+  // • collectionName: the actual Firestore subcollection name for queries
+  // • label: display label for the button
+  // • description: a short description for the feature
+  const features = [
+    {
+      route: "rfis",
+      collectionName: "rfis",
+      label: "RFIs",
+      description: "Create, distribute, and track Requests for Information.",
+    },
+    {
+      route: "submittals",
+      collectionName: "submittals",
+      label: "Submittals",
+      description: "Create, distribute, and track Submittals.",
+    },
+    {
+      route: "blueprints",
+      collectionName: "blueprints",
+      label: "Blueprints",
+      description: "Create, distribute, and track Blueprints.",
+    },
+    {
+      route: "tasks",
+      collectionName: "tasks",
+      label: "Tasks & Scheduling",
+      description: "Create, distribute, and track Tasks.",
+    },
+    {
+      route: "finances",
+      collectionName: "finances",
+      label: "Finances",
+      description: "Create, distribute, and track Finances.",
+    },
+    {
+      route: "change-orders",
+      collectionName: "change-orders",
+      label: "Change Orders",
+      description: "Track changes to scope, costs, or schedule.",
+    },
+    {
+      route: "daily-reports",
+      collectionName: "daily-reports",
+      label: "Daily Reports",
+      description: "Log site conditions, progress, and any incidents daily.",
+    },
+    {
+      route: "meeting-minutes",
+      collectionName: "meeting-minutes",
+      label: "Meeting Minutes",
+      description: "Document discussions, decisions, and next steps from meetings.",
+    },
+    {
+      route: "punch-lists",
+      collectionName: "punch-lists",
+      label: "Punch Lists",
+      description:
+        "Track final tasks or issues that must be resolved before project close-out.",
+    },
+    {
+      route: "site-visits",
+      collectionName: "siteVisits", // Firestore collection name differs from route
+      label: "Site Visits",
+      description:
+        "Record details, upload/annotate photos, and attach voice notes from site visits.",
+    },
+    {
+      route: "master-takeoff",
+      collectionName: "master-takeoff",
+      label: "Master Takeoff",
+      description: "Import or create a master list of items to compare against bids.",
+    },
+    {
+      route: "bid-leveler",
+      collectionName: "bids", // actual Firestore collection for bid-leveler
+      label: "Bid Leveler",
+      description: "Compare contractor bids and identify scope gaps.",
+    },
+    {
+      route: "lighting-schedule",
+      collectionName: "lighting-schedule",
+      label: "Lighting Schedule",
+      description: "Estimate lighting costs and schedule installation.",
+    },
+    {
+      route: "bid-management",
+      collectionName: "bidSubmissions", // actual Firestore collection for bid-management
+      label: "Bid Management",
+      description: "Manage bid submissions and guidelines.",
+    },
+  ];
+
+  // Fetch data using the global withLoading to consolidate the loading UI
   useEffect(() => {
     async function fetchData() {
       try {
         if (!orgId || !projectId || !subProjectId) return;
 
-        // References
+        // Create references to the main project and subproject documents
         const mainRef = doc(firestore, "organizations", orgId, "projects", projectId);
         const subRef = doc(mainRef, "subprojects", subProjectId);
 
-        // Fetch sub-project doc
+        // Fetch the sub-project document
         const subSnap = await getDoc(subRef);
         if (!subSnap.exists()) {
           setError("Sub-project not found.");
-          setLoading(false);
           return;
         }
-
         const subProjData: SubProjectDoc = {
           id: subSnap.id,
           ...(subSnap.data() as Omit<SubProjectDoc, "id">),
         };
         setSubProject(subProjData);
 
-        // Compare old vs. new subProject name
+        // Update localStorage for future reference
         const oldName = localStorage.getItem("selectedSubProjectName") || "";
         const newName = subProjData.name || "";
-
-        // Update localStorage for ID references
         localStorage.setItem("selectedOrgId", orgId);
         localStorage.setItem("selectedProjectId", projectId);
         localStorage.setItem("selectedSubProjectId", subProjectId);
-
-        // If sub-project name changed, set it and do a full reload
         if (oldName !== newName) {
           localStorage.setItem("selectedSubProjectName", newName);
-
-          // Hard reload so the updated name shows in TopHeader immediately
           window.location.assign(
             `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`
           );
@@ -77,19 +172,43 @@ export default function SubProjectOverview() {
         if (mainSnap.exists()) {
           setMainProjectName((mainSnap.data().name as string) || projectId);
         }
+
+        // Helper function: Fetch counts for each feature subcollection using collectionName
+        async function fetchFeatureCounts() {
+          const newCounts: Record<string, number> = {};
+          await Promise.all(
+            features.map(async (feature) => {
+              try {
+                const featureColRef = collection(subRef, feature.collectionName);
+                const q = query(featureColRef);
+                const snapshot = await getCountFromServer(q);
+                newCounts[feature.route] = snapshot.data().count;
+              } catch (error) {
+                console.error(
+                  `Error fetching count for ${feature.collectionName}:`,
+                  error
+                );
+                newCounts[feature.route] = 0;
+              }
+            })
+          );
+          setCounts(newCounts);
+        }
+        await fetchFeatureCounts();
+
+        // Fade in content after data is loaded
+        setShowContent(true);
       } catch (err) {
         console.error("Fetch sub-project error:", err);
         setError("Failed to load sub-project.");
-      } finally {
-        setLoading(false);
-        // Trigger the fade-in after loading completes
-        setTimeout(() => setShowContent(true), 100);
       }
     }
 
-    fetchData();
-  }, [orgId, projectId, subProjectId]);
+    // Wrap the fetchData function with the global loading handler
+    withLoading(fetchData);
+  }, [orgId, projectId, subProjectId, withLoading]);
 
+  // Function to deselect the current subproject (clearing related localStorage keys)
   function handleDeselectSubProject() {
     localStorage.removeItem("selectedSubProjectId");
     localStorage.removeItem("selectedProjectId");
@@ -98,9 +217,6 @@ export default function SubProjectOverview() {
     router.push(`/dashboard/organizations/${orgId}/projects`);
   }
 
-  if (loading) {
-    return <div className="p-6 text-sm">Loading sub-project...</div>;
-  }
   if (error) {
     return <div className="p-6 text-red-600">{error}</div>;
   }
@@ -110,14 +226,12 @@ export default function SubProjectOverview() {
 
   return (
     <div className="w-full max-w-5xl mx-auto px-4 py-6 space-y-8">
-      {/* === Section #1: Back link & sub-project header === */}
+      {/* Section #1: Back link & Sub-Project Header */}
       <div
-        className={`
-          opacity-0 transition-all duration-500 ease-out delay-[0ms]
-          ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
-        `}
+        className={`opacity-0 transition-all duration-500 ease-out delay-[0ms] ${
+          showContent ? "opacity-100 translate-y-0" : "translate-y-4"
+        }`}
       >
-        {/* Back button */}
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={() =>
@@ -125,41 +239,19 @@ export default function SubProjectOverview() {
                 `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects`
               )
             }
-            className="
-              bg-gray-300 text-black
-              hover:bg-gray-400
-              dark:bg-gray-700 dark:text-white
-              dark:hover:bg-gray-600
-              transition-colors
-              px-4 py-2 rounded-xl text-sm
-            "
+            className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 transition-colors px-4 py-2 rounded-xl text-sm"
           >
             &larr; Back to Sub-Projects of {mainProjectName}
           </button>
         </div>
-
-        {/* Sub-Project Header */}
-        <div
-          className="
-            bg-white dark:bg-neutral-900
-            border border-neutral-200 dark:border-gray-600
-            rounded-xl p-6 space-y-4
-          "
-        >
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-gray-600 rounded-xl p-6 space-y-4">
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold">
               Sub-Project: {subProject.name || subProjectId}
             </h1>
             <button
               onClick={handleDeselectSubProject}
-              className="
-                bg-gray-300 text-black
-                hover:bg-gray-400
-                dark:bg-gray-700 dark:text-white
-                dark:hover:bg-gray-600
-                transition-colors
-                px-6 py-3 rounded-xl text-base
-              "
+              className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 transition-colors px-6 py-3 rounded-xl text-base"
             >
               Deselect
             </button>
@@ -170,228 +262,27 @@ export default function SubProjectOverview() {
         </div>
       </div>
 
-      {/* === Section #2: Sub-Project Features === */}
+      {/* Section #2: Sub-Project Features */}
       <div
-        className={`
-          opacity-0 transition-all duration-500 ease-out delay-[100ms]
-          ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
-        `}
+        className={`opacity-0 transition-all duration-500 ease-out delay-[100ms] ${
+          showContent ? "opacity-100 translate-y-0" : "translate-y-4"
+        }`}
       >
-        <div
-          className="
-            bg-white dark:bg-neutral-900
-            border border-neutral-200 dark:border-gray-600
-            rounded-xl p-6 space-y-4
-          "
-        >
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-gray-600 rounded-xl p-6 space-y-4">
           <h2 className="text-xl font-semibold">Sub-Project Features</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* RFIs */}
-            <Link
-              href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/rfis`}
-              className="
-                bg-white dark:bg-neutral-700
-                border border-neutral-200 dark:border-gray-600
-                rounded-xl p-6 shadow-sm hover:shadow-md
-                transition
-              "
-            >
-              <h3 className="font-bold mb-1">RFIs</h3>
-              <p className="text-sm">
-                Create, distribute, and track Requests for Information.
-              </p>
-            </Link>
-
-            {/* Submittals */}
-            <Link
-              href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/submittals`}
-              className="
-                bg-white dark:bg-neutral-700
-                border border-neutral-200 dark:border-gray-600
-                rounded-xl p-6 shadow-sm hover:shadow-md
-                transition
-              "
-            >
-              <h3 className="font-bold mb-1">Submittals</h3>
-              <p className="text-sm">Create, distribute, and track Submittals.</p>
-            </Link>
-
-            {/* Blueprints */}
-            <Link
-              href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/blueprints`}
-              className="
-                bg-white dark:bg-neutral-700
-                border border-neutral-200 dark:border-gray-600
-                rounded-xl p-6 shadow-sm hover:shadow-md
-                transition
-              "
-            >
-              <h3 className="font-bold mb-1">Blueprints</h3>
-              <p className="text-sm">Create, distribute, and track Blueprints.</p>
-            </Link>
-
-            {/* Tasks */}
-            <Link
-              href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/tasks`}
-              className="
-                bg-white dark:bg-neutral-700
-                border border-neutral-200 dark:border-gray-600
-                rounded-xl p-6 shadow-sm hover:shadow-md
-                transition
-              "
-            >
-              <h3 className="font-bold mb-1">Tasks & Scheduling</h3>
-              <p className="text-sm">Create, distribute, and track Tasks.</p>
-            </Link>
-
-            {/* Finances */}
-            <Link
-              href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/finances`}
-              className="
-                bg-white dark:bg-neutral-700
-                border border-neutral-200 dark:border-gray-600
-                rounded-xl p-6 shadow-sm hover:shadow-md
-                transition
-              "
-            >
-              <h3 className="font-bold mb-1">Finances</h3>
-              <p className="text-sm">Create, distribute, and track Finances.</p>
-            </Link>
-
-            {/* Change Orders */}
-            <Link
-              href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/change-orders`}
-              className="
-                bg-white dark:bg-neutral-700
-                border border-neutral-200 dark:border-gray-600
-                rounded-xl p-6 shadow-sm hover:shadow-md
-                transition
-              "
-            >
-              <h3 className="font-bold mb-1">Change Orders</h3>
-              <p className="text-sm">Track changes to scope, costs, or schedule.</p>
-            </Link>
-
-            {/* Daily Reports */}
-            <Link
-              href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/daily-reports`}
-              className="
-                bg-white dark:bg-neutral-700
-                border border-neutral-200 dark:border-gray-600
-                rounded-xl p-6 shadow-sm hover:shadow-md
-                transition
-              "
-            >
-              <h3 className="font-bold mb-1">Daily Reports</h3>
-              <p className="text-sm">
-                Log site conditions, progress, and any incidents daily.
-              </p>
-            </Link>
-
-            {/* Meeting Minutes */}
-            <Link
-              href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/meeting-minutes`}
-              className="
-                bg-white dark:bg-neutral-700
-                border border-neutral-200 dark:border-gray-600
-                rounded-xl p-6 shadow-sm hover:shadow-md
-                transition
-              "
-            >
-              <h3 className="font-bold mb-1">Meeting Minutes</h3>
-              <p className="text-sm">
-                Document discussions, decisions, and next steps from meetings.
-              </p>
-            </Link>
-
-            {/* Punch Lists */}
-            <Link
-              href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/punch-lists`}
-              className="
-                bg-white dark:bg-neutral-700
-                border border-neutral-200 dark:border-gray-600
-                rounded-xl p-6 shadow-sm hover:shadow-md
-                transition
-              "
-            >
-              <h3 className="font-bold mb-1">Punch Lists</h3>
-              <p className="text-sm">
-                Track final tasks or issues that must be resolved before project
-                close-out.
-              </p>
-            </Link>
-
-            {/* Site Visits */}
-            <Link
-              href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/site-visits`}
-              className="
-                bg-white dark:bg-neutral-700
-                border border-neutral-200 dark:border-gray-600
-                rounded-xl p-6 shadow-sm hover:shadow-md
-                transition
-              "
-            >
-              <h3 className="font-bold mb-1">Site Visits</h3>
-              <p className="text-sm">
-                Record details, upload/annotate photos, and attach voice notes from site
-                visits.
-              </p>
-            </Link>
-
-            {/* Master Takeoff (NEW) */}
-            <Link
-              href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/master-takeoff`}
-              className="
-                bg-white dark:bg-neutral-700
-                border border-neutral-200 dark:border-gray-600
-                rounded-xl p-6 shadow-sm hover:shadow-md
-                transition
-              "
-            >
-              <h3 className="font-bold mb-1">Master Takeoff</h3>
-              <p className="text-sm">
-                Import or create a master list of items to compare against bids.
-              </p>
-            </Link>
-
-            {/* Bid Leveler */}
-            <Link
-              href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/bid-leveler`}
-              className="
-                bg-white dark:bg-neutral-700
-                border border-neutral-200 dark:border-gray-600
-                rounded-xl p-6 shadow-sm hover:shadow-md
-                transition
-              "
-            >
-              <h3 className="font-bold mb-1">Bid Leveler</h3>
-              <p className="text-sm">Compare contractor bids and identify scope gaps.</p>
-            </Link>
-
-            {/* Lighting Schedule */}
-            <Link
-              href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/lighting-schedule`}
-              className="
-                bg-white dark:bg-neutral-700
-                border border-neutral-200 dark:border-gray-600
-                rounded-xl p-6 shadow-sm hover:shadow-md
-                transition
-              "
-            >
-              <h3 className="font-bold mb-1">Lighting Schedule</h3>
-              <p className="text-sm">
-                Estimate lighting costs and schedule installation.
-              </p>
-            </Link>
-
-            {/* Bid Management */}
-            <Link
-              href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/bid-management`}
-              className="bg-white dark:bg-neutral-700 rounded-xl p-6 shadow-sm hover:shadow-md transition"
-            >
-              <h3 className="font-bold mb-1">Bid Management</h3>
-              <p className="text-sm">Manage bid submissions and guidelines.</p>
-            </Link>
+            {features.map((feature) => (
+              <Link
+                key={feature.route}
+                href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/${feature.route}`}
+                className="bg-white dark:bg-neutral-700 border border-neutral-200 dark:border-gray-600 rounded-xl p-6 shadow-sm hover:shadow-md transition"
+              >
+                <h3 className="font-bold mb-1">
+                  {feature.label} ({counts[feature.route] ?? 0})
+                </h3>
+                <p className="text-sm">{feature.description}</p>
+              </Link>
+            ))}
           </div>
         </div>
       </div>
