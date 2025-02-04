@@ -1,3 +1,5 @@
+"use server";
+
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 
@@ -16,7 +18,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // System prompt instructs ChatGPT to output a strict JSON with RFI fields.
+    // Updated system prompt:
+    // In addition to extracting the required fields, instruct ChatGPT to format the "question" field as a neatly formatted numbered list.
     const systemPrompt = `
 You are an RFI parser. You will receive a raw summary of a Request for Information (RFI). 
 Extract the key details and output a valid JSON object with exactly these fields:
@@ -34,13 +37,14 @@ Extract the key details and output a valid JSON object with exactly these fields
 
 Rules:
 - "subject": the main subject of the RFI.
-- "question": the detailed question or description.
+- "question": the detailed question or description. IMPORTANT: Format this field as a neatly formatted numbered list. For example, if there are multiple points, number them sequentially (e.g. "1. First point", "2. Second point", etc.). If there is only one point, still format it as "1. <your text>".
 - "assignedTo": who is responsible.
 - "distributionList": a list of emails (if mentioned), or an empty array.
 - "dueDate": the due date in YYYY-MM-DD format (if available), or an empty string.
 - "status": e.g. "draft", "open", etc.
 - "importance": e.g. "normal", "high", "critical".
 - "officialResponse": any response details if mentioned, else an empty string.
+
 Return only the JSON without any extra text.
 `;
 
@@ -51,7 +55,7 @@ ${rawSummary}
 
     // Call ChatGPT with the combined prompts
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // or gpt-3.5-turbo if needed
+      model: "gpt-4o", // or "gpt-3.5-turbo" if needed
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },

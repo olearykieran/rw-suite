@@ -92,12 +92,7 @@ export default function RfiDetailPage() {
 
       // Load versions
       setVersionLoading(true);
-      const vData: RfiVersion[] = await fetchRfiVersions(
-        orgId,
-        projectId,
-        subProjectId,
-        rfiId
-      );
+      const vData: any[] = await fetchRfiVersions(orgId, projectId, subProjectId, rfiId);
       const vSorted = vData.sort((a, b) => {
         const aTime = a.savedAt?.toMillis?.() || a.savedAt?.seconds || 0;
         const bTime = b.savedAt?.toMillis?.() || b.savedAt?.seconds || 0;
@@ -216,8 +211,9 @@ export default function RfiDetailPage() {
       officialResponse: rfi.officialResponse || "",
       distributionList: rfi.distributionList || [],
       attachments: rfi.attachments || [],
-      // Replace with your actual logo URL
-      logoUrl: "https://yourdomain.com/path-to-your-logo.png",
+      // Use the same logo URL as the meeting minutes page
+      logoUrl:
+        "https://firebasestorage.googleapis.com/v0/b/rw-project-management.firebasestorage.app/o/rw-logo-title.png?alt=media&token=03a42c6c-980c-4857-ae0d-f84c37baa2fe",
     };
     generateRfiPDF(pdfData);
   }
