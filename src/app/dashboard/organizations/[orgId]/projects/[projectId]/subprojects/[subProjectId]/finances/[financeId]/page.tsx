@@ -1,5 +1,4 @@
 // src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/finances/[financeId]/page.tsx
-
 "use client";
 
 import { useEffect, useState, FormEvent } from "react";
@@ -11,17 +10,22 @@ import {
   uploadReceipt,
   FinanceDoc,
 } from "@/lib/services/FinanceService";
-import { useLoading } from "@/components/ui/LoadingProvider";
+import { useLoading, LoadingProvider } from "@/components/ui/LoadingProvider";
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Card } from "@/components/ui/Card";
 import { GrayButton } from "@/components/ui/GrayButton";
 import { AnimatedList } from "@/components/ui/AnimatedList";
 
-export default function FinanceDetailPage() {
+/**
+ * FinanceDetailContent handles the logic for fetching, updating,
+ * and rendering a single finance record's details.
+ * It relies on the useLoading hook so must be rendered within a LoadingProvider.
+ */
+function FinanceDetailContent() {
   const { withLoading } = useLoading();
   const [showContent, setShowContent] = useState(false);
 
-  // State management
+  // State management for finance record and form fields.
   const [finance, setFinance] = useState<FinanceDoc | null>(null);
   const [error, setError] = useState("");
   const [type, setType] = useState("invoice");
@@ -30,7 +34,7 @@ export default function FinanceDetailPage() {
   const [status, setStatus] = useState("unpaid");
   const [receiptFiles, setReceiptFiles] = useState<FileList | null>(null);
 
-  // Get params
+  // Get URL params.
   const { orgId, projectId, subProjectId, financeId } = useParams() as {
     orgId: string;
     projectId: string;
@@ -38,7 +42,7 @@ export default function FinanceDetailPage() {
     financeId: string;
   };
 
-  // Load initial data
+  // Load the finance record.
   useEffect(() => {
     withLoading(async () => {
       try {
@@ -51,7 +55,7 @@ export default function FinanceDetailPage() {
         setAmount(data.amount?.toString() || "0.00");
         setStatus(data.status || "unpaid");
 
-        // Trigger animations after data is loaded
+        // Trigger animations after data is loaded.
         setTimeout(() => setShowContent(true), 100);
       } catch (err: any) {
         console.error("Fetch finance error:", err);
@@ -60,7 +64,7 @@ export default function FinanceDetailPage() {
     });
   }, [orgId, projectId, subProjectId, financeId, withLoading]);
 
-  // Event handlers
+  // Handle form submission for updating the finance record.
   async function handleUpdate(e: FormEvent) {
     e.preventDefault();
     if (!finance) return;
@@ -81,6 +85,7 @@ export default function FinanceDetailPage() {
     });
   }
 
+  // Handle receipt uploads.
   async function handleUploadReceipts() {
     if (!finance || !receiptFiles || receiptFiles.length === 0) return;
 
@@ -121,11 +126,12 @@ export default function FinanceDetailPage() {
 
   return (
     <PageContainer>
+      {/* Back link and header */}
       <div
         className={`
-        opacity-0 transition-all duration-500 ease-out delay-[0ms]
-        ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
-      `}
+          opacity-0 transition-all duration-500 ease-out delay-[0ms]
+          ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
+        `}
       >
         <Link
           href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/finances`}
@@ -141,11 +147,12 @@ export default function FinanceDetailPage() {
         </div>
       </div>
 
+      {/* Finance update form */}
       <div
         className={`
-        opacity-0 transition-all duration-500 ease-out delay-[100ms]
-        ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
-      `}
+          opacity-0 transition-all duration-500 ease-out delay-[100ms]
+          ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
+        `}
       >
         <Card>
           <form onSubmit={handleUpdate} className="space-y-4">
@@ -208,11 +215,12 @@ export default function FinanceDetailPage() {
         </Card>
       </div>
 
+      {/* Receipts / Attachments section */}
       <div
         className={`
-        opacity-0 transition-all duration-500 ease-out delay-[200ms]
-        ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
-      `}
+          opacity-0 transition-all duration-500 ease-out delay-[200ms]
+          ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
+        `}
       >
         <Card>
           <h2 className="text-lg font-semibold">Receipts / Attachments</h2>
@@ -223,7 +231,7 @@ export default function FinanceDetailPage() {
               className="mt-2"
               emptyMessage={<p className="text-sm mt-1">No attachments yet.</p>}
               renderItem={(url, index) => (
-                <li className="list-disc ml-5 text-sm">
+                <li key={index} className="list-disc ml-5 text-sm">
                   <a
                     href={url}
                     target="_blank"
@@ -252,5 +260,17 @@ export default function FinanceDetailPage() {
         </Card>
       </div>
     </PageContainer>
+  );
+}
+
+/**
+ * FinanceDetailPage wraps FinanceDetailContent within a LoadingProvider.
+ * This ensures that the useLoading hook is provided the required context.
+ */
+export default function FinanceDetailPageWrapper() {
+  return (
+    <LoadingProvider>
+      <FinanceDetailContent />
+    </LoadingProvider>
   );
 }

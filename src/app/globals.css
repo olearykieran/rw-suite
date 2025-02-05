@@ -2,10 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* globals.css */
 :root {
-  /* Light mode default */
   --background: #ffffff;
-  --foreground: #1f1f1f;
+  --foreground: #000000;
+}
+
+.dark {
+  --background: #1f2937; /* example dark background (gray-800) */
+  --foreground: #f9fafb; /* example dark foreground (gray-50) */
 }
 
 /* Rely on OS preference for dark mode automatically */

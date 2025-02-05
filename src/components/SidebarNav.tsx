@@ -1,35 +1,33 @@
+// src/components/SidebarNav.tsx
 "use client";
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname, useParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   HomeIcon,
   BuildingOffice2Icon,
-  UserGroupIcon,
-  DocumentTextIcon,
   Cog6ToothIcon,
   UserIcon,
 } from "@heroicons/react/24/outline";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { useLoadingBar } from "@/context/LoadingBarContext";
+import { useOrgId } from "@/hooks/useOrgId";
 
 export default function SidebarNav() {
   const pathname = usePathname();
-  const params = useParams() as { orgId?: string };
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // For the "Contractors" link, extract orgId from the URL if available.
-  let orgIdFromPath = "";
-  if (pathname.startsWith("/dashboard/organizations/")) {
-    const parts = pathname.split("/");
-    // Expected structure: /dashboard/organizations/{orgId}/...
-    orgIdFromPath = parts[3] || "";
-  }
+  // Get the effective orgId using the custom hook.
+  const effectiveOrgId = useOrgId();
 
-  // Real user profile from Firestore
+  // Global loading bar setter.
+  const { setIsLoading } = useLoadingBar();
+
+  // Real user profile from Firestore.
   const { profile, loading, error } = useUserProfile();
 
-  // Navigation items
+  // Navigation items.
   const navItems = [
     { name: "Dashboard", href: "/dashboard", icon: <HomeIcon className="h-5 w-5" /> },
     {
@@ -38,15 +36,12 @@ export default function SidebarNav() {
       icon: <BuildingOffice2Icon className="h-5 w-5" />,
     },
     {
-      name: "Vendors",
-      href: "/dashboard/vendors",
-      icon: <UserGroupIcon className="h-5 w-5" />,
-    },
-
-    {
       name: "Contractors",
-      href: "/dashboard/organizations/" + orgIdFromPath + "/contractors",
+      // Build the link using effectiveOrgId.
+      href: `/dashboard/organizations/${effectiveOrgId}/contractors`,
       icon: <UserIcon className="h-5 w-5" />,
+      // Trigger the loading bar on click.
+      onClick: () => setIsLoading(true),
     },
     {
       name: "Settings",
@@ -65,7 +60,7 @@ export default function SidebarNav() {
         ${isCollapsed ? "w-16" : "w-64"}
       `}
     >
-      {/* Top row: brand + toggle */}
+      {/* Top row: Brand + toggle */}
       <div className="flex items-center justify-between p-3 border-b border-gray-500">
         <span
           className={`
@@ -106,6 +101,8 @@ export default function SidebarNav() {
             <Link
               key={item.name}
               href={item.href}
+              // If the nav item has its own onClick (like Contractors), call it.
+              onClick={item.onClick}
               className={`
                 flex items-center gap-3 px-4 py-3 text-sm
                 transition-colors

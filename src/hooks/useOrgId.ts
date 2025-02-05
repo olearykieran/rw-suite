@@ -1,34 +1,24 @@
-// hooks/useCurrentOrganization.ts
-import { useState, useEffect } from "react";
-import { firestore } from "@/lib/firebaseConfig";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { useUserProfile } from "./useUserProfile"; // Your auth hook
+// src/hooks/useOrgId.ts
+"use client";
 
-export function useCurrentOrganization() {
-  const [currentOrgId, setCurrentOrgId] = useState<string | null>(null);
-  const { profile } = useUserProfile();
+import { useParams } from "next/navigation";
+import { useMemo } from "react";
 
-  useEffect(() => {
-    async function fetchUserOrgs() {
-      if (!profile) return;
+/**
+ * Custom hook to retrieve the effective organization ID.
+ * It first checks the URL params (which Next.js provides via useParams) and,
+ * if not present, falls back to localStorage (which your app sets when a subproject is selected).
+ */
+export function useOrgId(): string {
+  const params = useParams() as { orgId?: string };
+  const orgIdFromParams = params.orgId || "";
+  // When rendering on the client, fallback to localStorage.
+  const orgIdFromLocal =
+    typeof window !== "undefined" ? localStorage.getItem("selectedOrgId") || "" : "";
 
-      try {
-        const orgsRef = collection(firestore, "organizations");
-        const membershipQuery = query(
-          collection(orgsRef, "members"),
-          where("userId", "==", profile.displayName)
-        );
-        const snapshot = await getDocs(membershipQuery);
-        if (!snapshot.empty) {
-          setCurrentOrgId(snapshot.docs[0].ref.parent.parent?.id || null);
-        }
-      } catch (err) {
-        console.error("Error fetching user organizations:", err);
-      }
-    }
-
-    fetchUserOrgs();
-  }, [profile]);
-
-  return currentOrgId;
+  // Return the organization ID from params if available; otherwise, fallback.
+  return useMemo(
+    () => orgIdFromParams || orgIdFromLocal,
+    [orgIdFromParams, orgIdFromLocal]
+  );
 }

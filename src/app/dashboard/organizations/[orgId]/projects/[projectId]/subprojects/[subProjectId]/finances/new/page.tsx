@@ -1,5 +1,4 @@
 // src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/finances/new/page.tsx
-
 "use client";
 
 import React, { FormEvent, useState } from "react";
@@ -8,7 +7,7 @@ import { createFinance } from "@/lib/services/FinanceService";
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Card } from "@/components/ui/Card";
 import { GrayButton } from "@/components/ui/GrayButton";
-import { useLoading } from "@/components/ui/LoadingProvider";
+import { useLoading, LoadingProvider } from "@/components/ui/LoadingProvider";
 
 enum Step {
   TYPE_AMOUNT,
@@ -17,7 +16,11 @@ enum Step {
   REVIEW_SUBMIT,
 }
 
-export default function NewFinanceWizardPage() {
+/**
+ * NewFinanceWizardContent handles the multi‑step form logic for creating a new finance record.
+ * It uses the useLoading hook, so it must be rendered within a LoadingProvider.
+ */
+function NewFinanceWizardContent() {
   const router = useRouter();
   const { withLoading } = useLoading();
 
@@ -27,11 +30,11 @@ export default function NewFinanceWizardPage() {
     subProjectId: string;
   };
 
-  // Wizard states
+  // Wizard state management.
   const [currentStep, setCurrentStep] = useState<Step>(Step.TYPE_AMOUNT);
   const [error, setError] = useState("");
 
-  // Form fields
+  // Form fields.
   const [type, setType] = useState("invoice");
   const [amount, setAmount] = useState("0.00");
   const [vendorId, setVendorId] = useState("");
@@ -41,6 +44,7 @@ export default function NewFinanceWizardPage() {
   const [status, setStatus] = useState("unpaid");
   const [description, setDescription] = useState("");
 
+  // Wizard navigation functions.
   function nextStep() {
     if (currentStep < Step.REVIEW_SUBMIT) {
       setCurrentStep((prev) => prev + 1);
@@ -59,6 +63,7 @@ export default function NewFinanceWizardPage() {
     );
   }
 
+  // Handle form submission.
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
@@ -94,7 +99,7 @@ export default function NewFinanceWizardPage() {
 
   return (
     <PageContainer>
-      {/* Page Title + Cancel */}
+      {/* Page Title and Cancel Button */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Create New Finance (Wizard)</h1>
         <GrayButton onClick={handleCancel}>Cancel</GrayButton>
@@ -106,7 +111,7 @@ export default function NewFinanceWizardPage() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
-          {/* Step 1: TYPE & AMOUNT */}
+          {/* Step 1: Type & Amount */}
           {currentStep === Step.TYPE_AMOUNT && (
             <div className="space-y-4">
               <div>
@@ -136,7 +141,7 @@ export default function NewFinanceWizardPage() {
             </div>
           )}
 
-          {/* Step 2: PARTY & DATES */}
+          {/* Step 2: Party & Dates */}
           {currentStep === Step.PARTY_DATES && (
             <div className="space-y-4">
               <div>
@@ -179,7 +184,7 @@ export default function NewFinanceWizardPage() {
             </div>
           )}
 
-          {/* Step 3: STATUS & DESCRIPTION */}
+          {/* Step 3: Status & Description */}
           {currentStep === Step.STATUS_DESCRIPTION && (
             <div className="space-y-4">
               <div>
@@ -207,7 +212,7 @@ export default function NewFinanceWizardPage() {
             </div>
           )}
 
-          {/* Step 4: REVIEW & SUBMIT */}
+          {/* Step 4: Review & Submit */}
           {currentStep === Step.REVIEW_SUBMIT && (
             <div className="space-y-4">
               <h2 className="text-lg font-semibold">Review & Submit</h2>
@@ -225,7 +230,7 @@ export default function NewFinanceWizardPage() {
           )}
         </Card>
 
-        {/* Wizard Buttons */}
+        {/* Wizard Navigation Buttons */}
         <div className="flex gap-4">
           {currentStep !== Step.TYPE_AMOUNT && (
             <GrayButton type="button" onClick={prevStep}>
@@ -243,5 +248,17 @@ export default function NewFinanceWizardPage() {
         </div>
       </form>
     </PageContainer>
+  );
+}
+
+/**
+ * NewFinanceWizardPage wraps NewFinanceWizardContent with a LoadingProvider.
+ * This ensures that the useLoading hook is provided with the required context.
+ */
+export default function NewFinanceWizardPage() {
+  return (
+    <LoadingProvider>
+      <NewFinanceWizardContent />
+    </LoadingProvider>
   );
 }

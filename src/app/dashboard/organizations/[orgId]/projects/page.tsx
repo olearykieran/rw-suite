@@ -1,17 +1,20 @@
+// src/app/dashboard/organizations/[orgId]/projects/page.tsx
 "use client";
 
-import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { firestore } from "@/lib/firebaseConfig";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 
 // Shared UI
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Card } from "@/components/ui/Card";
 import { GrayButton } from "@/components/ui/GrayButton";
 import { AnimatedList } from "@/components/ui/AnimatedList";
+
+// Import the global loading bar hook.
+import { useLoadingBar } from "@/context/LoadingBarContext";
 
 interface Project {
   id: string;
@@ -27,6 +30,9 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const router = useRouter();
+
+  // Use the global loading bar setter.
+  const { setIsLoading } = useLoadingBar();
 
   useEffect(() => {
     async function fetchProjects() {
@@ -50,14 +56,15 @@ export default function ProjectsPage() {
   }, [orgId]);
 
   const renderProject = (project: Project) => (
-    <Card>
+    <Card key={project.id}>
       <p className="font-semibold text-lg">{project.name || project.id}</p>
-      {project.status && <p className="text-sm">Status: {project.status}</p>}
+      {project.status && <p className="text-sm-">Status: {project.status}</p>}
       {project.mainProjectId && (
         <p className="text-sm">Sub-project of: {project.mainProjectId}</p>
       )}
       <Link
         href={`/dashboard/organizations/${orgId}/projects/${project.id}/subprojects`}
+        onClick={() => setIsLoading(true)}
         className="mt-2 inline-block"
       >
         <GrayButton>View Project</GrayButton>
@@ -101,9 +108,9 @@ export default function ProjectsPage() {
         items={projects}
         renderItem={renderProject}
         isLoading={loading}
-        className="mt-4"
+        className="mt-4 text-black dark:text-white"
         emptyMessage={
-          <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-2">
+          <p className="text-sm text-neutral-600  dark:text-neutral-300 mt-2">
             No projects found. Create one!
           </p>
         }

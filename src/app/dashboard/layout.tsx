@@ -7,30 +7,22 @@ import { useRouter } from "next/navigation";
 import { collection, getDocs } from "firebase/firestore";
 import SidebarNav from "@/components/SidebarNav";
 import TopHeader from "@/components/TopHeader";
-import { LoadingProvider, useLoading } from "@/components/ui/LoadingProvider";
 import { AnimatedPage } from "@/components/ui/AnimatedPage";
+import { LoadingBarProvider } from "@/context/LoadingBarContext"; // <-- import here
 
 function DashboardLayoutContent({ children }: { children: ReactNode }) {
   const [user, authLoading] = useAuthState(auth);
   const router = useRouter();
-  const { withLoading, setLoading } = useLoading();
-
   const [orgIds, setOrgIds] = useState<string[]>([]);
   const [orgCheckDone, setOrgCheckDone] = useState(false);
 
-  // Handle auth loading state
-  useEffect(() => {
-    setLoading(authLoading || !orgCheckDone);
-  }, [authLoading, orgCheckDone, setLoading]);
-
-  // Handle auth redirects and org check
   useEffect(() => {
     if (!authLoading && !user) {
       router.replace("/public/auth/sign-in");
     } else if (!authLoading && user) {
       checkOrganizations(user.uid);
     }
-  }, [user, authLoading]);
+  }, [user, authLoading, router]);
 
   async function checkOrganizations(uid: string) {
     try {
@@ -72,7 +64,7 @@ function DashboardLayoutContent({ children }: { children: ReactNode }) {
       <SidebarNav />
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopHeader />
-        <main className="flex-1 p-6 overflow-y-auto">
+        <main className="flex-1 p-6 overflow-y-auto relative">
           <AnimatedPage>{children}</AnimatedPage>
         </main>
       </div>
@@ -82,8 +74,9 @@ function DashboardLayoutContent({ children }: { children: ReactNode }) {
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
-    <LoadingProvider>
+    // Wrap with the LoadingBarProvider so all child components can trigger the loading bar.
+    <LoadingBarProvider>
       <DashboardLayoutContent>{children}</DashboardLayoutContent>
-    </LoadingProvider>
+    </LoadingBarProvider>
   );
 }

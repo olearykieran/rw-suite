@@ -1,5 +1,4 @@
 // src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/finances/page.tsx
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -8,7 +7,7 @@ import Link from "next/link";
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Card } from "@/components/ui/Card";
 import { GrayButton } from "@/components/ui/GrayButton";
-import { useLoading } from "@/components/ui/LoadingProvider";
+import { useLoading, LoadingProvider } from "@/components/ui/LoadingProvider";
 import { AnimatedList } from "@/components/ui/AnimatedList";
 import {
   fetchAllFinances,
@@ -16,9 +15,13 @@ import {
   deleteFinance,
 } from "@/lib/services/FinanceService";
 
-export default function FinanceListPage() {
-  const { withLoading, setLoading } = useLoading();
-
+/**
+ * FinanceListContent handles the logic for fetching, rendering,
+ * and deleting finance records. It relies on the useLoading hook,
+ * so it must be rendered within a LoadingProvider.
+ */
+function FinanceListContent() {
+  const { withLoading } = useLoading();
   const { orgId, projectId, subProjectId } = useParams() as {
     orgId: string;
     projectId: string;
@@ -29,7 +32,7 @@ export default function FinanceListPage() {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Load initial data
+  // Load initial finance data from Firestore.
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -46,7 +49,7 @@ export default function FinanceListPage() {
     loadData();
   }, [orgId, projectId, subProjectId]);
 
-  // Deleting a record
+  // Handle deletion of a finance record.
   async function handleDelete(financeId: string) {
     await withLoading(async () => {
       try {
@@ -65,7 +68,7 @@ export default function FinanceListPage() {
 
   return (
     <PageContainer>
-      {/* Back link to sub-project */}
+      {/* Back link to the sub-project overview */}
       <Link
         href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`}
         className="text-sm font-medium text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
@@ -73,7 +76,7 @@ export default function FinanceListPage() {
         &larr; Back to Sub-Project
       </Link>
 
-      {/* Title + Create button */}
+      {/* Title and Create button */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mt-4">
         <h1 className="text-2xl font-bold">Finances</h1>
         <Link
@@ -83,6 +86,7 @@ export default function FinanceListPage() {
         </Link>
       </div>
 
+      {/* Render the list of finance records */}
       <AnimatedList
         items={finances}
         isLoading={isInitialLoading}
@@ -121,5 +125,17 @@ export default function FinanceListPage() {
         )}
       />
     </PageContainer>
+  );
+}
+
+/**
+ * FinanceListPage wraps FinanceListContent within a LoadingProvider.
+ * This ensures that the useLoading hook has the required context.
+ */
+export default function FinanceListPage() {
+  return (
+    <LoadingProvider>
+      <FinanceListContent />
+    </LoadingProvider>
   );
 }

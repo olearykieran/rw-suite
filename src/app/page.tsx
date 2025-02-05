@@ -1,5 +1,4 @@
 // src/app/page.tsx
-
 "use client";
 
 import { useAuthState } from "react-firebase-hooks/auth";
@@ -7,6 +6,10 @@ import { auth } from "@/lib/firebaseConfig";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
+/**
+ * RootPage handles the initial authentication check.
+ * It redirects to either the dashboard or public page once the auth state is determined.
+ */
 export default function RootPage() {
   const [user, loading] = useAuthState(auth);
   const router = useRouter();
@@ -21,9 +24,5 @@ export default function RootPage() {
     }
   }, [user, loading, router]);
 
-  return (
-    <div className="p-4">
-      <p>Loading...</p>
-    </div>
-  );
+  return null;
 }

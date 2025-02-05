@@ -1,5 +1,4 @@
 // src/app/dashboard/organizations/page.tsx
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -13,6 +12,9 @@ import { Card } from "@/components/ui/Card";
 import { GrayButton } from "@/components/ui/GrayButton";
 import { AnimatedList } from "@/components/ui/AnimatedList";
 
+// Import the global loading bar hook.
+import { useLoadingBar } from "@/context/LoadingBarContext";
+
 interface Organization {
   id: string;
   name?: string;
@@ -24,6 +26,10 @@ export default function OrganizationsPage() {
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [mainProjectName, setMainProjectName] = useState(""); // optional if needed
+
+  // Use the global loading bar setter.
+  const { setIsLoading } = useLoadingBar();
 
   useEffect(() => {
     const fetchOrgs = async () => {
@@ -45,13 +51,14 @@ export default function OrganizationsPage() {
     fetchOrgs();
   }, []);
 
-  // Wrapper component to maintain grid layout with AnimatedList
+  // Wrapper component to maintain grid layout with AnimatedList.
   const GridLayout = ({ children }: { children: React.ReactNode }) => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">{children}</div>
   );
 
+  // Render an individual organization.
   const renderOrganization = (org: Organization) => (
-    <Card>
+    <Card key={org.id}>
       <p className="font-semibold text-lg">{org.name || org.id}</p>
       {org.status && (
         <p className="text-sm text-neutral-600 dark:text-neutral-400">
@@ -60,6 +67,7 @@ export default function OrganizationsPage() {
       )}
       <Link
         href={`/dashboard/organizations/${org.id}/projects`}
+        onClick={() => setIsLoading(true)}
         className="mt-2 inline-block"
       >
         <GrayButton>View Organization</GrayButton>
@@ -81,8 +89,8 @@ export default function OrganizationsPage() {
         <h1 className="text-2xl font-bold">Organizations</h1>
         {/*
           <Link href="/dashboard/organizations/new">
-          <GrayButton>Create New Organization</GrayButton>
-        </Link>
+            <GrayButton>Create New Organization</GrayButton>
+          </Link>
         */}
       </div>
 
@@ -91,7 +99,7 @@ export default function OrganizationsPage() {
         renderItem={renderOrganization}
         isLoading={loading}
         className="mt-4"
-        itemClassName="w-full"
+        itemClassName="w-full text-black dark:text-white"
         emptyMessage={
           <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-2">
             No organizations found.

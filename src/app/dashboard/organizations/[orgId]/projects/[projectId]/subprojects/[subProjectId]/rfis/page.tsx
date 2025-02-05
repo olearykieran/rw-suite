@@ -1,17 +1,20 @@
 // src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/rfis/page.tsx
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { fetchAllRfis } from "@/lib/services/RfiService";
-import { useLoading } from "@/components/ui/LoadingProvider";
+// Import both the hook and provider from your LoadingProvider file.
+import { useLoading, LoadingProvider } from "@/components/ui/LoadingProvider";
 import { AnimatedList } from "@/components/ui/AnimatedList";
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Card } from "@/components/ui/Card";
 import { GrayButton } from "@/components/ui/GrayButton";
 
+/**
+ * Interface representing a single RFI item.
+ */
 interface RfiItem {
   id: string;
   rfiNumber?: number;
@@ -21,7 +24,11 @@ interface RfiItem {
   assignedTo?: string;
 }
 
-export default function RfiListPage() {
+/**
+ * RfiListContent contains the actual page content for listing RFIs.
+ * It uses the useLoading hook so must be rendered within a LoadingProvider.
+ */
+function RfiListContent() {
   const { withLoading } = useLoading();
   const { orgId, projectId, subProjectId } = useParams() as {
     orgId: string;
@@ -43,27 +50,27 @@ export default function RfiListPage() {
   const [pageSize] = useState(5);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Derived data after filtering
+  // Filter the RFIs based on status.
   const filteredRfis = rfis.filter((rfi) => {
     if (filterStatus === "all") return true;
     if (!rfi.status) return false;
     return rfi.status.toLowerCase() === filterStatus.toLowerCase();
   });
 
-  // Pagination logic
+  // Calculate pagination values.
   const totalPages = Math.ceil(filteredRfis.length / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
   const pageData = filteredRfis.slice(startIndex, endIndex);
 
-  // Load RFIs from Firestore
+  // Load RFIs from Firestore.
   useEffect(() => {
     const loadData = async () => {
       try {
         if (!orgId || !projectId || !subProjectId) return;
         const data = await fetchAllRfis(orgId, projectId, subProjectId);
 
-        // Sort by RFI number or created date
+        // Sort by RFI number if available.
         const sorted = data.sort((a: any, b: any) => {
           if (a.rfiNumber && b.rfiNumber) {
             return a.rfiNumber - b.rfiNumber;
@@ -108,7 +115,7 @@ export default function RfiListPage() {
         </button>
       </div>
 
-      {/* Title + Create RFI button */}
+      {/* Title and Create RFI button */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
         <h1 className="text-2xl font-bold">RFIs</h1>
         <Link
@@ -131,7 +138,7 @@ export default function RfiListPage() {
             value={filterStatus}
             onChange={(e) => {
               setFilterStatus(e.target.value as any);
-              setCurrentPage(1); // reset to first page
+              setCurrentPage(1); // Reset to first page on filter change.
             }}
           >
             <option value="all">All</option>
@@ -144,6 +151,7 @@ export default function RfiListPage() {
         </div>
       </Card>
 
+      {/* List of RFIs */}
       <AnimatedList
         items={pageData}
         isLoading={isInitialLoading}
@@ -155,7 +163,7 @@ export default function RfiListPage() {
         }
         renderItem={(rfi) => (
           <>
-            {/* Table row (desktop) */}
+            {/* Table view for desktop */}
             <div className="hidden sm:block overflow-x-auto bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg">
               <table className="w-full min-w-[600px]">
                 <thead className="border-b">
@@ -188,7 +196,7 @@ export default function RfiListPage() {
               </table>
             </div>
 
-            {/* Card (mobile) */}
+            {/* Card view for mobile */}
             <div className="block sm:hidden">
               <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded p-3 shadow-sm hover:shadow-md transition">
                 <div className="flex justify-between items-center">
@@ -239,5 +247,17 @@ export default function RfiListPage() {
         </div>
       )}
     </PageContainer>
+  );
+}
+
+/**
+ * RfiListPage wraps the RFIs list content in a LoadingProvider.
+ * This ensures that useLoading works correctly.
+ */
+export default function RfiListPage() {
+  return (
+    <LoadingProvider>
+      <RfiListContent />
+    </LoadingProvider>
   );
 }

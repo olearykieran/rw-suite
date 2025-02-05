@@ -1,19 +1,20 @@
+// src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-// Import Firestore functions including the count helper functions
-import { doc, getDoc, collection, query, getCountFromServer } from "firebase/firestore";
+import { doc, getDoc, collection, query } from "firebase/firestore";
+import { getCountFromServer } from "firebase/firestore";
 import { firestore } from "@/lib/firebaseConfig";
 import Link from "next/link";
-import { useLoading } from "@/components/ui/LoadingProvider";
+import { ShimmerCard } from "@/components/ui/ShimmerCard";
+import { useLoadingBar } from "@/context/LoadingBarContext";
 
-// Define the interface for the subproject document
 interface SubProjectDoc {
   id: string;
   name?: string;
   status?: string;
-  // add other fields if needed (like startDate, etc.)
+  // Additional fields as needed.
 }
 
 export default function SubProjectOverview() {
@@ -24,24 +25,19 @@ export default function SubProjectOverview() {
     subProjectId: string;
   };
 
-  // States for subproject data, main project name, error state, and fade-in flag
+  // Local states for sub‑project data, main project name, error state, and display flag.
   const [subProject, setSubProject] = useState<SubProjectDoc | null>(null);
   const [mainProjectName, setMainProjectName] = useState("");
   const [error, setError] = useState("");
   const [showContent, setShowContent] = useState(false);
 
-  // State for feature counts: key is the route key, value is the count
+  // State for feature counts.
   const [counts, setCounts] = useState<Record<string, number>>({});
 
-  // Get the global loading function from our LoadingProvider
-  const { withLoading } = useLoading();
+  // Use the global loading bar setter.
+  const { setIsLoading } = useLoadingBar();
 
   // Define a mapping for the features.
-  // Each object contains:
-  // • route: the URL segment for routing
-  // • collectionName: the actual Firestore subcollection name for queries
-  // • label: display label for the button
-  // • description: a short description for the feature
   const features = [
     {
       route: "rfis",
@@ -100,7 +96,7 @@ export default function SubProjectOverview() {
     },
     {
       route: "site-visits",
-      collectionName: "siteVisits", // Firestore collection name differs from route
+      collectionName: "siteVisits",
       label: "Site Visits",
       description:
         "Record details, upload/annotate photos, and attach voice notes from site visits.",
@@ -113,7 +109,7 @@ export default function SubProjectOverview() {
     },
     {
       route: "bid-leveler",
-      collectionName: "bids", // actual Firestore collection for bid-leveler
+      collectionName: "bids",
       label: "Bid Leveler",
       description: "Compare contractor bids and identify scope gaps.",
     },
@@ -125,26 +121,26 @@ export default function SubProjectOverview() {
     },
     {
       route: "bid-management",
-      collectionName: "bidSubmissions", // actual Firestore collection for bid-management
+      collectionName: "bidSubmissions",
       label: "Bid Management",
       description: "Manage bid submissions and guidelines.",
     },
   ];
 
-  // Fetch data using the global withLoading to consolidate the loading UI
+  // Fetch data for the detailed sub‑project view.
   useEffect(() => {
     async function fetchData() {
       try {
         if (!orgId || !projectId || !subProjectId) return;
 
-        // Create references to the main project and subproject documents
+        // Create references to the main project and sub‑project documents.
         const mainRef = doc(firestore, "organizations", orgId, "projects", projectId);
         const subRef = doc(mainRef, "subprojects", subProjectId);
 
-        // Fetch the sub-project document
+        // Fetch the sub‑project document.
         const subSnap = await getDoc(subRef);
         if (!subSnap.exists()) {
-          setError("Sub-project not found.");
+          setError("Sub‑project not found.");
           return;
         }
         const subProjData: SubProjectDoc = {
@@ -153,7 +149,7 @@ export default function SubProjectOverview() {
         };
         setSubProject(subProjData);
 
-        // Update localStorage for future reference
+        // Update localStorage for future reference.
         const oldName = localStorage.getItem("selectedSubProjectName") || "";
         const newName = subProjData.name || "";
         localStorage.setItem("selectedOrgId", orgId);
@@ -161,19 +157,26 @@ export default function SubProjectOverview() {
         localStorage.setItem("selectedSubProjectId", subProjectId);
         if (oldName !== newName) {
           localStorage.setItem("selectedSubProjectName", newName);
-          window.location.assign(
+          // Instead of using window.location.assign (which flashes black),
+          // trigger the global loading bar and use router.replace.
+          setIsLoading(true);
+          router.replace(
             `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`
           );
+          // Clear the loading state after a short delay.
+          setTimeout(() => {
+            setIsLoading(false);
+          }, 500);
           return;
         }
 
-        // Fetch main project name
+        // Fetch main project name.
         const mainSnap = await getDoc(mainRef);
         if (mainSnap.exists()) {
           setMainProjectName((mainSnap.data().name as string) || projectId);
         }
 
-        // Helper function: Fetch counts for each feature subcollection using collectionName
+        // Helper: Fetch counts for each feature subcollection.
         async function fetchFeatureCounts() {
           const newCounts: Record<string, number> = {};
           await Promise.all(
@@ -196,19 +199,17 @@ export default function SubProjectOverview() {
         }
         await fetchFeatureCounts();
 
-        // Fade in content after data is loaded
+        // Fade in content after data is loaded.
         setShowContent(true);
       } catch (err) {
-        console.error("Fetch sub-project error:", err);
-        setError("Failed to load sub-project.");
+        console.error("Fetch sub‑project error:", err);
+        setError("Failed to load sub‑project.");
       }
     }
 
-    // Wrap the fetchData function with the global loading handler
-    withLoading(fetchData);
-  }, [orgId, projectId, subProjectId, withLoading]);
+    fetchData();
+  }, [orgId, projectId, subProjectId, router, setIsLoading]);
 
-  // Function to deselect the current subproject (clearing related localStorage keys)
   function handleDeselectSubProject() {
     localStorage.removeItem("selectedSubProjectId");
     localStorage.removeItem("selectedProjectId");
@@ -220,72 +221,88 @@ export default function SubProjectOverview() {
   if (error) {
     return <div className="p-6 text-red-600">{error}</div>;
   }
+
+  if (!showContent) {
+    return (
+      <div className="relative p-6">
+        <ShimmerCard />
+      </div>
+    );
+  }
+
   if (!subProject) {
-    return <div className="p-6">No sub-project found.</div>;
+    return <div className="p-6">No sub‑project found.</div>;
   }
 
   return (
-    <div className="w-full max-w-5xl mx-auto px-4 py-6 space-y-8">
-      {/* Section #1: Back link & Sub-Project Header */}
-      <div
-        className={`opacity-0 transition-all duration-500 ease-out delay-[0ms] ${
-          showContent ? "opacity-100 translate-y-0" : "translate-y-4"
-        }`}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <button
-            onClick={() =>
-              router.push(
-                `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects`
-              )
-            }
-            className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 transition-colors px-4 py-2 rounded-xl text-sm"
-          >
-            &larr; Back to Sub-Projects of {mainProjectName}
-          </button>
-        </div>
-        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-gray-600 rounded-xl p-6 space-y-4">
-          <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold">
-              Sub-Project: {subProject.name || subProjectId}
-            </h1>
+    <>
+      {/* Note: The TopLoadingBar is handled globally via TopHeader */}
+      <div className="w-full max-w-5xl mx-auto px-4 py-6 space-y-8 relative">
+        {/* Section #1: Back link & Sub‑Project Header */}
+        <div
+          className={`opacity-0 transition-all duration-500 ease-out ${
+            showContent ? "opacity-100 translate-y-0" : "translate-y-4"
+          }`}
+        >
+          <div className="flex items-center justify-between mb-4">
             <button
-              onClick={handleDeselectSubProject}
-              className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 transition-colors px-6 py-3 rounded-xl text-base"
+              onClick={() =>
+                router.push(
+                  `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects`
+                )
+              }
+              className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 transition-colors px-4 py-2 rounded-xl text-sm"
             >
-              Deselect
+              &larr; Back to Sub‑Projects of {mainProjectName}
             </button>
           </div>
-          <p className="text-sm">
-            <strong>Status:</strong> {subProject.status || "N/A"}
-          </p>
-        </div>
-      </div>
-
-      {/* Section #2: Sub-Project Features */}
-      <div
-        className={`opacity-0 transition-all duration-500 ease-out delay-[100ms] ${
-          showContent ? "opacity-100 translate-y-0" : "translate-y-4"
-        }`}
-      >
-        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-gray-600 rounded-xl p-6 space-y-4">
-          <h2 className="text-xl font-semibold">Sub-Project Features</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {features.map((feature) => (
-              <Link
-                key={feature.route}
-                href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/${feature.route}`}
-                className="bg-white dark:bg-neutral-700 border border-neutral-200 dark:border-gray-600 rounded-xl p-6 shadow-sm hover:shadow-md transition"
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-gray-600 rounded-xl p-6 space-y-4">
+            <div className="flex justify-between items-center">
+              <h1 className="text-2xl text-black dark:text-white font-bold">
+                Sub‑Project: {subProject.name || subProjectId}
+              </h1>
+              <button
+                onClick={handleDeselectSubProject}
+                className="bg-gray-300  text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 transition-colors px-6 py-3 rounded-xl text-base"
               >
-                <h3 className="font-bold mb-1">
-                  {feature.label} ({counts[feature.route] ?? 0})
-                </h3>
-                <p className="text-sm">{feature.description}</p>
-              </Link>
-            ))}
+                Deselect
+              </button>
+            </div>
+            <p className="text-sm text-black dark:text-white">
+              <strong>Status:</strong> {subProject.status || "N/A"}
+            </p>
+          </div>
+        </div>
+
+        {/* Section #2: Sub‑Project Features */}
+        <div
+          className={`opacity-0  transition-all duration-500 ease-out delay-[100ms] ${
+            showContent ? "opacity-100 translate-y-0" : "translate-y-4"
+          }`}
+        >
+          <div className="bg-white  dark:bg-neutral-900 border border-neutral-200 dark:border-gray-600 rounded-xl p-6 space-y-4">
+            <h2 className="text-xl text-black dark:text-white font-semibold">
+              Sub‑Project Features
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {features.map((feature) => (
+                <Link
+                  key={feature.route}
+                  href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/${feature.route}`}
+                  // Trigger the global loading bar when a feature is clicked.
+                  onClick={() => setIsLoading(true)}
+                  className="bg-white text-black dark:text-white dark:bg-neutral-700 border border-neutral-200 dark:border-gray-600 rounded-xl p-6 shadow-sm hover:shadow-md transition"
+                >
+                  <h3 className="font-bold mb-1">
+                    {feature.label} ({counts[feature.route] ?? 0})
+                  </h3>
+                  <p className="text-sm">{feature.description}</p>
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

@@ -1,17 +1,18 @@
+// src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/submittals/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 
-// Shared UI
+// Shared UI components.
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Card } from "@/components/ui/Card";
 import { GrayButton } from "@/components/ui/GrayButton";
 import { AnimatedList } from "@/components/ui/AnimatedList";
-import { useLoading } from "@/components/ui/LoadingProvider";
+import { useLoading, LoadingProvider } from "@/components/ui/LoadingProvider";
 
-// Services
+// Services.
 import { fetchAllSubmittals } from "@/lib/services/SubmittalService";
 
 interface SubmittalItem {
@@ -27,7 +28,11 @@ interface SubmittalItem {
 
 type FilterStatus = "all" | "draft" | "open" | "inReview" | "approved" | "closed";
 
-export default function SubmittalsPage() {
+/**
+ * SubmittalsPageContent handles the logic for loading, filtering, paginating,
+ * and rendering submittal items.
+ */
+function SubmittalsPageContent() {
   const { withLoading } = useLoading();
   const { orgId, projectId, subProjectId } = useParams() as {
     orgId: string;
@@ -39,12 +44,12 @@ export default function SubmittalsPage() {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Filter + pagination states
+  // Filter and pagination states.
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
   const [pageSize] = useState(5);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // 1. Load submittals
+  // 1. Load submittals.
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -61,39 +66,34 @@ export default function SubmittalsPage() {
     loadData();
   }, [orgId, projectId, subProjectId]);
 
-  // 2. Filtering
+  // 2. Filtering.
   const filtered = submittals.filter((sub) => {
     if (filterStatus === "all") return true;
     if (!sub.status) return false;
     return sub.status.toLowerCase() === filterStatus.toLowerCase();
   });
 
-  // 3. Pagination
+  // 3. Pagination.
   const totalPages = Math.ceil(filtered.length / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
   const pageData = filtered.slice(startIndex, startIndex + pageSize);
 
-  // 4. Error or loading?
+  // 4. Error handling.
   if (error) {
     return <div className="p-6 text-red-600">{error}</div>;
   }
 
-  // ---------- RENDER ----------
   return (
     <PageContainer>
-      {/* === Back link === */}
+      {/* Back Link */}
       <Link
         href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`}
-        className="
-          text-sm font-medium text-blue-600 underline 
-          hover:text-blue-700 dark:text-blue-400 
-          dark:hover:text-blue-300 transition-colors
-        "
+        className="text-sm font-medium text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
       >
         &larr; Back to Sub-Project
       </Link>
 
-      {/* === Title & Buttons === */}
+      {/* Title & Action Buttons */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mt-4">
         <h1 className="text-2xl font-bold">Submittals</h1>
         <div className="flex gap-3">
@@ -110,7 +110,7 @@ export default function SubmittalsPage() {
         </div>
       </div>
 
-      {/* === Filter Controls === */}
+      {/* Filter Controls */}
       <Card className="mt-4">
         <h2 className="text-lg font-semibold mb-2">Filter Submittals</h2>
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
@@ -119,12 +119,7 @@ export default function SubmittalsPage() {
           </label>
           <select
             id="statusFilter"
-            className="
-              border p-2 rounded
-              bg-white text-black
-              dark:bg-neutral-800 dark:text-white
-              transition-colors
-            "
+            className="border p-2 rounded bg-white text-black dark:bg-neutral-800 dark:text-white transition-colors"
             value={filterStatus}
             onChange={(e) => {
               setFilterStatus(e.target.value as FilterStatus);
@@ -141,7 +136,7 @@ export default function SubmittalsPage() {
         </div>
       </Card>
 
-      {/* === List of Submittals with AnimatedList === */}
+      {/* Submittals List */}
       <AnimatedList
         items={pageData}
         isLoading={isInitialLoading}
@@ -153,7 +148,7 @@ export default function SubmittalsPage() {
         }
         renderItem={(sub) => (
           <Card className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-            {/* Left block with submittal details */}
+            {/* Details Block */}
             <div>
               <p className="font-semibold">
                 Submittal #{sub.submittalNumber ?? "--"}: {sub.subject || "Untitled"}
@@ -174,32 +169,23 @@ export default function SubmittalsPage() {
               </p>
             </div>
 
-            {/* Right block with actions */}
+            {/* Actions Block */}
             <div className="flex gap-4">
               <Link
                 href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/submittals/${sub.id}`}
-                className="
-                  text-blue-600 underline text-sm
-                  hover:text-blue-700
-                  dark:text-blue-400 dark:hover:text-blue-300
-                "
+                className="text-blue-600 underline text-sm hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
               >
                 View
               </Link>
-              {/* If you want a delete button, you can replicate the finance approach. E.g.
-              <GrayButton
-                onClick={() => handleDeleteSubmittal(sub.id)}
-                className="text-xs bg-red-600 hover:bg-red-700"
-              >
-                Delete
-              </GrayButton>
+              {/*
+                You can add additional actions (e.g., Delete) here as needed.
               */}
             </div>
           </Card>
         )}
       />
 
-      {/* === Pagination Controls === */}
+      {/* Pagination Controls */}
       {filtered.length > pageSize && (
         <div className="flex gap-2 items-center mt-4">
           <GrayButton
@@ -220,5 +206,17 @@ export default function SubmittalsPage() {
         </div>
       )}
     </PageContainer>
+  );
+}
+
+/**
+ * SubmittalsPage wraps SubmittalsPageContent within a LoadingProvider.
+ * This ensures that the useLoading hook has access to its required context.
+ */
+export default function SubmittalsPage() {
+  return (
+    <LoadingProvider>
+      <SubmittalsPageContent />
+    </LoadingProvider>
   );
 }
