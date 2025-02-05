@@ -1,6 +1,6 @@
 [
   {
-    "origin": ["http://localhost:3000", "https://your-production-domain.com"],
+    "origin": ["http://localhost:3000", "https://rw-suite.vercel.app"],
     "method": ["GET"],
     "maxAgeSeconds": 3600
   }
