@@ -1,14 +1,14 @@
-// src/components/MobileNavDrawer.tsx
 "use client";
 
 import Link from "next/link";
 import {
   HomeIcon,
   BuildingOffice2Icon,
-  UserGroupIcon,
   Cog6ToothIcon,
+  UserIcon,
 } from "@heroicons/react/24/outline";
 import { usePathname } from "next/navigation";
+import { useOrgId } from "@/hooks/useOrgId";
 
 interface MobileNavDrawerProps {
   open: boolean;
@@ -17,10 +17,11 @@ interface MobileNavDrawerProps {
 
 export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps) {
   const pathname = usePathname();
+  const effectiveOrgId = useOrgId();
 
   if (!open) return null; // If not open, render nothing
 
-  // Example nav items
+  // Updated nav items: "Vendors" is replaced with "Contractors"
   const navItems = [
     {
       name: "Dashboard",
@@ -33,9 +34,10 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
       icon: <BuildingOffice2Icon className="h-5 w-5" />,
     },
     {
-      name: "Vendors",
-      href: "/dashboard/vendors",
-      icon: <UserGroupIcon className="h-5 w-5" />,
+      name: "Contractors",
+      // Using effectiveOrgId to build the route
+      href: `/dashboard/organizations/${effectiveOrgId}/contractors`,
+      icon: <UserIcon className="h-5 w-5" />,
     },
     {
       name: "Settings",
@@ -56,6 +58,7 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
           <button
             onClick={onClose}
             className="p-2 rounded hover:bg-[var(--foreground)]/[0.1]"
+            aria-label="Close menu"
           >
             ✕
           </button>
@@ -68,15 +71,15 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
               <Link
                 key={item.name}
                 href={item.href}
+                onClick={onClose} // Close the drawer on navigation
                 className={`
-                  flex items-center gap-3 px-4 py-3  transition-colors
+                  flex items-center gap-3 px-4 py-3 transition-colors
                   ${
                     isActive
                       ? "bg-[var(--foreground)]/[0.1] font-medium"
                       : "hover:bg-[var(--foreground)]/[0.05]"
                   }
                 `}
-                onClick={onClose} // close the drawer on navigation
               >
                 {item.icon}
                 <span>{item.name}</span>

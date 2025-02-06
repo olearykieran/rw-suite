@@ -1,4 +1,3 @@
-// src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -92,7 +91,7 @@ export default function SubProjectOverview() {
       collectionName: "punch-lists",
       label: "Punch Lists",
       description:
-        "Track final tasks or issues that must be resolved before project close-out.",
+        "Track final tasks or issues that must be resolved before project close‑out.",
     },
     {
       route: "site-visits",
@@ -244,31 +243,31 @@ export default function SubProjectOverview() {
             showContent ? "opacity-100 translate-y-0" : "translate-y-4"
           }`}
         >
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
             <button
               onClick={() =>
                 router.push(
                   `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects`
                 )
               }
-              className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 transition-colors px-4 py-2 rounded-xl"
+              className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 transition-colors px-4 py-2 sm:px-6 sm:py-3 rounded-xl text-base"
             >
               &larr; Back to Sub‑Projects of {mainProjectName}
             </button>
           </div>
-          <div className="bg-white dark:bg-neutral-900 border border-black  dark:border-gray-600 rounded-xl p-6 space-y-4">
-            <div className="flex justify-between items-center">
-              <h1 className="text-2xl text-black dark:text-white font-bold">
+          <div className="bg-white dark:bg-neutral-900 border border-black dark:border-gray-600 rounded-xl p-4 sm:p-6 space-y-4 sm:space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <h1 className="text-2xl sm:text-3xl text-black dark:text-white font-bold">
                 Sub‑Project: {subProject.name || subProjectId}
               </h1>
               <button
                 onClick={handleDeselectSubProject}
-                className="bg-gray-300  text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 transition-colors px-6 py-3 rounded-xl text-base"
+                className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 transition-colors px-4 py-2 sm:px-6 sm:py-3 rounded-xl text-base"
               >
                 Deselect
               </button>
             </div>
-            <p className=" text-black dark:text-white">
+            <p className="text-black dark:text-white">
               <strong>Status:</strong> {subProject.status || "N/A"}
             </p>
           </div>
@@ -276,12 +275,12 @@ export default function SubProjectOverview() {
 
         {/* Section #2: Sub‑Project Features */}
         <div
-          className={`opacity-0  transition-all duration-500 ease-out delay-[100ms] ${
+          className={`opacity-0 transition-all duration-500 ease-out delay-[100ms] ${
             showContent ? "opacity-100 translate-y-0" : "translate-y-4"
           }`}
         >
-          <div className="bg-white  dark:bg-neutral-900 border border-black  dark:border-gray-600 rounded-xl p-6 space-y-4">
-            <h2 className="text-xl text-black dark:text-white font-semibold">
+          <div className="bg-white dark:bg-neutral-900 border border-black dark:border-gray-600 rounded-xl p-4 sm:p-6 space-y-4 sm:space-y-6">
+            <h2 className="text-2xl text-black dark:text-white font-semibold">
               Sub‑Project Features
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -291,12 +290,12 @@ export default function SubProjectOverview() {
                   href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/${feature.route}`}
                   // Trigger the global loading bar when a feature is clicked.
                   onClick={() => setIsLoading(true)}
-                  className="bg-white text-black dark:text-white dark:bg-neutral-700 border border-black  dark:border-gray-600 rounded-xl p-6 shadow-sm hover:shadow-md transition"
+                  className="bg-white text-black dark:text-white dark:bg-neutral-700 border border-black dark:border-gray-600 rounded-xl p-4 sm:p-6 shadow-sm hover:shadow-md transition"
                 >
                   <h3 className="font-bold mb-1">
                     {feature.label} ({counts[feature.route] ?? 0})
                   </h3>
-                  <p className="">{feature.description}</p>
+                  <p>{feature.description}</p>
                 </Link>
               ))}
             </div>

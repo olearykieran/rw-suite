@@ -1,4 +1,3 @@
-// src/components/ui/ShimmerCard.tsx
 "use client";
 
 import React from "react";
@@ -67,7 +66,7 @@ export function ShimmerCard() {
       collectionName: "punch-lists",
       label: "Punch Lists",
       description:
-        "Track final tasks or issues that must be resolved before project close-out.",
+        "Track final tasks or issues that must be resolved before project close‑out.",
     },
     {
       route: "site-visits",
@@ -107,31 +106,31 @@ export function ShimmerCard() {
       {/* Section 1: Header Placeholder */}
       <div>
         {/* Back button placeholder */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="bg-gray-300 dark:bg-gray-700 h-10 w-24 rounded-xl"></div>
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <div className="bg-gray-300 dark:bg-gray-700 h-10 sm:h-12 w-28 sm:w-32 rounded-xl"></div>
         </div>
         {/* Sub‑Project Header Card Placeholder */}
-        <div className="bg-gray-300 dark:bg-gray-700 border border-neutral-200 dark:border-gray-600 rounded-xl p-6 space-y-4">
-          <div className="flex justify-between items-center">
+        <div className="bg-gray-200 dark:bg-gray-800 border border-black dark:border-gray-600 rounded-xl p-4 sm:p-6 space-y-4 sm:space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             {/* Title placeholder */}
-            <div className="bg-gray-400 h-8 w-1/2 rounded"></div>
+            <div className="bg-gray-400 h-8 sm:h-10 w-1/2 rounded"></div>
             {/* Deselect button placeholder */}
-            <div className="bg-gray-400 h-10 w-24 rounded-xl"></div>
+            <div className="bg-gray-400 h-10 sm:h-12 w-28 sm:w-32 rounded-xl"></div>
           </div>
           {/* Status placeholder */}
-          <div className="bg-gray-400 h-4 w-1/3 rounded"></div>
+          <div className="bg-gray-400 h-4 sm:h-5 w-1/3 rounded"></div>
         </div>
       </div>
 
       {/* Section 2: Features Placeholder */}
       <div>
-        <div className="bg-gray-300 dark:bg-gray-700 border border-neutral-200 dark:border-gray-600 rounded-xl p-6 space-y-4">
+        <div className="bg-gray-200 dark:bg-gray-800 border border-black dark:border-gray-600 rounded-xl p-4 sm:p-6 space-y-4 sm:space-y-6">
           {/* Features header placeholder */}
-          <div className="bg-gray-400 h-8 w-1/3 rounded mb-4"></div>
+          <div className="bg-gray-400 h-8 sm:h-10 w-1/3 rounded mb-4 sm:mb-6"></div>
           {/* Grid of feature card placeholders */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {features.map((_, index) => (
-              <div key={index} className="bg-gray-400 h-28 rounded-xl"></div>
+              <div key={index} className="bg-gray-400 h-24 sm:h-32 rounded-xl"></div>
             ))}
           </div>
         </div>
