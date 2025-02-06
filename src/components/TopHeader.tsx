@@ -86,7 +86,7 @@ export default function TopHeader() {
         className="
           w-full h-14 flex items-center px-4 justify-between
           border-b border-gray-500
-          bg-[var(--background)] text-[var(--foreground)]
+          text-[var(--foreground)]
         "
       >
         {/* Left side: Mobile menu button & dashboard title */}

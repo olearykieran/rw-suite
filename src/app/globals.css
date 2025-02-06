@@ -32,6 +32,21 @@ li {
   font-weight: 300;
 }
 
+body {
+  background: linear-gradient(
+    135deg,
+    rgba(75, 85, 99, 0.4),
+    rgba(0, 0, 0, 0.4),
+    rgba(75, 85, 99, 0.4)
+  );
+  background-size: cover;
+  height: 100vh;
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 h1,
 h2,
 h3 {
