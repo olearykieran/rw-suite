@@ -11,11 +11,11 @@ export function Card({ children, className = "", ...props }: CardProps) {
     <section
       {...props}
       className={`
-        bg-white dark:bg-neutral-900
         border border-neutral-500 dark:border-neutral-800
         rounded-lg
         space-y-4
         p-6
+        bg-white dark:bg-neutral-900
         ${className}
       `}
     >

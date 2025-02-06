@@ -1,3 +1,5 @@
+// src/app/layout.tsx
+
 import "./globals.css";
 import { Inter, Montserrat } from "next/font/google";
 import { ReactNode } from "react";

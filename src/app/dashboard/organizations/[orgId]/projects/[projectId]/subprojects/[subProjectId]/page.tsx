@@ -250,7 +250,7 @@ export default function SubProjectOverview() {
                   `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects`
                 )
               }
-              className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 transition-colors px-4 py-2 sm:px-6 sm:py-3 rounded-xl text-base"
+              className=" text-white hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 transition-colors px-4 py-2 sm:px-6 sm:py-3 rounded-xl text-base"
             >
               &larr; Back to Sub‑Projects of {mainProjectName}
             </button>

@@ -137,14 +137,18 @@ export default function TopHeader() {
             {dropdownOpen && (
               <div
                 className="
-                  absolute top-12 right-0 w-48 z-[9999]
-                  bg-[var(--background)] text-[var(--foreground)]
-                  shadow-lg border border-neutral-200 
-                  rounded p-2
-                "
-                onClick={(e) => e.stopPropagation()}
+    absolute top-12 right-0 min-w-[12rem] max-w-[20rem] w-auto z-[9999]
+    bg-[var(--background)] text-[var(--foreground)]
+    shadow-lg border border-neutral-200 
+    rounded p-2
+  "
               >
-                <p className=" opacity-70 mb-1">{user?.email}</p>
+                <p
+                  className="opacity-70 mb-1 truncate max-w-[16rem] cursor-pointer"
+                  title={user?.email ?? "No email available"}
+                >
+                  {user?.email ?? "No email available"}
+                </p>
                 <hr className="my-2 border-neutral-300" />
                 <button
                   onClick={(e) => {
@@ -153,9 +157,9 @@ export default function TopHeader() {
                     handleSignOut();
                   }}
                   className="
-                    block text-left w-full px-2 py-1 
-                    hover:bg-[var(--foreground)]/[0.1] 
-                  "
+      block text-left w-full px-2 py-1 
+      hover:bg-[var(--foreground)]/[0.1] 
+    "
                 >
                   Sign Out
                 </button>

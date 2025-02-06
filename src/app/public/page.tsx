@@ -1,26 +1,23 @@
-// src/app/public/page.tsx  (Adjust if your public home route is different)
-
 "use client";
 
 import Link from "next/link";
-import { GrayButton } from "@/components/ui/GrayButton"; // Your existing GrayButton
+import { GrayButton } from "@/components/ui/GrayButton";
 
 export default function PublicHomePage() {
   return (
-    <div className="py-20 px-10 text-center">
-      <h1 className="text-4xl font-bold text-white mb-4">Welcome to RW Suite</h1>
-      <p className="text-lg text-white mb-8">Modern construction management software.</p>
+    <div className="flex flex-col items-center justify-center min-h-[80vh] text-center space-y-6">
+      <h1 className="text-4xl font-bold text-white">Welcome to RW Suite</h1>
+      <p className="text-lg text-white max-w-md">
+        Modern construction management software.
+      </p>
 
-      {/* Buttons row */}
-      <div className="flex justify-center space-x-4">
-        {/* Sign In (Black variant) */}
+      {/* Buttons Row */}
+      <div className="flex space-x-4">
         <Link href="/public/auth/sign-in">
-          <GrayButton className=" hover:bg-neutral-800">Sign In</GrayButton>
+          <GrayButton className="hover:bg-neutral-800">Sign In</GrayButton>
         </Link>
-
-        {/* Sign Up (Outline variant) */}
         <Link href="/public/auth/sign-up">
-          <GrayButton className=" hover:bg-neutral-100">Sign Up</GrayButton>
+          <GrayButton className="hover:bg-neutral-100">Sign Up</GrayButton>
         </Link>
       </div>
     </div>

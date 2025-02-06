@@ -10,8 +10,8 @@ export function GrayButton({ children, className = "", ...props }: GrayButtonPro
   return (
     <button
       className={`
-        bg-gray-300 text-black
-        hover:bg-gray-400
+        bg-black text-white
+        hover:bg-white hover:text-black hover:border-black border
         dark:bg-gray-700 dark:text-white
         dark:hover:bg-gray-600
         px-4 py-2 rounded

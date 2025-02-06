@@ -4,20 +4,21 @@
 
 /* globals.css */
 :root {
-  --background: #ffffff;
-  --foreground: #000000;
+  --background: #ffffe3;
+  --foreground: #10100e;
+  --accent: #2a9d8f;
 }
 
 .dark {
-  --background: #1f2937; /* example dark background (gray-800) */
-  --foreground: #f9fafb; /* example dark foreground (gray-50) */
+  --background: #10100e; /* example dark background (gray-800) */
+  --foreground: #ffffe3; /* example dark foreground (gray-50) */
 }
 
 /* Rely on OS preference for dark mode automatically */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #1f1f1f;
-    --foreground: #ededed;
+    --background: #10100e;
+    --foreground: #ffffe3;
   }
 }
 /* Apply Inter (via the CSS variable) to all text elements */
@@ -33,18 +34,21 @@ li {
 }
 
 body {
-  background: linear-gradient(
-    135deg,
-    rgba(75, 85, 99, 0.4),
-    rgba(0, 0, 0, 0.4),
-    rgba(75, 85, 99, 0.4)
-  );
+  background: "#10100E";
   background-size: cover;
   height: 100vh;
   margin: 0;
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+.real-bg {
+  background: "#10100E";
+}
+
+.special-bg {
+  background: "#10100E";
 }
 
 h1,

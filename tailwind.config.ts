@@ -13,6 +13,8 @@ export default {
         "pulse-fast": "pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite",
       },
       colors: {
+        white: "#FFFFE3",
+        black: "#10100E",
         background: "var(--background)",
         foreground: "var(--foreground)",
       },

@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState, useEffect } from "react";
+import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   createUserWithEmailAndPassword,
@@ -37,6 +37,11 @@ enum Step {
   AuthMethod = 2,
 }
 
+/**
+ * SignUpPage component that guides the user through organization membership
+ * and account creation. This file has been updated so that the blue hyperlink for
+ * "Sign In" is replaced by a GrayButton that navigates to the sign‑in page.
+ */
 export default function SignUpPage() {
   const router = useRouter();
 
@@ -112,6 +117,12 @@ export default function SignUpPage() {
   // Step 2: Sign Up Methods
   // ------------------------------------------------------
 
+  /**
+   * Creates a user document in Firestore.
+   * @param uid - The user ID.
+   * @param mail - The user's email.
+   * @param displayName - The user's display name.
+   */
   async function createUserDoc(uid: string, mail: string | null, displayName?: string) {
     await setDoc(
       doc(firestore, "users", uid),
@@ -126,6 +137,10 @@ export default function SignUpPage() {
     );
   }
 
+  /**
+   * Handles organization membership based on the selected flow.
+   * @param uid - The user ID.
+   */
   async function handleOrgMembership(uid: string) {
     if (flow === "create") {
       const safeOrgId = orgName.trim().toLowerCase().replace(/\s+/g, "-");
@@ -162,6 +177,10 @@ export default function SignUpPage() {
     }
   }
 
+  /**
+   * Handles sign-up with Email/Password.
+   * @param e - The form event.
+   */
   async function handleEmailSignUp(e: FormEvent) {
     e.preventDefault();
     setError("");
@@ -186,6 +205,9 @@ export default function SignUpPage() {
     }
   }
 
+  /**
+   * Handles sign-up with Google.
+   */
   async function handleGoogleSignUp() {
     setError("");
     setSuccessMsg("");
@@ -222,7 +244,7 @@ export default function SignUpPage() {
               <p className="font-medium text-base">
                 Step 1: Organization / Role Information
               </p>
-              <div className="flex gap-4 items-center flex-wrap ">
+              <div className="flex gap-4 items-center flex-wrap">
                 <label>
                   <input
                     type="radio"
@@ -259,7 +281,7 @@ export default function SignUpPage() {
               </div>
               {flow === "create" && (
                 <div>
-                  <label className="block font-medium  mb-1">New Organization Name</label>
+                  <label className="block font-medium mb-1">New Organization Name</label>
                   <input
                     type="text"
                     placeholder="Acme Builders"
@@ -271,7 +293,7 @@ export default function SignUpPage() {
               )}
               {flow === "join" && (
                 <div>
-                  <label className="block font-medium  mb-1">Existing Org ID</label>
+                  <label className="block font-medium mb-1">Existing Org ID</label>
                   <input
                     type="text"
                     placeholder="acme-builders"
@@ -283,7 +305,7 @@ export default function SignUpPage() {
               )}
               {flow === "invite" && (
                 <div>
-                  <label className="block font-medium  mb-1">Invite Code</label>
+                  <label className="block font-medium mb-1">Invite Code</label>
                   <input
                     type="text"
                     placeholder="ABC123"
@@ -295,7 +317,7 @@ export default function SignUpPage() {
               )}
               {flow !== "invite" && (
                 <div>
-                  <label className="block font-medium  mb-1">Your Role</label>
+                  <label className="block font-medium mb-1">Your Role</label>
                   <select
                     className="border p-2 w-full rounded bg-white dark:bg-neutral-800 dark:text-white"
                     value={role}
@@ -316,12 +338,14 @@ export default function SignUpPage() {
               <GrayButton onClick={handleNextStep}>Next</GrayButton>
             </div>
           </Card>
-          <div className="mt-4 text-center ">
-            Already have an account?{" "}
-            <a href="/public/auth/sign-in" className="text-blue-600 underline">
-              Sign In
-            </a>
-          </div>
+          {/* Replaced the blue hyperlink with a GrayButton for navigation to Sign In */}
+          <PageContainer>
+            <div className="flex justify-center mt-4">
+              <GrayButton onClick={() => router.push("/public/auth/sign-in")}>
+                Already have an account? Sign In
+              </GrayButton>
+            </div>
+          </PageContainer>
         </PageContainer>
       )}
 
@@ -339,36 +363,37 @@ export default function SignUpPage() {
               >
                 &larr; Back
               </GrayButton>
-              <p className=" text-center">Step 2: Choose your sign-up method</p>
+              <p className="text-white text-center">Step 2: Choose your sign-up method</p>
             </div>
           </PageContainer>
-          <div className="flex flex-col md:flex-row items-start justify-center gap-8 px-4">
+          {/* Updated flex container for equal height columns */}
+          <div className="flex flex-col md:flex-row items-stretch justify-center gap-8 px-4">
             {/* Google sign up */}
-            <PageContainer className="max-w-md">
-              <Card>
+            <PageContainer className="max-w-md flex-1">
+              <Card className="h-full">
                 <h2 className="text-xl font-semibold text-center mb-4">
                   Sign Up with Google
                 </h2>
                 <GrayButton
                   onClick={handleGoogleSignUp}
                   disabled={inProgress}
-                  className="w-full "
+                  className="w-full"
                 >
                   {inProgress ? "Signing Up..." : "Sign Up with Google"}
                 </GrayButton>
               </Card>
             </PageContainer>
-            {/* Vertical line */}
+            {/* Vertical divider */}
             <div className="hidden md:block w-px bg-neutral-300" />
-            {/* Email/pw sign up */}
-            <PageContainer className="max-w-md">
-              <Card>
+            {/* Email/Password sign up */}
+            <PageContainer className="max-w-md flex-1">
+              <Card className="h-full">
                 <h2 className="text-xl font-semibold text-center mb-4">
                   Sign Up with Email
                 </h2>
                 <form onSubmit={handleEmailSignUp} className="space-y-4">
                   <div>
-                    <label className="block mb-1 font-medium ">Email</label>
+                    <label className="block mb-1 font-medium">Email</label>
                     <input
                       type="email"
                       className="border p-2 w-full rounded bg-white dark:bg-neutral-800 dark:text-white"
@@ -379,7 +404,7 @@ export default function SignUpPage() {
                     />
                   </div>
                   <div>
-                    <label className="block mb-1 font-medium ">Confirm Email</label>
+                    <label className="block mb-1 font-medium">Confirm Email</label>
                     <input
                       type="email"
                       className="border p-2 w-full rounded bg-white dark:bg-neutral-800 dark:text-white"
@@ -390,7 +415,7 @@ export default function SignUpPage() {
                     />
                   </div>
                   <div>
-                    <label className="block mb-1 font-medium ">Password</label>
+                    <label className="block mb-1 font-medium">Password</label>
                     <div className="relative">
                       <input
                         type={pwVisible ? "text" : "password"}
@@ -402,7 +427,7 @@ export default function SignUpPage() {
                       <button
                         type="button"
                         onClick={() => setPwVisible(!pwVisible)}
-                        className="absolute top-1/2 right-2 -translate-y-1/2  text-blue-600 underline"
+                        className="absolute top-1/2 right-2 -translate-y-1/2 text-blue-600 underline"
                         tabIndex={-1}
                       >
                         {pwVisible ? "Hide" : "Show"}
@@ -410,7 +435,7 @@ export default function SignUpPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block mb-1 font-medium ">Confirm Password</label>
+                    <label className="block mb-1 font-medium">Confirm Password</label>
                     <input
                       type={pwVisible ? "text" : "password"}
                       className="border p-2 w-full rounded bg-white dark:bg-neutral-800 dark:text-white"
@@ -421,7 +446,7 @@ export default function SignUpPage() {
                     />
                   </div>
                   <div>
-                    <label className="block mb-1 font-medium ">
+                    <label className="block mb-1 font-medium">
                       Phone Number (optional)
                     </label>
                     <input
@@ -432,20 +457,20 @@ export default function SignUpPage() {
                       onChange={(e) => setPhone(e.target.value)}
                     />
                   </div>
-                  <GrayButton type="submit" disabled={inProgress} className="w-full ">
+                  <GrayButton type="submit" disabled={inProgress} className="w-full">
                     {inProgress ? "Creating Account..." : "Sign Up with Email"}
                   </GrayButton>
                 </form>
               </Card>
             </PageContainer>
           </div>
+          {/* Bottom GrayButton for navigation to Sign In */}
           <PageContainer>
-            <p className="text-center  mt-4">
-              Already have an account?{" "}
-              <a href="/public/auth/sign-in" className="text-blue-600 underline">
-                Sign In
-              </a>
-            </p>
+            <div className="flex justify-center mt-4">
+              <GrayButton onClick={() => router.push("/public/auth/sign-in")}>
+                Already have an account? Sign In
+              </GrayButton>
+            </div>
           </PageContainer>
         </>
       )}
