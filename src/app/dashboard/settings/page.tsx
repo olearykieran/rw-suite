@@ -64,7 +64,7 @@ export default function SettingsPage() {
     return <div className="p-6">Please sign in.</div>;
   }
   if (loading) {
-    return <div className="p-6 text-sm">Loading user profile…</div>;
+    return <div className="p-6 ">Loading user profile…</div>;
   }
   if (error) {
     return <div className="p-6 text-red-600">{error}</div>;

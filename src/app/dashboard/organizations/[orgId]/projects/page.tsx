@@ -58,9 +58,9 @@ export default function ProjectsPage() {
   const renderProject = (project: Project) => (
     <Card key={project.id}>
       <p className="font-semibold text-lg">{project.name || project.id}</p>
-      {project.status && <p className="text-sm-">Status: {project.status}</p>}
+      {project.status && <p className="-">Status: {project.status}</p>}
       {project.mainProjectId && (
-        <p className="text-sm">Sub-project of: {project.mainProjectId}</p>
+        <p className="">Sub-project of: {project.mainProjectId}</p>
       )}
       <Link
         href={`/dashboard/organizations/${orgId}/projects/${project.id}/subprojects`}
@@ -91,7 +91,7 @@ export default function ProjectsPage() {
           dark:bg-gray-700 dark:text-white
           dark:hover:bg-gray-600
           transition-colors
-          px-4 py-2 rounded-xl text-sm
+          px-4 py-2 rounded-xl 
         "
       >
         &larr; Back to Organizations
@@ -110,7 +110,7 @@ export default function ProjectsPage() {
         isLoading={loading}
         className="mt-4 text-black dark:text-white"
         emptyMessage={
-          <p className="text-sm text-neutral-600  dark:text-neutral-300 mt-2">
+          <p className=" text-neutral-600  dark:text-neutral-300 mt-2">
             No projects found. Create one!
           </p>
         }

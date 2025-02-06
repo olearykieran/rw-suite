@@ -20,9 +20,26 @@
     --foreground: #ededed;
   }
 }
+/* Apply Inter (via the CSS variable) to all text elements */
+body,
+h4,
+h5,
+h6,
+p,
+span,
+li {
+  font-family: var(--font-montserrat), sans-serif;
+  font-weight: 300;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-inter), sans-serif;
+  font-weight: 700;
+}
 
 body {
-  font-family: var(--font-primary), cursive;
   font-size: 1.25rem;
   /* 
     No need to set background or text color here 

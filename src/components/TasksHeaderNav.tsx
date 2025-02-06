@@ -22,12 +22,12 @@ export default function TasksHeaderNav({ orgId, projectId, subProjectId }: Props
   const subProjectUrl = `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`;
 
   return (
-    <nav className="mb-4 flex items-center gap-4 text-sm flex-wrap">
+    <nav className="mb-4 flex items-center gap-4  flex-wrap">
       {/* Back to sub-project */}
       <Link
         href={subProjectUrl}
         className="
-          text-sm font-medium text-blue-600 underline
+           font-medium text-blue-600 underline
           hover:text-blue-700 dark:text-blue-400
           dark:hover:text-blue-300 transition-colors
         "

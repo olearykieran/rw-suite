@@ -120,7 +120,7 @@ function NewEntryModal({
       >
         <h2 className="text-2xl font-bold mb-4">New Site Visit Entry</h2>
         <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Entry Note</label>
+          <label className="block  font-medium mb-1">Entry Note</label>
           <textarea
             className="w-full border p-2 rounded"
             rows={3}
@@ -130,7 +130,7 @@ function NewEntryModal({
           />
         </div>
         <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Add Photos</label>
+          <label className="block  font-medium mb-1">Add Photos</label>
           <input
             type="file"
             multiple
@@ -140,7 +140,7 @@ function NewEntryModal({
           />
           {tempImage && (
             <div className="mt-2">
-              <p className="text-sm font-medium mb-1">Annotate Photo:</p>
+              <p className=" font-medium mb-1">Annotate Photo:</p>
               <ReactPictureAnnotation
                 image={tempImage}
                 width={600}
@@ -157,7 +157,7 @@ function NewEntryModal({
           )}
         </div>
         <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">
+          <label className="block  font-medium mb-1">
             Add Voice Notes (Record or Upload)
           </label>
           <ReactMediaRecorder
@@ -284,7 +284,7 @@ export default function SiteVisitDetailPage() {
       <div className="flex items-center justify-between mb-4">
         <Link
           href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/site-visits`}
-          className="text-sm font-medium text-blue-600 underline"
+          className=" font-medium text-blue-600 underline"
         >
           &larr; Back to Site Visits
         </Link>
@@ -295,11 +295,11 @@ export default function SiteVisitDetailPage() {
         <h1 className="text-2xl font-bold mb-1">
           Site Visit: {new Date(visit.visitDate).toLocaleDateString()}
         </h1>
-        <p className="text-sm text-black dark:text-white mb-2">
+        <p className=" text-black dark:text-white mb-2">
           Participants: {visit.participants.join(", ") || "N/A"}
         </p>
         <div>
-          <label className="block text-sm font-medium mb-1">Main Notes</label>
+          <label className="block  font-medium mb-1">Main Notes</label>
           <textarea
             className="border p-2 w-full text-black dark:text-black rounded"
             rows={3}
@@ -322,11 +322,11 @@ export default function SiteVisitDetailPage() {
             )
             .map((entry: SiteVisitEntry) => (
               <Card key={entry.id} className="p-4">
-                <p className="text-sm text-black dark:text-white">
+                <p className=" text-black dark:text-white">
                   {new Date(entry.timestamp).toLocaleString()}
                 </p>
                 {entry.note && (
-                  <p className="mt-2 text-sm text-black dark:text-white">{entry.note}</p>
+                  <p className="mt-2  text-black dark:text-white">{entry.note}</p>
                 )}
                 {entry.photos && entry.photos.length > 0 && (
                   <div className="mt-2 grid grid-cols-2 gap-2">
@@ -364,7 +364,7 @@ export default function SiteVisitDetailPage() {
             ))
         ) : (
           <Card className="p-4">
-            <p className="text-sm text-black dark:text-white">
+            <p className=" text-black dark:text-white">
               No entries have been added for this site visit.
             </p>
           </Card>

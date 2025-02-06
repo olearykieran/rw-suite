@@ -61,7 +61,7 @@ export default function PunchListIndexPage() {
 
   // ---------- RENDER ----------
   if (loading) {
-    return <div className="p-6 text-sm">Loading Punch Lists...</div>;
+    return <div className="p-6 ">Loading Punch Lists...</div>;
   }
   if (error) {
     return <div className="p-6 text-red-600">{error}</div>;
@@ -81,7 +81,7 @@ export default function PunchListIndexPage() {
           <Link
             href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`}
             className="
-              text-sm font-medium text-blue-600 underline
+               font-medium text-blue-600 underline
               hover:text-blue-700 dark:text-blue-400
               dark:hover:text-blue-300 transition-colors
             "
@@ -109,7 +109,7 @@ export default function PunchListIndexPage() {
         `}
       >
         {punchLists.length === 0 ? (
-          <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-2">
+          <p className=" text-neutral-600 dark:text-neutral-300 mt-2">
             No punch lists found. Create one!
           </p>
         ) : (
@@ -117,7 +117,7 @@ export default function PunchListIndexPage() {
             items={punchLists}
             className="mt-4"
             emptyMessage={
-              <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-2">
+              <p className=" text-neutral-600 dark:text-neutral-300 mt-2">
                 No punch lists found. Create one!
               </p>
             }
@@ -125,13 +125,13 @@ export default function PunchListIndexPage() {
               <Card key={pl.id} className="flex justify-between items-center">
                 <div>
                   <p className="font-semibold">{pl.title}</p>
-                  <p className="text-sm">Status: {pl.status || "open"}</p>
+                  <p className="">Status: {pl.status || "open"}</p>
                 </div>
                 <div className="flex gap-3">
                   <Link
                     href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/punch-lists/${pl.id}`}
                     className="
-                      text-blue-600 underline text-sm
+                      text-blue-600 underline 
                       hover:text-blue-700 dark:text-blue-400
                       dark:hover:text-blue-300
                     "

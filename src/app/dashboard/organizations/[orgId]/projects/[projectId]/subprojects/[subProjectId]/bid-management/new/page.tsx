@@ -237,14 +237,14 @@ export default function NewBidSubmissionPage() {
     <PageContainer>
       <Card>
         <h1 className="text-2xl font-bold mb-4">New Bid Submission</h1>
-        {profileLoading && <p className="text-sm">Loading profile info…</p>}
-        {profileError && <p className="text-sm text-red-500">{profileError}</p>}
-        {projectsLoading && <p className="text-sm">Loading projects…</p>}
-        {projectsError && <p className="text-sm text-red-500">{projectsError}</p>}
+        {profileLoading && <p className="">Loading profile info…</p>}
+        {profileError && <p className=" text-red-500">{profileError}</p>}
+        {projectsLoading && <p className="">Loading projects…</p>}
+        {projectsError && <p className=" text-red-500">{projectsError}</p>}
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Project Details Dropdown */}
           <div>
-            <label className="block text-sm font-medium">Select Project</label>
+            <label className="block  font-medium">Select Project</label>
             <select
               value={selectedProjectId}
               onChange={handleProjectChange}
@@ -260,7 +260,7 @@ export default function NewBidSubmissionPage() {
           </div>
           {/* Project Location auto-populated */}
           <div>
-            <label className="block text-sm font-medium">Project Location</label>
+            <label className="block  font-medium">Project Location</label>
             <input
               type="text"
               className="border p-2 w-full text-black rounded"
@@ -271,9 +271,7 @@ export default function NewBidSubmissionPage() {
           </div>
           {/* Contractor Dropdown */}
           <div>
-            <label className="block text-sm font-medium">
-              Select Contractor / Company Name
-            </label>
+            <label className="block  font-medium">Select Contractor / Company Name</label>
             <select
               value={isNewContractor ? "other" : selectedContractor}
               onChange={handleContractorChange}
@@ -292,7 +290,7 @@ export default function NewBidSubmissionPage() {
           {isNewContractor && (
             <div className="space-y-2">
               <div>
-                <label className="block text-sm font-medium">New Contractor Name</label>
+                <label className="block  font-medium">New Contractor Name</label>
                 <input
                   type="text"
                   className="border p-2 w-full text-black rounded"
@@ -302,7 +300,7 @@ export default function NewBidSubmissionPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium">New Contractor Email</label>
+                <label className="block  font-medium">New Contractor Email</label>
                 <input
                   type="email"
                   className="border p-2 w-full text-black rounded"
@@ -312,7 +310,7 @@ export default function NewBidSubmissionPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium">New Contractor Phone</label>
+                <label className="block  font-medium">New Contractor Phone</label>
                 <input
                   type="text"
                   className="border p-2 w-full text-black rounded"
@@ -325,7 +323,7 @@ export default function NewBidSubmissionPage() {
           )}
           {/* Bid Due Date */}
           <div>
-            <label className="block text-sm font-medium">Bid Due Date</label>
+            <label className="block  font-medium">Bid Due Date</label>
             <input
               type="datetime-local"
               className="border p-2 w-full text-black rounded"
@@ -335,7 +333,7 @@ export default function NewBidSubmissionPage() {
           </div>
           {/* Submission Method */}
           <div>
-            <label className="block text-sm font-medium">Submission Method</label>
+            <label className="block  font-medium">Submission Method</label>
             <input
               type="text"
               className="border p-2 w-full text-black rounded"
@@ -346,9 +344,7 @@ export default function NewBidSubmissionPage() {
           </div>
           {/* Questions Contact */}
           <div>
-            <label className="block text-sm font-medium">
-              Contact Phone (for questions)
-            </label>
+            <label className="block  font-medium">Contact Phone (for questions)</label>
             <input
               type="text"
               className="border p-2 w-full text-black rounded"
@@ -358,9 +354,7 @@ export default function NewBidSubmissionPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium">
-              Contact Email (for questions)
-            </label>
+            <label className="block  font-medium">Contact Email (for questions)</label>
             <input
               type="email"
               className="border p-2 w-full text-black rounded"
@@ -370,7 +364,7 @@ export default function NewBidSubmissionPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium">Question Deadline</label>
+            <label className="block  font-medium">Question Deadline</label>
             <input
               type="date"
               className="border p-2 w-full text-black rounded"
@@ -380,7 +374,7 @@ export default function NewBidSubmissionPage() {
           </div>
           {/* Issuer Details – auto-populated from user profile */}
           <div>
-            <label className="block text-sm font-medium">Your Name</label>
+            <label className="block  font-medium">Your Name</label>
             <input
               type="text"
               className="border p-2 w-full text-black rounded"
@@ -390,7 +384,7 @@ export default function NewBidSubmissionPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium">Your Title</label>
+            <label className="block  font-medium">Your Title</label>
             <input
               type="text"
               className="border p-2 w-full text-black rounded"
@@ -400,7 +394,7 @@ export default function NewBidSubmissionPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium">Your Company</label>
+            <label className="block  font-medium">Your Company</label>
             <input
               type="text"
               className="border p-2 w-full text-black rounded"
@@ -410,7 +404,7 @@ export default function NewBidSubmissionPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium">Your Phone Number</label>
+            <label className="block  font-medium">Your Phone Number</label>
             <input
               type="text"
               className="border p-2 w-full text-black rounded"
@@ -420,7 +414,7 @@ export default function NewBidSubmissionPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium">Your Email Address</label>
+            <label className="block  font-medium">Your Email Address</label>
             <input
               type="email"
               className="border p-2 w-full text-black rounded"
@@ -431,7 +425,7 @@ export default function NewBidSubmissionPage() {
           </div>
           {/* Additional Instructions */}
           <div>
-            <label className="block text-sm font-medium">
+            <label className="block  font-medium">
               Additional Instructions (optional)
             </label>
             <textarea

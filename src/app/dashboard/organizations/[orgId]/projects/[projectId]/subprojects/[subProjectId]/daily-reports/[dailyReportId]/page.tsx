@@ -153,7 +153,7 @@ export default function DailyReportDetailPage() {
         <Link
           href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/daily-reports`}
           className="
-            text-sm font-medium text-blue-600 underline
+             font-medium text-blue-600 underline
             hover:text-blue-700 dark:text-blue-400
             dark:hover:text-blue-300 transition-colors
           "
@@ -163,7 +163,7 @@ export default function DailyReportDetailPage() {
       </div>
 
       {/* If loading => show loading text */}
-      {loading && <div className="p-6 text-sm">Loading daily report...</div>}
+      {loading && <div className="p-6 ">Loading daily report...</div>}
 
       {/* If error => show error text (still keeps back link above) */}
       {error && <div className="p-6 text-red-600">{error}</div>}
@@ -184,7 +184,7 @@ export default function DailyReportDetailPage() {
             <Card>
               <form onSubmit={handleUpdate} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Date</label>
+                  <label className="block  font-medium mb-1">Date</label>
                   <input
                     type="date"
                     className="
@@ -197,7 +197,7 @@ export default function DailyReportDetailPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Location</label>
+                  <label className="block  font-medium mb-1">Location</label>
                   <input
                     className="
                       border p-2 w-full rounded
@@ -209,7 +209,7 @@ export default function DailyReportDetailPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Weather Note</label>
+                  <label className="block  font-medium mb-1">Weather Note</label>
                   <input
                     className="
                       border p-2 w-full rounded
@@ -221,7 +221,7 @@ export default function DailyReportDetailPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">
+                  <label className="block  font-medium mb-1">
                     Incidents (one per line)
                   </label>
                   <textarea
@@ -236,7 +236,7 @@ export default function DailyReportDetailPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Progress Notes</label>
+                  <label className="block  font-medium mb-1">Progress Notes</label>
                   <textarea
                     className="
                       border p-2 w-full rounded
@@ -249,7 +249,7 @@ export default function DailyReportDetailPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Delays</label>
+                  <label className="block  font-medium mb-1">Delays</label>
                   <textarea
                     className="
                       border p-2 w-full rounded
@@ -276,7 +276,7 @@ export default function DailyReportDetailPage() {
             <Card>
               <h2 className="text-lg font-semibold">Attachments</h2>
               {report.attachments && report.attachments.length > 0 ? (
-                <ul className="list-disc ml-5 text-sm mt-2">
+                <ul className="list-disc ml-5  mt-2">
                   {report.attachments.map((url, i) => (
                     <li key={i}>
                       <a
@@ -295,12 +295,12 @@ export default function DailyReportDetailPage() {
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm mt-1">No attachments yet.</p>
+                <p className=" mt-1">No attachments yet.</p>
               )}
 
               {/* Upload new files */}
               <div className="mt-4 space-y-2">
-                <label className="block text-sm font-medium">Upload Files</label>
+                <label className="block  font-medium">Upload Files</label>
                 <input
                   type="file"
                   multiple

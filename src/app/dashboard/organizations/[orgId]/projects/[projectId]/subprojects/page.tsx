@@ -75,7 +75,7 @@ export default function SubProjectsPage() {
   const renderSubProject = (sp: SubProject) => (
     <Card key={sp.id}>
       <p className="font-semibold text-lg">{sp.name || sp.id}</p>
-      <p className="text-sm">Status: {sp.status || "active"}</p>
+      <p className="">Status: {sp.status || "active"}</p>
       <Link
         href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${sp.id}`}
         onClick={() => setIsLoading(true)}
@@ -98,7 +98,7 @@ export default function SubProjectsPage() {
     <PageContainer>
       <button
         onClick={() => router.push(`/dashboard/organizations/${orgId}/projects`)}
-        className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 transition-colors px-4 py-2 rounded-xl text-sm"
+        className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 transition-colors px-4 py-2 rounded-xl "
       >
         &larr; Back to {mainProjectName}
       </button>
@@ -113,7 +113,7 @@ export default function SubProjectsPage() {
         isLoading={loading}
         className="mt-4 text-black dark:text-white"
         emptyMessage={
-          <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-2">
+          <p className=" text-neutral-600 dark:text-neutral-300 mt-2">
             No sub‑projects found.
           </p>
         }

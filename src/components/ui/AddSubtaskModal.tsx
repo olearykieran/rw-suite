@@ -153,7 +153,7 @@ export function AddSubtaskModal({
         <form onSubmit={handleSubmit} className="space-y-3">
           {/* Title */}
           <div>
-            <label className="block font-medium text-sm mb-1">Subtask Title</label>
+            <label className="block font-medium  mb-1">Subtask Title</label>
             <input
               className="border p-2 w-full rounded"
               placeholder="Enter subtask name"
@@ -165,7 +165,7 @@ export function AddSubtaskModal({
 
           {/* Start offset */}
           <div>
-            <label className="block font-medium text-sm mb-1">
+            <label className="block font-medium  mb-1">
               Start Offset (1 to {totalDays})
             </label>
             <input
@@ -184,7 +184,7 @@ export function AddSubtaskModal({
 
           {/* Duration */}
           <div>
-            <label className="block font-medium text-sm mb-1">Duration (days)</label>
+            <label className="block font-medium  mb-1">Duration (days)</label>
             <input
               type="number"
               min={1}

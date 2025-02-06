@@ -89,7 +89,7 @@ export default function VendorDetailPage() {
   }
 
   if (loading) {
-    return <div className="p-6 text-sm">Loading vendor...</div>;
+    return <div className="p-6 ">Loading vendor...</div>;
   }
   if (error) {
     return <div className="p-6 text-red-600">{error}</div>;
@@ -107,7 +107,7 @@ export default function VendorDetailPage() {
           ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
         `}
       >
-        <GrayButton onClick={() => router.back()} className="mb-4 text-sm">
+        <GrayButton onClick={() => router.back()} className="mb-4 ">
           &larr; Back
         </GrayButton>
 

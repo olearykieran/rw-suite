@@ -135,7 +135,7 @@ function FinanceDetailContent() {
       >
         <Link
           href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/finances`}
-          className="text-sm font-medium text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+          className=" font-medium text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
         >
           &larr; Back to Finances
         </Link>
@@ -158,7 +158,7 @@ function FinanceDetailContent() {
           <form onSubmit={handleUpdate} className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium mb-1">Type</label>
+                <label className="block  font-medium mb-1">Type</label>
                 <select
                   className="border p-2 rounded w-full bg-white text-black dark:bg-neutral-800 dark:text-white"
                   value={type}
@@ -173,7 +173,7 @@ function FinanceDetailContent() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Status</label>
+                <label className="block  font-medium mb-1">Status</label>
                 <select
                   className="border p-2 rounded w-full bg-white text-black dark:bg-neutral-800 dark:text-white"
                   value={status}
@@ -188,7 +188,7 @@ function FinanceDetailContent() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Amount</label>
+              <label className="block  font-medium mb-1">Amount</label>
               <input
                 type="number"
                 step="0.01"
@@ -199,7 +199,7 @@ function FinanceDetailContent() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Description</label>
+              <label className="block  font-medium mb-1">Description</label>
               <textarea
                 className="border p-2 rounded w-full bg-white text-black dark:bg-neutral-800 dark:text-white"
                 rows={3}
@@ -229,9 +229,9 @@ function FinanceDetailContent() {
             <AnimatedList
               items={finance.attachments}
               className="mt-2"
-              emptyMessage={<p className="text-sm mt-1">No attachments yet.</p>}
+              emptyMessage={<p className=" mt-1">No attachments yet.</p>}
               renderItem={(url, index) => (
-                <li key={index} className="list-disc ml-5 text-sm">
+                <li key={index} className="list-disc ml-5 ">
                   <a
                     href={url}
                     target="_blank"
@@ -244,11 +244,11 @@ function FinanceDetailContent() {
               )}
             />
           ) : (
-            <p className="text-sm mt-1">No attachments yet.</p>
+            <p className=" mt-1">No attachments yet.</p>
           )}
 
           <div className="mt-4 space-y-2">
-            <label className="block text-sm font-medium">Upload Files</label>
+            <label className="block  font-medium">Upload Files</label>
             <input
               type="file"
               multiple

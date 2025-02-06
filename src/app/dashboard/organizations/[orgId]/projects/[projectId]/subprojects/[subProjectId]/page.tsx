@@ -251,7 +251,7 @@ export default function SubProjectOverview() {
                   `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects`
                 )
               }
-              className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 transition-colors px-4 py-2 rounded-xl text-sm"
+              className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 transition-colors px-4 py-2 rounded-xl"
             >
               &larr; Back to Sub‑Projects of {mainProjectName}
             </button>
@@ -268,7 +268,7 @@ export default function SubProjectOverview() {
                 Deselect
               </button>
             </div>
-            <p className="text-sm text-black dark:text-white">
+            <p className=" text-black dark:text-white">
               <strong>Status:</strong> {subProject.status || "N/A"}
             </p>
           </div>
@@ -296,7 +296,7 @@ export default function SubProjectOverview() {
                   <h3 className="font-bold mb-1">
                     {feature.label} ({counts[feature.route] ?? 0})
                   </h3>
-                  <p className="text-sm">{feature.description}</p>
+                  <p className="">{feature.description}</p>
                 </Link>
               ))}
             </div>

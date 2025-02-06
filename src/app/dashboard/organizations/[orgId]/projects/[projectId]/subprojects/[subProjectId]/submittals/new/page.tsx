@@ -298,11 +298,11 @@ export default function NewSubmittalWizardPage() {
           {/* Step 4: WORKFLOW */}
           {currentStep === Step.WORKFLOW && (
             <div className="space-y-4">
-              <p className="text-sm">
+              <p className="">
                 **Multi-step approvals**: Add roles (e.g. “Architect”, “Engineer”) and
                 user IDs. Each step defaults to “pending.”
               </p>
-              <ul className="list-disc ml-5 space-y-2 text-sm">
+              <ul className="list-disc ml-5 space-y-2 ">
                 {workflow.map((w, idx) => (
                   <li key={idx}>
                     <strong>{w.role}</strong> – {w.userId} (Status: {w.status})
@@ -377,7 +377,7 @@ export default function NewSubmittalWizardPage() {
               </div>
 
               <p className="font-medium">Summary:</p>
-              <ul className="list-disc ml-5 text-sm space-y-1">
+              <ul className="list-disc ml-5  space-y-1">
                 <li>Subject: {subject}</li>
                 <li>Type: {submittalType}</li>
                 <li>Assigned To: {assignedTo}</li>

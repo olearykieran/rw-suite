@@ -71,7 +71,7 @@ function FinanceListContent() {
       {/* Back link to the sub-project overview */}
       <Link
         href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`}
-        className="text-sm font-medium text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+        className=" font-medium text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
       >
         &larr; Back to Sub-Project
       </Link>
@@ -92,7 +92,7 @@ function FinanceListContent() {
         isLoading={isInitialLoading}
         className="mt-4"
         emptyMessage={
-          <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-2">
+          <p className=" text-neutral-600 dark:text-neutral-300 mt-2">
             No finance records found. Create one!
           </p>
         }
@@ -102,15 +102,13 @@ function FinanceListContent() {
               <p className="font-semibold">
                 {finance.type.toUpperCase()} – ${finance.amount.toFixed(2)}
               </p>
-              {finance.description && (
-                <p className="text-sm mt-1">{finance.description}</p>
-              )}
-              <p className="text-sm">Status: {finance.status || "N/A"}</p>
+              {finance.description && <p className=" mt-1">{finance.description}</p>}
+              <p className="">Status: {finance.status || "N/A"}</p>
             </div>
             <div className="flex gap-3">
               <Link
                 href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/finances/${finance.id}`}
-                className="text-blue-600 underline text-sm hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                className="text-blue-600 underline  hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
               >
                 View
               </Link>

@@ -151,14 +151,11 @@ export default function ImageAnnotatorWithZoom({
     <div onWheel={handleWheel}>
       {/* Zoom Controls */}
       <div className="mb-2 flex gap-2">
-        <button
-          onClick={zoomOut}
-          className=" px-3 py-1 rounded hover:bg-gray-400 text-sm"
-        >
+        <button onClick={zoomOut} className=" px-3 py-1 rounded hover:bg-gray-400 ">
           -
         </button>
-        <span className="text-sm px-1">Zoom: {(scale * 100).toFixed(0)}%</span>
-        <button onClick={zoomIn} className=" px-3 py-1 rounded hover:bg-gray-400 text-sm">
+        <span className=" px-1">Zoom: {(scale * 100).toFixed(0)}%</span>
+        <button onClick={zoomIn} className=" px-3 py-1 rounded hover:bg-gray-400 ">
           +
         </button>
       </div>
@@ -250,10 +247,10 @@ export default function ImageAnnotatorWithZoom({
             width: 220,
           }}
         >
-          <h4 className="font-medium text-sm mb-2">New Pin</h4>
+          <h4 className="font-medium  mb-2">New Pin</h4>
           <label className="block text-xs">Pin Color</label>
           <select
-            className="border p-1 mb-2 w-full text-sm"
+            className="border p-1 mb-2 w-full "
             value={newPinColor}
             onChange={(e) => setNewPinColor(e.target.value)}
           >
@@ -265,7 +262,7 @@ export default function ImageAnnotatorWithZoom({
 
           <label className="block text-xs">Pin Type</label>
           <select
-            className="border p-1 mb-2 w-full text-sm"
+            className="border p-1 mb-2 w-full "
             value={newPinType}
             onChange={(e) => setNewPinType(e.target.value)}
           >
@@ -276,7 +273,7 @@ export default function ImageAnnotatorWithZoom({
 
           <label className="block text-xs">Document Type</label>
           <select
-            className="border p-1 mb-2 w-full text-sm"
+            className="border p-1 mb-2 w-full "
             value={newDocType}
             onChange={(e) => setNewDocType(e.target.value)}
           >
@@ -287,14 +284,14 @@ export default function ImageAnnotatorWithZoom({
 
           <label className="block text-xs">Document ID</label>
           <input
-            className="border p-1 mb-2 w-full text-sm"
+            className="border p-1 mb-2 w-full "
             value={newDocId}
             onChange={(e) => setNewDocId(e.target.value)}
           />
 
           <label className="block text-xs">Notes</label>
           <textarea
-            className="border p-1 mb-2 w-full text-sm"
+            className="border p-1 mb-2 w-full "
             rows={2}
             value={newNotes}
             onChange={(e) => setNewNotes(e.target.value)}
@@ -302,12 +299,12 @@ export default function ImageAnnotatorWithZoom({
 
           <div className="flex gap-2">
             <button
-              className="bg-blue-600 text-white px-2 py-1 rounded text-sm"
+              className="bg-blue-600 text-white px-2 py-1 rounded "
               onClick={handleCreatePin}
             >
               Add Pin
             </button>
-            <button className=" px-2 py-1 rounded text-sm" onClick={handleCancelNewPin}>
+            <button className=" px-2 py-1 rounded " onClick={handleCancelNewPin}>
               Cancel
             </button>
           </div>
@@ -328,10 +325,10 @@ export default function ImageAnnotatorWithZoom({
             width: 220,
           }}
         >
-          <h4 className="font-medium text-sm mb-2">Edit Pin</h4>
+          <h4 className="font-medium  mb-2">Edit Pin</h4>
           <label className="block text-xs">Pin Color</label>
           <select
-            className="border p-1 mb-2 w-full text-sm"
+            className="border p-1 mb-2 w-full "
             value={editPin.pinColor || "red"}
             onChange={(e) => setEditPin({ ...editPin, pinColor: e.target.value })}
           >
@@ -343,7 +340,7 @@ export default function ImageAnnotatorWithZoom({
 
           <label className="block text-xs">Pin Type</label>
           <select
-            className="border p-1 mb-2 w-full text-sm"
+            className="border p-1 mb-2 w-full "
             value={editPin.pinType || "dot"}
             onChange={(e) => setEditPin({ ...editPin, pinType: e.target.value })}
           >
@@ -354,7 +351,7 @@ export default function ImageAnnotatorWithZoom({
 
           <label className="block text-xs">Document Type</label>
           <select
-            className="border p-1 mb-2 w-full text-sm"
+            className="border p-1 mb-2 w-full "
             value={editPin.docType || ""}
             onChange={(e) => setEditPin({ ...editPin, docType: e.target.value })}
           >
@@ -365,14 +362,14 @@ export default function ImageAnnotatorWithZoom({
 
           <label className="block text-xs">Document ID</label>
           <input
-            className="border p-1 mb-2 w-full text-sm"
+            className="border p-1 mb-2 w-full "
             value={editPin.docId || ""}
             onChange={(e) => setEditPin({ ...editPin, docId: e.target.value })}
           />
 
           <label className="block text-xs">Notes</label>
           <textarea
-            className="border p-1 mb-2 w-full text-sm"
+            className="border p-1 mb-2 w-full "
             rows={2}
             value={editPin.notes || ""}
             onChange={(e) => setEditPin({ ...editPin, notes: e.target.value })}
@@ -380,16 +377,16 @@ export default function ImageAnnotatorWithZoom({
 
           <div className="flex gap-2">
             <button
-              className="bg-blue-600 text-white px-2 py-1 rounded text-sm"
+              className="bg-blue-600 text-white px-2 py-1 rounded "
               onClick={handleSaveEditPin}
             >
               Save
             </button>
-            <button className=" px-2 py-1 rounded text-sm" onClick={handleCancelEditPin}>
+            <button className=" px-2 py-1 rounded " onClick={handleCancelEditPin}>
               Cancel
             </button>
             <button
-              className="bg-red-600 text-white px-2 py-1 rounded text-sm"
+              className="bg-red-600 text-white px-2 py-1 rounded "
               onClick={handleDeletePin}
             >
               Delete

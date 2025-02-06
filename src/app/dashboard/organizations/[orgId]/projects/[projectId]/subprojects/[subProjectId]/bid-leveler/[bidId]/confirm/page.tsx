@@ -169,12 +169,12 @@ export default function ConfirmMatchesPage() {
       </div>
 
       <Card>
-        <p className="text-sm">
+        <p className="">
           This page lets you override any GPT matching. Once saved, you can check the
           leveling page to see the total matched cost.
         </p>
 
-        <label className="block text-sm font-medium mt-4 mb-1">
+        <label className="block  font-medium mt-4 mb-1">
           Select a Master Takeoff to reference:
         </label>
         <select
@@ -193,10 +193,10 @@ export default function ConfirmMatchesPage() {
 
       <Card className="mt-4 space-y-2">
         {parsedLines.length === 0 ? (
-          <p className="text-sm text-gray-600">No parsed lines found in this bid.</p>
+          <p className=" text-gray-600">No parsed lines found in this bid.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="table-auto w-full text-sm border border-gray-300">
+            <table className="table-auto w-full  border border-gray-300">
               <thead className="bg-gray-100">
                 <tr>
                   <th className="border px-2 py-1">Line Text</th>

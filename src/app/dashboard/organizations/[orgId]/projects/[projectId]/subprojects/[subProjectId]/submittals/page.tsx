@@ -88,7 +88,7 @@ function SubmittalsPageContent() {
       {/* Back Link */}
       <Link
         href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`}
-        className="text-sm font-medium text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+        className=" font-medium text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
       >
         &larr; Back to Sub-Project
       </Link>
@@ -137,7 +137,7 @@ function SubmittalsPageContent() {
         isLoading={isInitialLoading}
         className="mt-4"
         emptyMessage={
-          <p className="text-sm text-neutral-600 dark:text-neutral-300">
+          <p className=" text-neutral-600 dark:text-neutral-300">
             No submittals match your filter.
           </p>
         }
@@ -148,18 +148,16 @@ function SubmittalsPageContent() {
               <p className="font-semibold">
                 Submittal #{sub.submittalNumber ?? "--"}: {sub.subject || "Untitled"}
               </p>
-              {sub.submittalType && (
-                <p className="text-sm mt-1">Type: {sub.submittalType}</p>
-              )}
-              <p className="text-sm">
+              {sub.submittalType && <p className=" mt-1">Type: {sub.submittalType}</p>}
+              <p className="">
                 Status: <span className="capitalize">{sub.status || "N/A"}</span>
               </p>
-              <p className="text-sm">
+              <p className="">
                 Importance:{" "}
                 <span className="capitalize">{sub.importance || "normal"}</span>
               </p>
-              <p className="text-sm">Version: {sub.version || 1}</p>
-              <p className="text-sm">
+              <p className="">Version: {sub.version || 1}</p>
+              <p className="">
                 Assigned To: {sub.assignedTo || <span className="opacity-75">N/A</span>}
               </p>
             </div>
@@ -168,7 +166,7 @@ function SubmittalsPageContent() {
             <div className="flex gap-4">
               <Link
                 href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/submittals/${sub.id}`}
-                className="text-blue-600 underline text-sm hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                className="text-blue-600 underline  hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
               >
                 View
               </Link>
@@ -189,7 +187,7 @@ function SubmittalsPageContent() {
           >
             Prev
           </GrayButton>
-          <span className="text-sm">
+          <span className="">
             Page {currentPage} of {totalPages}
           </span>
           <GrayButton

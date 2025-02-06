@@ -61,9 +61,7 @@ export default function OrganizationsPage() {
     <Card key={org.id}>
       <p className="font-semibold text-lg">{org.name || org.id}</p>
       {org.status && (
-        <p className="text-sm text-neutral-600 dark:text-neutral-400">
-          Status: {org.status}
-        </p>
+        <p className=" text-neutral-600 dark:text-neutral-400">Status: {org.status}</p>
       )}
       <Link
         href={`/dashboard/organizations/${org.id}/projects`}
@@ -101,7 +99,7 @@ export default function OrganizationsPage() {
         className="mt-4"
         itemClassName="w-full text-black dark:text-white"
         emptyMessage={
-          <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-2">
+          <p className=" text-neutral-600 dark:text-neutral-300 mt-2">
             No organizations found.
           </p>
         }

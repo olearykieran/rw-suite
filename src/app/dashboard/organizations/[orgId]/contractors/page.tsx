@@ -114,8 +114,8 @@ export default function ContractorsPage() {
           ) : (
             <div className="space-y-2">
               <p className="font-semibold text-lg">{contractor.name}</p>
-              <p className="text-sm">Email: {contractor.email || "N/A"}</p>
-              <p className="text-sm">Phone: {contractor.phone || "N/A"}</p>
+              <p className="">Email: {contractor.email || "N/A"}</p>
+              <p className="">Phone: {contractor.phone || "N/A"}</p>
               <GrayButton
                 onClick={() => {
                   setEditingId(contractor.id);

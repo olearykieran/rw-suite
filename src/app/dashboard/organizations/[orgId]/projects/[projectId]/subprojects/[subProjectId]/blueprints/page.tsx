@@ -48,7 +48,7 @@ export default function BlueprintListPage() {
       <Link
         href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`}
         className="
-          text-sm font-medium text-blue-600 underline 
+           font-medium text-blue-600 underline 
           hover:text-blue-700 dark:text-blue-400 
           dark:hover:text-blue-300 transition-colors
         "
@@ -72,9 +72,7 @@ export default function BlueprintListPage() {
         isLoading={isInitialLoading}
         className="mt-4"
         emptyMessage={
-          <p className="text-sm text-neutral-600 dark:text-neutral-300">
-            No blueprints found.
-          </p>
+          <p className=" text-neutral-600 dark:text-neutral-300">No blueprints found.</p>
         }
         renderItem={(bp) => (
           <Card key={bp.id} className="flex flex-col gap-2">
@@ -82,7 +80,7 @@ export default function BlueprintListPage() {
             <Link
               href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/blueprints/${bp.id}`}
               className="
-                text-blue-600 underline text-sm
+                text-blue-600 underline 
                 hover:text-blue-700
                 dark:text-blue-400 dark:hover:text-blue-300
               "

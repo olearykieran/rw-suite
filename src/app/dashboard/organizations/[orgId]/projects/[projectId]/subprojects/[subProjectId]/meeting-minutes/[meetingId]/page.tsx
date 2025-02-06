@@ -281,7 +281,7 @@ export default function MeetingDetailPage() {
   // Render
   // ---------------------------------------
   if (loading) {
-    return <div className="p-6 text-sm">Loading Meeting...</div>;
+    return <div className="p-6 ">Loading Meeting...</div>;
   }
   if (error) {
     return <div className="p-6 text-red-600">{error}</div>;
@@ -305,7 +305,7 @@ export default function MeetingDetailPage() {
               `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/meeting-minutes`
             )
           }
-          className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 px-4 py-2 rounded-xl text-sm"
+          className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 px-4 py-2 rounded-xl "
         >
           &larr; Back
         </button>
@@ -325,9 +325,7 @@ export default function MeetingDetailPage() {
           <form onSubmit={handleUpdate} className="space-y-4">
             {/* Title */}
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1">
-                Title
-              </label>
+              <label className="block  font-medium text-neutral-300 mb-1">Title</label>
               <input
                 className="border bg-neutral-300 text-black p-2 w-full rounded"
                 value={title}
@@ -337,7 +335,7 @@ export default function MeetingDetailPage() {
 
             {/* Property Code */}
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1">
+              <label className="block  font-medium text-neutral-300 mb-1">
                 Property Code
               </label>
               <input
@@ -349,7 +347,7 @@ export default function MeetingDetailPage() {
 
             {/* Prepared By */}
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1">
+              <label className="block  font-medium text-neutral-300 mb-1">
                 Prepared By
               </label>
               <input
@@ -361,9 +359,7 @@ export default function MeetingDetailPage() {
 
             {/* Location */}
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1">
-                Location
-              </label>
+              <label className="block  font-medium text-neutral-300 mb-1">Location</label>
               <input
                 className="border bg-neutral-300 text-black p-2 w-full rounded"
                 value={location}
@@ -373,9 +369,7 @@ export default function MeetingDetailPage() {
 
             {/* Date */}
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1">
-                Date
-              </label>
+              <label className="block  font-medium text-neutral-300 mb-1">Date</label>
               <input
                 type="datetime-local"
                 className="border bg-neutral-300 text-black p-2 w-full rounded"
@@ -389,9 +383,7 @@ export default function MeetingDetailPage() {
 
             {/* Agenda */}
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1">
-                Agenda
-              </label>
+              <label className="block  font-medium text-neutral-300 mb-1">Agenda</label>
               <textarea
                 rows={2}
                 className="border bg-neutral-300 text-black p-2 w-full rounded"
@@ -402,9 +394,7 @@ export default function MeetingDetailPage() {
 
             {/* Notes */}
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1">
-                Notes
-              </label>
+              <label className="block  font-medium text-neutral-300 mb-1">Notes</label>
               <textarea
                 rows={3}
                 className="border bg-neutral-300 text-black p-2 w-full rounded"
@@ -415,7 +405,7 @@ export default function MeetingDetailPage() {
 
             {/* Next Meeting */}
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1">
+              <label className="block  font-medium text-neutral-300 mb-1">
                 Next Meeting Date
               </label>
               <input
@@ -431,12 +421,12 @@ export default function MeetingDetailPage() {
 
             {/* Attendees (JSON) */}
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1">
+              <label className="block  font-medium text-neutral-300 mb-1">
                 Attendees (JSON)
               </label>
               <textarea
                 rows={4}
-                className="border bg-neutral-300 text-black p-2 w-full rounded text-sm"
+                className="border bg-neutral-300 text-black p-2 w-full rounded "
                 value={attendeesJSON}
                 onChange={(e) => setAttendeesJSON(e.target.value)}
               />
@@ -447,12 +437,12 @@ export default function MeetingDetailPage() {
 
             {/* Action Items (JSON) */}
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1">
+              <label className="block  font-medium text-neutral-300 mb-1">
                 Action Items (JSON)
               </label>
               <textarea
                 rows={4}
-                className="border bg-neutral-300 text-black p-2 w-full rounded text-sm"
+                className="border bg-neutral-300 text-black p-2 w-full rounded "
                 value={actionItemsJSON}
                 onChange={(e) => setActionItemsJSON(e.target.value)}
               />
@@ -476,7 +466,7 @@ export default function MeetingDetailPage() {
         <Card>
           <h2 className="text-lg font-semibold">Attachments</h2>
           {meeting.attachments && meeting.attachments.length > 0 ? (
-            <ul className="list-disc ml-5 text-sm mt-2">
+            <ul className="list-disc ml-5  mt-2">
               {meeting.attachments.map((url, i) => (
                 <li key={i}>
                   <a href={url} target="_blank" rel="noopener noreferrer">
@@ -486,11 +476,11 @@ export default function MeetingDetailPage() {
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-neutral-500 mt-1">No attachments yet.</p>
+            <p className=" text-neutral-500 mt-1">No attachments yet.</p>
           )}
 
           <div className="mt-4 space-y-2">
-            <label className="block text-sm font-medium">Upload Files</label>
+            <label className="block  font-medium">Upload Files</label>
             <input
               type="file"
               multiple
@@ -517,7 +507,7 @@ export default function MeetingDetailPage() {
         <Card>
           <h2 className="text-lg font-semibold">Attendees (Detailed)</h2>
           {meeting.attendees && meeting.attendees.length > 0 ? (
-            <table className="w-full text-sm mt-2 border border-gray-300">
+            <table className="w-full  mt-2 border border-gray-300">
               <thead className="bg-gray-100 text-black">
                 <tr>
                   <th className="border px-2 py-1">Name</th>
@@ -542,7 +532,7 @@ export default function MeetingDetailPage() {
               </tbody>
             </table>
           ) : (
-            <p className="text-sm text-neutral-500 mt-1">No attendee info.</p>
+            <p className=" text-neutral-500 mt-1">No attendee info.</p>
           )}
         </Card>
       </div>
@@ -557,7 +547,7 @@ export default function MeetingDetailPage() {
         <Card>
           <h2 className="text-lg font-semibold">Action Items</h2>
           {meeting.actionItems && meeting.actionItems.length > 0 ? (
-            <table className="w-full text-sm mt-2 border border-gray-300">
+            <table className="w-full  mt-2 border border-gray-300">
               <thead className="bg-gray-100 text-black">
                 <tr>
                   <th className="border px-2 py-1">Status/To Do</th>
@@ -578,7 +568,7 @@ export default function MeetingDetailPage() {
               </tbody>
             </table>
           ) : (
-            <p className="text-sm text-neutral-500 mt-1">No action items found.</p>
+            <p className=" text-neutral-500 mt-1">No action items found.</p>
           )}
         </Card>
       </div>
@@ -592,7 +582,7 @@ export default function MeetingDetailPage() {
       >
         <Card>
           <details>
-            <summary className="cursor-pointer text-sm font-semibold mb-1">
+            <summary className="cursor-pointer  font-semibold mb-1">
               Show Full JSON Data
             </summary>
             <pre className="text-xs bg-gray-200 p-2 overflow-x-auto mt-2">

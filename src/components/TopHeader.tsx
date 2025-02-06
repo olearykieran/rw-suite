@@ -144,7 +144,7 @@ export default function TopHeader() {
                 "
                 onClick={(e) => e.stopPropagation()}
               >
-                <p className="text-sm opacity-70 mb-1">{user?.email}</p>
+                <p className=" opacity-70 mb-1">{user?.email}</p>
                 <hr className="my-2 border-neutral-300" />
                 <button
                   onClick={(e) => {
@@ -154,7 +154,7 @@ export default function TopHeader() {
                   }}
                   className="
                     block text-left w-full px-2 py-1 
-                    hover:bg-[var(--foreground)]/[0.1] text-sm
+                    hover:bg-[var(--foreground)]/[0.1] 
                   "
                 >
                   Sign Out

@@ -83,7 +83,7 @@ export default function MeetingMinutesListPage() {
               `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`
             )
           }
-          className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 px-4 py-2 rounded-xl text-sm"
+          className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 px-4 py-2 rounded-xl "
         >
           &larr; Back
         </button>
@@ -97,7 +97,7 @@ export default function MeetingMinutesListPage() {
       <Card>
         <h1 className="text-xl font-semibold mb-2">Meeting Minutes</h1>
         {meetings.length === 0 ? (
-          <p className="text-sm text-neutral-600">No meeting minutes found.</p>
+          <p className=" text-neutral-600">No meeting minutes found.</p>
         ) : (
           <div className="space-y-3">
             {meetings.map((meet) => {
@@ -120,12 +120,10 @@ export default function MeetingMinutesListPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">{meetDate}</p>
-                      <p className="text-sm text-neutral-600">
+                      <p className=" text-neutral-600">
                         Title: {meet.title || "Untitled"}
                       </p>
-                      <p className="text-sm text-neutral-600">
-                        Attendees: {attendeeSnippet}
-                      </p>
+                      <p className=" text-neutral-600">Attendees: {attendeeSnippet}</p>
                     </div>
                     <div className="flex gap-2">
                       <GrayButton

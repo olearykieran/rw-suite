@@ -122,7 +122,7 @@ export default function BidLevelingDetailPage() {
 
         {masterTakeoff && (
           <>
-            <p className="text-sm text-gray-600">
+            <p className=" text-gray-600">
               Loaded: {masterTakeoff.name} ({masterTakeoff.items.length} items)
             </p>
             <div className="mt-4 border p-2 rounded space-y-1">
@@ -145,11 +145,11 @@ export default function BidLevelingDetailPage() {
       <Card className="mt-4 space-y-2">
         <h2 className="text-lg font-semibold">Matched Lines from Bid Scope</h2>
         {matchedLines.length === 0 ? (
-          <p className="text-sm text-neutral-500">
+          <p className=" text-neutral-500">
             No parsed lines. Parse the scope or confirm matches first!
           </p>
         ) : (
-          <table className="table-auto w-full text-sm border">
+          <table className="table-auto w-full  border">
             <thead className="bg-gray-100">
               <tr>
                 <th className="border px-2 py-1">Line Text</th>

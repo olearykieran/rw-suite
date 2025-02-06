@@ -603,7 +603,7 @@ export default function TasksGanttPage() {
             <option value="quarter">Quarter</option>
             <option value="year">Year</option>
           </select>
-          <p className="mt-2 text-sm text-neutral-400">
+          <p className="mt-2  text-neutral-400">
             You can also pinch on a trackpad or hold Ctrl/Meta + mouse wheel to zoom.
           </p>
         </Card>
@@ -613,9 +613,9 @@ export default function TasksGanttPage() {
           <div className="flex gap-4">
             {/* block weekday */}
             <form onSubmit={handleAddBlockedWeekday}>
-              <label className="block mb-1 text-sm">Block Weekday</label>
+              <label className="block mb-1 ">Block Weekday</label>
               <select
-                className="border p-1 text-black text-sm"
+                className="border p-1 text-black "
                 value={tempDow}
                 onChange={(e) => setTempDow(Number(e.target.value))}
               >
@@ -627,10 +627,7 @@ export default function TasksGanttPage() {
                 <option value={5}>Friday</option>
                 <option value={6}>Saturday</option>
               </select>
-              <button
-                type="submit"
-                className="ml-2 bg-gray-600 text-white px-3 py-1 text-sm"
-              >
+              <button type="submit" className="ml-2 bg-gray-600 text-white px-3 py-1 ">
                 Add
               </button>
               <p className="text-xs mt-1">
@@ -640,17 +637,14 @@ export default function TasksGanttPage() {
 
             {/* block specific date */}
             <form onSubmit={handleAddBlockedDate}>
-              <label className="block mb-1 text-sm">Block Date</label>
+              <label className="block mb-1 ">Block Date</label>
               <input
                 type="date"
-                className="border p-1 text-black text-sm"
+                className="border p-1 text-black "
                 value={tempDate}
                 onChange={(e) => setTempDate(e.target.value)}
               />
-              <button
-                type="submit"
-                className="ml-2 bg-gray-600 text-white px-3 py-1 text-sm"
-              >
+              <button type="submit" className="ml-2 bg-gray-600 text-white px-3 py-1 ">
                 Add
               </button>
               <p className="text-xs mt-1">Currently blocked: {blockedDates.join(", ")}</p>

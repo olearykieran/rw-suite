@@ -66,7 +66,7 @@ export default function SiteVisitListPage() {
               `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`
             )
           }
-          className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 px-4 py-2 rounded-xl text-sm"
+          className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 px-4 py-2 rounded-xl "
         >
           &larr; Back
         </button>
@@ -82,7 +82,7 @@ export default function SiteVisitListPage() {
           Site Visits
         </h1>
         {visits.length === 0 ? (
-          <p className="text-sm text-black">No site visits found.</p>
+          <p className=" text-black">No site visits found.</p>
         ) : (
           <div className="space-y-3">
             {visits.map((visit) => (
@@ -95,7 +95,7 @@ export default function SiteVisitListPage() {
                     <p className="font-medium text-black dark:text-white">
                       {new Date(visit.visitDate).toLocaleDateString()}
                     </p>
-                    <p className="text-sm text-neutral-600">
+                    <p className=" text-neutral-600">
                       Participants: {visit.participants.join(", ") || "N/A"}
                     </p>
                   </div>

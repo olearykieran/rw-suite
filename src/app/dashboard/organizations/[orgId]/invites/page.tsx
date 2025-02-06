@@ -109,7 +109,7 @@ export default function InvitesPage() {
             Generate Invite
           </button>
           {inviteCode && (
-            <div className="mt-4 p-2 bg-green-100 border border-green-300 text-sm">
+            <div className="mt-4 p-2 bg-green-100 border border-green-300 ">
               <p className="mb-1 font-medium">Invite Code:</p>
               <p className="break-all">{inviteCode}</p>
               <p className="mt-1">

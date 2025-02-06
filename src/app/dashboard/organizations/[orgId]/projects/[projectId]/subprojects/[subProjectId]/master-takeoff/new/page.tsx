@@ -77,7 +77,7 @@ export default function NewMasterTakeoffPage() {
       <Card>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Name (optional)</label>
+            <label className="block  font-medium mb-1">Name (optional)</label>
             <input
               className="border bg-neutral-300 text-black p-2 w-full rounded"
               placeholder="E.g. 'Takeoff V1'"
@@ -87,7 +87,7 @@ export default function NewMasterTakeoffPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Items (JSON array)</label>
+            <label className="block  font-medium mb-1">Items (JSON array)</label>
             <textarea
               className="border bg-neutral-300 text-black p-2 w-full rounded"
               rows={10}

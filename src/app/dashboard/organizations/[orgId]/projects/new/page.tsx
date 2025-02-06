@@ -153,7 +153,7 @@ export default function NewProjectPage() {
             <button
               type="button"
               onClick={handleAddSubprojectField}
-              className=" px-3 py-1 rounded text-sm hover:"
+              className=" px-3 py-1 rounded  hover:"
             >
               + Add Another Sub-Project
             </button>

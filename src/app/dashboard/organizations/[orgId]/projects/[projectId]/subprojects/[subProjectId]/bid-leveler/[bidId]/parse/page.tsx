@@ -189,7 +189,7 @@ export default function ParseBidScopePage() {
 
       <Card className="mt-4">
         {bid ? (
-          <p className="text-sm text-gray-600">
+          <p className=" text-gray-600">
             Bid: <strong>{bid.trade}</strong> - {bid.contractor}
           </p>
         ) : (
@@ -199,9 +199,7 @@ export default function ParseBidScopePage() {
 
       <Card className="mt-4 space-y-4">
         <form onSubmit={handleParse}>
-          <label className="block text-sm font-medium mb-1">
-            Select a Master Takeoff:
-          </label>
+          <label className="block  font-medium mb-1">Select a Master Takeoff:</label>
           <select
             className="border p-2 rounded text-black w-full mb-4"
             value={selectedMasterId}
@@ -215,7 +213,7 @@ export default function ParseBidScopePage() {
             ))}
           </select>
 
-          <label className="block text-sm font-medium mb-1">Raw Bid Scope Text</label>
+          <label className="block  font-medium mb-1">Raw Bid Scope Text</label>
           <textarea
             className="border p-2 w-full rounded text-black"
             rows={8}
@@ -232,7 +230,7 @@ export default function ParseBidScopePage() {
       {parsedLines.length > 0 && (
         <Card className="mt-4 space-y-3">
           <h2 className="text-lg font-semibold">Parsed Lines</h2>
-          <div className="max-h-64 overflow-auto border p-2 text-sm">
+          <div className="max-h-64 overflow-auto border p-2 ">
             {parsedLines.map((pl, i) => (
               <div key={i} className="mb-1">
                 <strong>Line:</strong> {pl.lineText}

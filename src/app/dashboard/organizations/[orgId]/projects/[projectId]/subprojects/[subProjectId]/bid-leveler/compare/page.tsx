@@ -54,7 +54,7 @@ export default function CompareBidsPage() {
               `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/bid-leveler`
             )
           }
-          className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 px-4 py-2 rounded-xl text-sm"
+          className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 px-4 py-2 rounded-xl "
         >
           &larr; Back
         </button>
@@ -66,7 +66,7 @@ export default function CompareBidsPage() {
           <p>No bids to compare.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="table-auto w-full text-sm">
+            <table className="table-auto w-full ">
               <thead className="bg-gray-100 text-black">
                 <tr>
                   <th className="border px-2 py-1">Trade</th>

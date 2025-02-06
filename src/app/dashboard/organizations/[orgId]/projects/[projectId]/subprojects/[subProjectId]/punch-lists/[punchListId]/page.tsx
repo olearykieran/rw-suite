@@ -135,7 +135,7 @@ export default function PunchListDetailPage() {
 
   // ---------- RENDER ----------
   if (loading) {
-    return <div className="p-6 text-sm">Loading Punch List...</div>;
+    return <div className="p-6 ">Loading Punch List...</div>;
   }
   if (error) {
     return <div className="p-6 text-red-600">{error}</div>;
@@ -156,7 +156,7 @@ export default function PunchListDetailPage() {
         <Link
           href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/punch-lists`}
           className="
-            text-sm font-medium text-blue-600 underline
+             font-medium text-blue-600 underline
             hover:text-blue-700 dark:text-blue-400
             dark:hover:text-blue-300 transition-colors
           "
@@ -179,7 +179,7 @@ export default function PunchListDetailPage() {
         <Card>
           <form onSubmit={handleUpdatePunchList} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Title</label>
+              <label className="block  font-medium mb-1">Title</label>
               <input
                 className="
                   border p-2 w-full rounded
@@ -192,7 +192,7 @@ export default function PunchListDetailPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Description</label>
+              <label className="block  font-medium mb-1">Description</label>
               <textarea
                 className="
                   border p-2 w-full rounded
@@ -205,7 +205,7 @@ export default function PunchListDetailPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Status</label>
+              <label className="block  font-medium mb-1">Status</label>
               <select
                 className="
                   border p-2 w-full rounded
@@ -228,15 +228,13 @@ export default function PunchListDetailPage() {
               </GrayButton>
 
               {items.length === 0 && (
-                <p className="text-sm text-neutral-600 dark:text-neutral-300">
-                  No items yet.
-                </p>
+                <p className=" text-neutral-600 dark:text-neutral-300">No items yet.</p>
               )}
 
               {items.map((item) => (
                 <Card key={item.id} className="space-y-2 mb-2">
                   <div className="flex gap-2 items-center">
-                    <label className="block text-sm w-16">Title</label>
+                    <label className="block  w-16">Title</label>
                     <input
                       className="border p-1 flex-1 rounded"
                       value={item.title}
@@ -245,7 +243,7 @@ export default function PunchListDetailPage() {
                   </div>
 
                   <div className="flex gap-2 items-center">
-                    <label className="block text-sm w-16">Location</label>
+                    <label className="block  w-16">Location</label>
                     <input
                       className="border p-1 flex-1 rounded"
                       value={item.location || ""}
@@ -256,7 +254,7 @@ export default function PunchListDetailPage() {
                   </div>
 
                   <div className="flex gap-2 items-center">
-                    <label className="block text-sm w-16">Assigned</label>
+                    <label className="block  w-16">Assigned</label>
                     <input
                       className="border p-1 flex-1 rounded"
                       value={item.assignedTo || ""}
@@ -267,7 +265,7 @@ export default function PunchListDetailPage() {
                   </div>
 
                   <div className="flex gap-2 items-center">
-                    <label className="block text-sm w-16">Status</label>
+                    <label className="block  w-16">Status</label>
                     <select
                       className="border p-1 rounded"
                       value={item.status || "open"}
@@ -281,7 +279,7 @@ export default function PunchListDetailPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm mb-1">Notes</label>
+                    <label className="block  mb-1">Notes</label>
                     <textarea
                       className="border p-1 w-full rounded"
                       rows={2}
@@ -318,7 +316,7 @@ export default function PunchListDetailPage() {
         <Card>
           <h2 className="text-lg font-semibold">Attachments</h2>
           {punchList.attachments && punchList.attachments.length > 0 ? (
-            <ul className="list-disc ml-5 text-sm mt-2">
+            <ul className="list-disc ml-5  mt-2">
               {punchList.attachments.map((url, i) => (
                 <li key={i}>
                   <a
@@ -337,12 +335,12 @@ export default function PunchListDetailPage() {
               ))}
             </ul>
           ) : (
-            <p className="text-sm mt-1">No attachments yet.</p>
+            <p className=" mt-1">No attachments yet.</p>
           )}
 
           {/* Upload new attachments */}
           <div className="mt-4 space-y-2">
-            <label className="block text-sm font-medium">Upload Attachments</label>
+            <label className="block  font-medium">Upload Attachments</label>
             <input
               type="file"
               multiple

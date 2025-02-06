@@ -124,7 +124,7 @@ export default function NewDailyReportPage() {
               checked={autoWeather}
               onChange={(e) => setAutoWeather(e.target.checked)}
             />
-            <label htmlFor="autoWeather" className="text-sm">
+            <label htmlFor="autoWeather" className="">
               Auto-Fetch Weather
             </label>
           </div>

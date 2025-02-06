@@ -222,7 +222,7 @@ export default function SignUpPage() {
               <p className="font-medium text-base">
                 Step 1: Organization / Role Information
               </p>
-              <div className="flex gap-4 items-center flex-wrap text-sm">
+              <div className="flex gap-4 items-center flex-wrap ">
                 <label>
                   <input
                     type="radio"
@@ -259,9 +259,7 @@ export default function SignUpPage() {
               </div>
               {flow === "create" && (
                 <div>
-                  <label className="block font-medium text-sm mb-1">
-                    New Organization Name
-                  </label>
+                  <label className="block font-medium  mb-1">New Organization Name</label>
                   <input
                     type="text"
                     placeholder="Acme Builders"
@@ -273,9 +271,7 @@ export default function SignUpPage() {
               )}
               {flow === "join" && (
                 <div>
-                  <label className="block font-medium text-sm mb-1">
-                    Existing Org ID
-                  </label>
+                  <label className="block font-medium  mb-1">Existing Org ID</label>
                   <input
                     type="text"
                     placeholder="acme-builders"
@@ -287,7 +283,7 @@ export default function SignUpPage() {
               )}
               {flow === "invite" && (
                 <div>
-                  <label className="block font-medium text-sm mb-1">Invite Code</label>
+                  <label className="block font-medium  mb-1">Invite Code</label>
                   <input
                     type="text"
                     placeholder="ABC123"
@@ -299,7 +295,7 @@ export default function SignUpPage() {
               )}
               {flow !== "invite" && (
                 <div>
-                  <label className="block font-medium text-sm mb-1">Your Role</label>
+                  <label className="block font-medium  mb-1">Your Role</label>
                   <select
                     className="border p-2 w-full rounded bg-white dark:bg-neutral-800 dark:text-white"
                     value={role}
@@ -320,7 +316,7 @@ export default function SignUpPage() {
               <GrayButton onClick={handleNextStep}>Next</GrayButton>
             </div>
           </Card>
-          <div className="mt-4 text-center text-sm">
+          <div className="mt-4 text-center ">
             Already have an account?{" "}
             <a href="/public/auth/sign-in" className="text-blue-600 underline">
               Sign In
@@ -343,7 +339,7 @@ export default function SignUpPage() {
               >
                 &larr; Back
               </GrayButton>
-              <p className="text-sm text-center">Step 2: Choose your sign-up method</p>
+              <p className=" text-center">Step 2: Choose your sign-up method</p>
             </div>
           </PageContainer>
           <div className="flex flex-col md:flex-row items-start justify-center gap-8 px-4">
@@ -356,7 +352,7 @@ export default function SignUpPage() {
                 <GrayButton
                   onClick={handleGoogleSignUp}
                   disabled={inProgress}
-                  className="w-full text-sm"
+                  className="w-full "
                 >
                   {inProgress ? "Signing Up..." : "Sign Up with Google"}
                 </GrayButton>
@@ -372,7 +368,7 @@ export default function SignUpPage() {
                 </h2>
                 <form onSubmit={handleEmailSignUp} className="space-y-4">
                   <div>
-                    <label className="block mb-1 font-medium text-sm">Email</label>
+                    <label className="block mb-1 font-medium ">Email</label>
                     <input
                       type="email"
                       className="border p-2 w-full rounded bg-white dark:bg-neutral-800 dark:text-white"
@@ -383,9 +379,7 @@ export default function SignUpPage() {
                     />
                   </div>
                   <div>
-                    <label className="block mb-1 font-medium text-sm">
-                      Confirm Email
-                    </label>
+                    <label className="block mb-1 font-medium ">Confirm Email</label>
                     <input
                       type="email"
                       className="border p-2 w-full rounded bg-white dark:bg-neutral-800 dark:text-white"
@@ -396,7 +390,7 @@ export default function SignUpPage() {
                     />
                   </div>
                   <div>
-                    <label className="block mb-1 font-medium text-sm">Password</label>
+                    <label className="block mb-1 font-medium ">Password</label>
                     <div className="relative">
                       <input
                         type={pwVisible ? "text" : "password"}
@@ -408,7 +402,7 @@ export default function SignUpPage() {
                       <button
                         type="button"
                         onClick={() => setPwVisible(!pwVisible)}
-                        className="absolute top-1/2 right-2 -translate-y-1/2 text-sm text-blue-600 underline"
+                        className="absolute top-1/2 right-2 -translate-y-1/2  text-blue-600 underline"
                         tabIndex={-1}
                       >
                         {pwVisible ? "Hide" : "Show"}
@@ -416,9 +410,7 @@ export default function SignUpPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block mb-1 font-medium text-sm">
-                      Confirm Password
-                    </label>
+                    <label className="block mb-1 font-medium ">Confirm Password</label>
                     <input
                       type={pwVisible ? "text" : "password"}
                       className="border p-2 w-full rounded bg-white dark:bg-neutral-800 dark:text-white"
@@ -429,7 +421,7 @@ export default function SignUpPage() {
                     />
                   </div>
                   <div>
-                    <label className="block mb-1 font-medium text-sm">
+                    <label className="block mb-1 font-medium ">
                       Phone Number (optional)
                     </label>
                     <input
@@ -440,11 +432,7 @@ export default function SignUpPage() {
                       onChange={(e) => setPhone(e.target.value)}
                     />
                   </div>
-                  <GrayButton
-                    type="submit"
-                    disabled={inProgress}
-                    className="w-full text-sm"
-                  >
+                  <GrayButton type="submit" disabled={inProgress} className="w-full ">
                     {inProgress ? "Creating Account..." : "Sign Up with Email"}
                   </GrayButton>
                 </form>
@@ -452,7 +440,7 @@ export default function SignUpPage() {
             </PageContainer>
           </div>
           <PageContainer>
-            <p className="text-center text-sm mt-4">
+            <p className="text-center  mt-4">
               Already have an account?{" "}
               <a href="/public/auth/sign-in" className="text-blue-600 underline">
                 Sign In

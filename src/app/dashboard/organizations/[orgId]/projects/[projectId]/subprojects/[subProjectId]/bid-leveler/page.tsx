@@ -71,7 +71,7 @@ export default function BidListPage() {
               `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`
             )
           }
-          className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 px-4 py-2 rounded-xl text-sm"
+          className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 px-4 py-2 rounded-xl "
         >
           &larr; Back
         </button>
@@ -93,7 +93,7 @@ export default function BidListPage() {
       <Card>
         <h1 className="text-xl font-semibold mb-2">All Bids</h1>
         {bids.length === 0 ? (
-          <p className="text-sm text-neutral-600">No bids found.</p>
+          <p className=" text-neutral-600">No bids found.</p>
         ) : (
           <div className="space-y-3">
             {bids.map((bid) => {
@@ -110,10 +110,10 @@ export default function BidListPage() {
                       <p className="font-medium">
                         {bid.trade} - {bid.contractor}
                       </p>
-                      <p className="text-sm text-neutral-600">
+                      <p className=" text-neutral-600">
                         Amount: {bid.bidAmount?.toLocaleString() || "N/A"}
                       </p>
-                      <p className="text-sm text-neutral-600">Submitted: {dateStr}</p>
+                      <p className=" text-neutral-600">Submitted: {dateStr}</p>
                     </div>
                     <div className="flex gap-2">
                       <GrayButton

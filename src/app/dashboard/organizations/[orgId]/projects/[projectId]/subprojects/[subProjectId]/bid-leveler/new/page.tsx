@@ -126,7 +126,7 @@ export default function NewBidPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Trade */}
           <div>
-            <label className="block text-sm font-medium mb-1">Trade</label>
+            <label className="block  font-medium mb-1">Trade</label>
             <input
               className="border bg-neutral-300 text-black p-2 w-full rounded"
               placeholder="e.g. Plumbing"
@@ -138,7 +138,7 @@ export default function NewBidPage() {
 
           {/* Contractor */}
           <div>
-            <label className="block text-sm font-medium mb-1">Contractor</label>
+            <label className="block  font-medium mb-1">Contractor</label>
             <input
               className="border bg-neutral-300 text-black p-2 w-full rounded"
               placeholder="e.g. P.H. Works Inc."
@@ -150,7 +150,7 @@ export default function NewBidPage() {
 
           {/* Bid Amount */}
           <div>
-            <label className="block text-sm font-medium mb-1">Bid Amount</label>
+            <label className="block  font-medium mb-1">Bid Amount</label>
             <input
               type="number"
               step="0.01"
@@ -163,7 +163,7 @@ export default function NewBidPage() {
 
           {/* Submission Date */}
           <div>
-            <label className="block text-sm font-medium mb-1">Submission Date</label>
+            <label className="block  font-medium mb-1">Submission Date</label>
             <input
               type="datetime-local"
               className="border bg-neutral-300 text-black p-2 w-full rounded"
@@ -177,7 +177,7 @@ export default function NewBidPage() {
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium mb-1">Notes / Comments</label>
+            <label className="block  font-medium mb-1">Notes / Comments</label>
             <textarea
               className="border bg-neutral-300 text-black p-2 w-full rounded"
               rows={3}
@@ -189,7 +189,7 @@ export default function NewBidPage() {
 
           {/* Scope of Work */}
           <div>
-            <label className="block text-sm font-medium mb-1">Scope of Work</label>
+            <label className="block  font-medium mb-1">Scope of Work</label>
             <textarea
               className="border bg-neutral-300 text-black p-2 w-full rounded"
               rows={3}
@@ -201,7 +201,7 @@ export default function NewBidPage() {
 
           {/* Exclusions */}
           <div>
-            <label className="block text-sm font-medium mb-1">Exclusions</label>
+            <label className="block  font-medium mb-1">Exclusions</label>
             <textarea
               className="border bg-neutral-300 text-black p-2 w-full rounded"
               rows={2}
@@ -213,7 +213,7 @@ export default function NewBidPage() {
 
           {/* Attachments */}
           <div>
-            <label className="block text-sm font-medium">Attachments (PDF, etc.)</label>
+            <label className="block  font-medium">Attachments (PDF, etc.)</label>
             <input
               type="file"
               multiple

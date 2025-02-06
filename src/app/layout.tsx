@@ -1,18 +1,19 @@
-// src/app/layout.tsx
 import "./globals.css";
-import { Poppins, Space_Grotesk } from "next/font/google";
+import { Inter, Montserrat } from "next/font/google";
 import { ReactNode } from "react";
 
-const poppins = Poppins({
+// Import Inter with selected weights and assign it to a CSS variable.
+const inter = Inter({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-poppins",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-inter", // This CSS variable will be available to all children.
 });
 
-const spaceGrotesk = Space_Grotesk({
+// Import Montserrat from Google Fonts with selected weights and assign it to a CSS variable.
+const montserrat = Montserrat({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-space-grotesk",
+  variable: "--font-montserrat", // This CSS variable will be injected and used in our global CSS.
 });
 
 export const metadata = {
@@ -22,20 +23,20 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    // Apply the generated Inter variable class to <html> so that --font-inter is inherited.
+    <html lang="en" className={`${inter.variable} ${montserrat.variable}`}>
       <head>
+        {/* Ensure proper scaling on all devices */}
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </head>
       <body
-        className={`
-          ${poppins.variable} 
-          ${spaceGrotesk.variable}
-          bg-[var(--background)] 
+        className="
+          bg-[var(--background)]
           text-[var(--foreground)]
           min-h-screen
           text-black
           dark:text-white
-        `}
+        "
       >
         {children}
       </body>

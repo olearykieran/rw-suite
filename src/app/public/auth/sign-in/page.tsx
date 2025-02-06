@@ -87,7 +87,7 @@ export default function SignInPage() {
               <GrayButton
                 onClick={handleGoogleSignIn}
                 disabled={inProgress}
-                className="text-sm px-4 py-3 w-full"
+                className=" px-4 py-3 w-full"
               >
                 {inProgress ? "Signing In..." : "Google Sign-In"}
               </GrayButton>
@@ -151,7 +151,7 @@ export default function SignInPage() {
                 <GrayButton
                   type="submit"
                   disabled={inProgress}
-                  className="text-sm px-4 py-3 w-full"
+                  className=" px-4 py-3 w-full"
                 >
                   {inProgress ? "Signing In..." : "Email Sign-In"}
                 </GrayButton>
@@ -163,7 +163,7 @@ export default function SignInPage() {
 
       {/* Sign Up Link at the bottom */}
       <PageContainer>
-        <p className="text-center text-sm">
+        <p className="text-center ">
           Don’t have an account?{" "}
           <a href="/public/auth/sign-up" className="text-blue-600 underline">
             Sign Up

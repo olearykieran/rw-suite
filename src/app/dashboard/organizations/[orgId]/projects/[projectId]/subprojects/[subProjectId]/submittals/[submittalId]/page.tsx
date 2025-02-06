@@ -312,7 +312,7 @@ export default function SubmittalDetailPage() {
         <Link
           href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/submittals`}
           className="
-            text-sm font-medium text-blue-600 underline 
+             font-medium text-blue-600 underline 
             hover:text-blue-700 dark:text-blue-400 
             dark:hover:text-blue-300 transition-colors
           "
@@ -328,7 +328,7 @@ export default function SubmittalDetailPage() {
                 }`
               : submittal.subject}
           </h1>
-          <p className="text-sm opacity-80">Type: {submittal.submittalType || "N/A"}</p>
+          <p className=" opacity-80">Type: {submittal.submittalType || "N/A"}</p>
         </div>
       </div>
 
@@ -340,7 +340,7 @@ export default function SubmittalDetailPage() {
         `}
       >
         <Card>
-          <div className="text-sm space-y-1">
+          <div className=" space-y-1">
             <p>
               <strong>Assigned To:</strong> {submittal.assignedTo || "N/A"}
             </p>
@@ -356,7 +356,7 @@ export default function SubmittalDetailPage() {
           {workflow.length > 0 && (
             <div className="pt-4 space-y-2">
               <h2 className="text-lg font-semibold">Approval Workflow</h2>
-              <ul className="list-disc ml-5 space-y-2 text-sm">
+              <ul className="list-disc ml-5 space-y-2 ">
                 {workflow.map((step, idx) => (
                   <li key={idx}>
                     <strong>{step.role}</strong> – {step.userId}{" "}
@@ -403,7 +403,7 @@ export default function SubmittalDetailPage() {
         <Card>
           <h2 className="text-lg font-semibold">Attachments</h2>
           {submittal.attachments && submittal.attachments.length > 0 ? (
-            <ul className="list-disc ml-5 text-sm">
+            <ul className="list-disc ml-5 ">
               {submittal.attachments.map((url: string, i: number) => (
                 <li key={i}>
                   <a
@@ -422,11 +422,11 @@ export default function SubmittalDetailPage() {
               ))}
             </ul>
           ) : (
-            <p className="text-sm opacity-70">No attachments yet.</p>
+            <p className=" opacity-70">No attachments yet.</p>
           )}
 
           {/* Upload new attachments */}
-          <div className="space-y-3 pt-4 text-sm">
+          <div className="space-y-3 pt-4 ">
             <div>
               <label className="block font-medium mb-1">
                 Upload Document(s) (PDF, etc.)
@@ -479,7 +479,7 @@ export default function SubmittalDetailPage() {
       >
         <Card>
           <h2 className="text-lg font-semibold">Link to Spec Section</h2>
-          <p className="text-sm">Example: “03 30 00 – Cast-In-Place Concrete”</p>
+          <p className="">Example: “03 30 00 – Cast-In-Place Concrete”</p>
           <div className="flex gap-2 mt-2">
             <input
               className="
@@ -576,9 +576,9 @@ export default function SubmittalDetailPage() {
         <Card>
           <h2 className="text-lg font-semibold">Activity / Comments</h2>
           {activityLog.length === 0 ? (
-            <p className="text-sm text-neutral-500">No activity yet.</p>
+            <p className=" text-neutral-500">No activity yet.</p>
           ) : (
-            <ul className="space-y-2 text-sm mt-2">
+            <ul className="space-y-2  mt-2">
               {activityLog.map((act) => (
                 <li key={act.id} className="p-2 rounded">
                   <p>

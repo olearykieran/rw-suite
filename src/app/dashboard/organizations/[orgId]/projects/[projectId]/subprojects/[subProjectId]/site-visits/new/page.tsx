@@ -67,7 +67,7 @@ export default function NewSiteVisitPage() {
       <Card>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block mb-1 font-medium text-sm">Visit Date</label>
+            <label className="block mb-1 font-medium ">Visit Date</label>
             <input
               type="date"
               className="border p-2 rounded w-full bg-neutral-300 text-black"
@@ -77,7 +77,7 @@ export default function NewSiteVisitPage() {
             />
           </div>
           <div>
-            <label className="block mb-1 font-medium text-sm">
+            <label className="block mb-1 font-medium ">
               Participants (comma separated)
             </label>
             <input
@@ -89,7 +89,7 @@ export default function NewSiteVisitPage() {
             />
           </div>
           <div>
-            <label className="block mb-1 font-medium text-sm">Notes</label>
+            <label className="block mb-1 font-medium ">Notes</label>
             <textarea
               className="border p-2 rounded w-full bg-neutral-300 text-black"
               rows={3}
@@ -98,9 +98,7 @@ export default function NewSiteVisitPage() {
             />
           </div>
           <div>
-            <label className="block mb-1 font-medium text-sm">
-              Photos (capture or upload)
-            </label>
+            <label className="block mb-1 font-medium ">Photos (capture or upload)</label>
             <input
               type="file"
               multiple
@@ -111,7 +109,7 @@ export default function NewSiteVisitPage() {
             />
           </div>
           <div>
-            <label className="block mb-1 font-medium text-sm">
+            <label className="block mb-1 font-medium ">
               Voice Notes (record or upload)
             </label>
             <input

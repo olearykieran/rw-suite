@@ -348,7 +348,7 @@ export default function BidAllocationPage() {
       <div className="flex items-center justify-between mb-4 p-4">
         <button
           onClick={() => router.back()}
-          className="bg-gray-700 text-white hover:bg-gray-600 px-4 py-2 rounded-xl text-sm"
+          className="bg-gray-700 text-white hover:bg-gray-600 px-4 py-2 rounded-xl "
         >
           &larr; Back
         </button>
@@ -358,20 +358,20 @@ export default function BidAllocationPage() {
       <Card className="bg-gray-700 text-white p-6">
         {/* Enhanced Totals Section */}
         <div className="mb-4">
-          <p className="text-sm">
+          <p className="">
             <strong>Takeoff Total:</strong> ${takeoffTotal.toLocaleString()}
           </p>
-          <p className="text-sm">
+          <p className="">
             <strong>Bid Total:</strong> ${bidTotal.toLocaleString()}
           </p>
-          <p className="text-sm">
+          <p className="">
             <strong>Total Allocated:</strong> ${totalAllocated.toLocaleString()}
           </p>
-          <p className="text-sm">
+          <p className="">
             <strong>Difference (Takeoff vs. Bid):</strong> $
             {diffTakeoffBid.toLocaleString()}
           </p>
-          <p className="text-sm">
+          <p className="">
             <strong>Difference (Bid vs. Allocated):</strong> $
             {diffBidAllocated.toLocaleString()}
           </p>
@@ -398,7 +398,7 @@ export default function BidAllocationPage() {
 
         {/* Master Takeoff Selection */}
         <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Select Master Takeoff:</label>
+          <label className="block  font-medium mb-1">Select Master Takeoff:</label>
           <select
             className="border p-2 rounded text-black w-full"
             value={selectedMasterId}
@@ -419,7 +419,7 @@ export default function BidAllocationPage() {
         {/* Trade Filtering (Multi-select) */}
         {masterTakeoff && tradesForFilter.length > 0 && (
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">
+            <label className="block  font-medium mb-1">
               Filter Master Items by Trade:
             </label>
             <select
@@ -452,7 +452,7 @@ export default function BidAllocationPage() {
         {masterTakeoff && filteredItems.length > 0 && (
           <>
             <div className="mb-4">
-              <p className="text-sm">
+              <p className="">
                 Total Estimated Cost from Master Takeoff (Filtered): $
                 {filteredItems
                   .reduce((sum, item) => sum + Number(item.estimatedCost || 0), 0)
@@ -521,20 +521,20 @@ export default function BidAllocationPage() {
 
             {/* Enhanced Totals Section */}
             <div className="mb-4 border p-2 rounded">
-              <p className="text-sm">
+              <p className="">
                 <strong>Takeoff Total:</strong> ${takeoffTotal.toLocaleString()}
               </p>
-              <p className="text-sm">
+              <p className="">
                 <strong>Bid Total:</strong> ${bidTotal.toLocaleString()}
               </p>
-              <p className="text-sm">
+              <p className="">
                 <strong>Total Allocated:</strong> ${totalAllocated.toLocaleString()}
               </p>
-              <p className="text-sm">
+              <p className="">
                 <strong>Difference (Takeoff vs. Bid):</strong> $
                 {diffTakeoffBid.toLocaleString()}
               </p>
-              <p className="text-sm">
+              <p className="">
                 <strong>Difference (Bid vs. Allocated):</strong> $
                 {diffBidAllocated.toLocaleString()}
               </p>

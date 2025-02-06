@@ -104,7 +104,7 @@ export default function BidManagementPage() {
               `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`
             )
           }
-          className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 px-4 py-2 rounded-xl text-sm"
+          className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 px-4 py-2 rounded-xl "
         >
           &larr; Back to Project
         </button>
@@ -118,7 +118,7 @@ export default function BidManagementPage() {
       <Card>
         <h1 className="text-xl font-semibold mb-2">Bid Submissions</h1>
         {bidSubmissions.length === 0 ? (
-          <p className="text-sm text-neutral-600">No bid submissions found.</p>
+          <p className=" text-neutral-600">No bid submissions found.</p>
         ) : (
           <div className="space-y-3">
             {bidSubmissions.map((submission) => (
@@ -131,7 +131,7 @@ export default function BidManagementPage() {
                     <p className="font-medium">
                       {submission.projectName} - {submission.contractorName}
                     </p>
-                    <p className="text-sm text-neutral-600">
+                    <p className=" text-neutral-600">
                       Due Date: {submission.bidDueDate || "N/A"}
                     </p>
                   </div>

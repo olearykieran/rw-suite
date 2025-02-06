@@ -157,7 +157,7 @@ export default function TakeoffReportingPage() {
       <div className="flex items-center justify-between mb-4 p-4">
         <button
           onClick={() => router.back()}
-          className="bg-gray-700 text-white hover:bg-gray-600 px-4 py-2 rounded-xl text-sm"
+          className="bg-gray-700 text-white hover:bg-gray-600 px-4 py-2 rounded-xl "
         >
           &larr; Back
         </button>

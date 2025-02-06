@@ -63,7 +63,7 @@ export default function MasterTakeoffListPage() {
               `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`
             )
           }
-          className="bg-gray-300 text-black hover:bg-gray-400 px-4 py-2 rounded-xl text-sm"
+          className="bg-gray-300 text-black hover:bg-gray-400 px-4 py-2 rounded-xl "
         >
           &larr; Back
         </button>
@@ -84,7 +84,7 @@ export default function MasterTakeoffListPage() {
       <Card>
         <h2 className="text-xl font-semibold mb-2">Master Takeoff List</h2>
         {takeoffs.length === 0 ? (
-          <p className="text-sm text-neutral-600">No takeoff docs yet.</p>
+          <p className=" text-neutral-600">No takeoff docs yet.</p>
         ) : (
           <div className="space-y-3">
             {takeoffs.map((t) => (

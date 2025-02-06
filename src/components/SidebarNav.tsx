@@ -104,7 +104,7 @@ export default function SidebarNav() {
               // If the nav item has its own onClick (like Contractors), call it.
               onClick={item.onClick}
               className={`
-                flex items-center gap-3 px-4 py-3 text-sm
+                flex items-center gap-3 px-4 py-3 
                 transition-colors
                 ${
                   isActive
@@ -135,7 +135,7 @@ export default function SidebarNav() {
             ${isCollapsed ? "hidden" : ""}
           `}
         />
-        <div className={`${isCollapsed ? "hidden" : "block"} text-sm`}>
+        <div className={`${isCollapsed ? "hidden" : "block"} `}>
           {loading && <div className="text-xs">Loading…</div>}
           {error && <div className="text-xs text-red-500">{error}</div>}
           {!loading && !error && profile && (

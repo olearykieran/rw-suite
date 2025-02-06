@@ -82,7 +82,7 @@ export default function VendorsPage() {
     return <div className="p-6">Please sign in to view vendors.</div>;
   }
   if (loading) {
-    return <div className="p-6 text-sm">Loading Vendors…</div>;
+    return <div className="p-6 ">Loading Vendors…</div>;
   }
   if (error) {
     return <div className="p-6 text-red-600">{error}</div>;
@@ -124,7 +124,7 @@ export default function VendorsPage() {
         `}
       >
         {vendors.length === 0 ? (
-          <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-4">
+          <p className=" text-neutral-600 dark:text-neutral-300 mt-4">
             No vendors found.
           </p>
         ) : (
@@ -132,7 +132,7 @@ export default function VendorsPage() {
             items={vendors}
             className="mt-4"
             emptyMessage={
-              <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-2">
+              <p className=" text-neutral-600 dark:text-neutral-300 mt-2">
                 No vendors found.
               </p>
             }
@@ -141,15 +141,15 @@ export default function VendorsPage() {
                 <div>
                   <p className="font-semibold">{v.name}</p>
                   {/* Additional fields like contactEmail or contactPhone */}
-                  {v.contactEmail && <p className="text-sm">Email: {v.contactEmail}</p>}
-                  {v.contactPhone && <p className="text-sm">Phone: {v.contactPhone}</p>}
+                  {v.contactEmail && <p className="">Email: {v.contactEmail}</p>}
+                  {v.contactPhone && <p className="">Phone: {v.contactPhone}</p>}
                 </div>
                 <div className="flex items-center gap-3">
                   {/* Link to detail page for editing */}
                   <Link
                     href={`/dashboard/vendors/${v.id}`}
                     className="
-                      text-blue-600 underline text-sm
+                      text-blue-600 underline 
                       hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300
                     "
                   >

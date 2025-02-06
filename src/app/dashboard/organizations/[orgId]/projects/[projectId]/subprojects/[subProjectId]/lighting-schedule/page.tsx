@@ -252,7 +252,7 @@ export default function NewLightingSchedulePage() {
           }}
         >
           <div>
-            <label className="block text-sm font-medium mb-1">Schedule Name</label>
+            <label className="block  font-medium mb-1">Schedule Name</label>
             <input
               type="text"
               className="border p-2 w-full rounded bg-gray-600 text-white"
@@ -261,7 +261,7 @@ export default function NewLightingSchedulePage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Upload PDF File</label>
+            <label className="block  font-medium mb-1">Upload PDF File</label>
             <input type="file" accept="application/pdf" onChange={handleFileChange} />
           </div>
           <GrayButton type="submit" disabled={loading}>

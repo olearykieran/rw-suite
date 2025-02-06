@@ -117,7 +117,7 @@ export default function ChangeOrderDetailPage() {
   }
 
   if (loading) {
-    return <div className="p-6 text-sm">Loading change order...</div>;
+    return <div className="p-6 ">Loading change order...</div>;
   }
   if (error) {
     return <div className="p-6 text-red-600">{error}</div>;
@@ -138,7 +138,7 @@ export default function ChangeOrderDetailPage() {
         <Link
           href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/change-orders`}
           className="
-            text-sm font-medium text-blue-600 underline
+             font-medium text-blue-600 underline
             hover:text-blue-700 dark:text-blue-400
             dark:hover:text-blue-300 transition-colors
           "
@@ -162,7 +162,7 @@ export default function ChangeOrderDetailPage() {
         <Card>
           <form onSubmit={handleUpdate} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Title</label>
+              <label className="block  font-medium mb-1">Title</label>
               <input
                 className="
                   border p-2 w-full rounded
@@ -174,7 +174,7 @@ export default function ChangeOrderDetailPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Description</label>
+              <label className="block  font-medium mb-1">Description</label>
               <textarea
                 className="
                   border p-2 w-full rounded
@@ -187,7 +187,7 @@ export default function ChangeOrderDetailPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Reason</label>
+              <label className="block  font-medium mb-1">Reason</label>
               <input
                 className="
                   border p-2 w-full rounded
@@ -201,7 +201,7 @@ export default function ChangeOrderDetailPage() {
             <div className="grid gap-4 md:grid-cols-2">
               {/* Status */}
               <div>
-                <label className="block text-sm font-medium mb-1">Status</label>
+                <label className="block  font-medium mb-1">Status</label>
                 <select
                   className="
                     border p-2 w-full rounded
@@ -219,9 +219,7 @@ export default function ChangeOrderDetailPage() {
 
               {/* Cost Impact */}
               <div>
-                <label className="block text-sm font-medium mb-1">
-                  Cost Impact (USD)
-                </label>
+                <label className="block  font-medium mb-1">Cost Impact (USD)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -237,9 +235,7 @@ export default function ChangeOrderDetailPage() {
 
             {/* Schedule impact */}
             <div>
-              <label className="block text-sm font-medium mb-1">
-                Schedule Impact (days)
-              </label>
+              <label className="block  font-medium mb-1">Schedule Impact (days)</label>
               <input
                 type="number"
                 className="
@@ -269,7 +265,7 @@ export default function ChangeOrderDetailPage() {
           <h2 className="text-lg font-semibold">Attachments</h2>
 
           {changeOrder.attachments && changeOrder.attachments.length > 0 ? (
-            <ul className="list-disc ml-5 text-sm mt-2">
+            <ul className="list-disc ml-5  mt-2">
               {changeOrder.attachments.map((url, i) => (
                 <li key={i}>
                   <a
@@ -288,12 +284,12 @@ export default function ChangeOrderDetailPage() {
               ))}
             </ul>
           ) : (
-            <p className="text-sm mt-1">No attachments yet.</p>
+            <p className=" mt-1">No attachments yet.</p>
           )}
 
           {/* Upload new files */}
           <div className="mt-4 space-y-2">
-            <label className="block text-sm font-medium">Upload Files</label>
+            <label className="block  font-medium">Upload Files</label>
             <input
               type="file"
               multiple

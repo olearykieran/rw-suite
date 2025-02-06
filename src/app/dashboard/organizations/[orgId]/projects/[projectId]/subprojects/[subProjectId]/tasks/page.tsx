@@ -799,7 +799,7 @@ export default function TasksListPage() {
                 <td className="px-4 py-3">(defaults to "notStarted")</td>
                 <td className="px-4 py-3 text-right">
                   <GrayButton
-                    className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-2"
+                    className=" bg-blue-600 hover:bg-blue-700 text-white px-3 py-2"
                     onClick={handleAddMainTask}
                   >
                     + Add Task

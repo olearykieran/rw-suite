@@ -65,7 +65,7 @@ export default function DashboardHomePage() {
     <PageContainer>
       <h1 className="text-3xl font-bold">{welcome}</h1>
       <Card>
-        <p className="leading-relaxed text-sm">
+        <p className="leading-relaxed">
           This is your main dashboard. From here, you can view organizations, manage
           projects, check RFIs, submittals, finances, and more.
         </p>

@@ -216,7 +216,7 @@ function NewFinanceWizardContent() {
           {currentStep === Step.REVIEW_SUBMIT && (
             <div className="space-y-4">
               <h2 className="text-lg font-semibold">Review & Submit</h2>
-              <ul className="list-disc ml-5 space-y-1 text-sm">
+              <ul className="list-disc ml-5 space-y-1 ">
                 <li>Type: {type}</li>
                 <li>Amount: {amount}</li>
                 <li>Vendor ID: {vendorId || "N/A"}</li>

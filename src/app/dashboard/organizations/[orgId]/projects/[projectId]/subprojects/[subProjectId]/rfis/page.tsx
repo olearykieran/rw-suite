@@ -108,7 +108,7 @@ function RfiListContent() {
             dark:bg-gray-700 dark:text-white
             dark:hover:bg-gray-600
             transition-colors
-            px-4 py-2 rounded-xl text-sm
+            px-4 py-2 rounded-xl 
           "
         >
           &larr; Back to Sub-Project
@@ -157,7 +157,7 @@ function RfiListContent() {
         isLoading={isInitialLoading}
         className="mt-4"
         emptyMessage={
-          <p className="text-sm text-neutral-700 dark:text-neutral-300">
+          <p className=" text-neutral-700 dark:text-neutral-300">
             No RFIs match your filter.
           </p>
         }
@@ -168,12 +168,12 @@ function RfiListContent() {
               <table className="w-full min-w-[600px]">
                 <thead className="border-b">
                   <tr>
-                    <th className="p-3 text-left text-sm font-medium">RFI #</th>
-                    <th className="p-3 text-left text-sm font-medium">Subject</th>
-                    <th className="p-3 text-left text-sm font-medium">Status</th>
-                    <th className="p-3 text-left text-sm font-medium">Importance</th>
-                    <th className="p-3 text-left text-sm font-medium">Assigned To</th>
-                    <th className="p-3 text-left text-sm font-medium"></th>
+                    <th className="p-3 text-left  font-medium">RFI #</th>
+                    <th className="p-3 text-left  font-medium">Subject</th>
+                    <th className="p-3 text-left  font-medium">Status</th>
+                    <th className="p-3 text-left  font-medium">Importance</th>
+                    <th className="p-3 text-left  font-medium">Assigned To</th>
+                    <th className="p-3 text-left  font-medium"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -208,16 +208,16 @@ function RfiListContent() {
                     <GrayButton>View</GrayButton>
                   </Link>
                 </div>
-                <p className="text-sm mt-1">
+                <p className=" mt-1">
                   <strong>Subject:</strong> {rfi.subject}
                 </p>
-                <p className="text-sm">
+                <p className="">
                   <strong>Status:</strong> {rfi.status}
                 </p>
-                <p className="text-sm">
+                <p className="">
                   <strong>Importance:</strong> {rfi.importance}
                 </p>
-                <p className="text-sm">
+                <p className="">
                   <strong>Assigned To:</strong> {rfi.assignedTo || "N/A"}
                 </p>
               </div>
@@ -235,7 +235,7 @@ function RfiListContent() {
           >
             Prev
           </GrayButton>
-          <span className="text-sm">
+          <span className="">
             Page {currentPage} of {totalPages}
           </span>
           <GrayButton

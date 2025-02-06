@@ -175,7 +175,7 @@ export default function BidDetailPage() {
               `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/bid-leveler`
             )
           }
-          className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 px-4 py-2 rounded-xl text-sm"
+          className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 px-4 py-2 rounded-xl "
         >
           &larr; Back
         </button>
@@ -194,7 +194,7 @@ export default function BidDetailPage() {
           <form onSubmit={handleUpdate} className="space-y-4">
             {/* Trade */}
             <div>
-              <label className="block text-sm font-medium mb-1">Trade</label>
+              <label className="block  font-medium mb-1">Trade</label>
               <input
                 className="border bg-neutral-300 text-black p-2 w-full rounded"
                 value={trade}
@@ -203,7 +203,7 @@ export default function BidDetailPage() {
             </div>
             {/* Contractor */}
             <div>
-              <label className="block text-sm font-medium mb-1">Contractor</label>
+              <label className="block  font-medium mb-1">Contractor</label>
               <input
                 className="border bg-neutral-300 text-black p-2 w-full rounded"
                 value={contractor}
@@ -212,7 +212,7 @@ export default function BidDetailPage() {
             </div>
             {/* Bid Amount */}
             <div>
-              <label className="block text-sm font-medium mb-1">Bid Amount</label>
+              <label className="block  font-medium mb-1">Bid Amount</label>
               <input
                 type="number"
                 step="0.01"
@@ -223,7 +223,7 @@ export default function BidDetailPage() {
             </div>
             {/* Submission Date */}
             <div>
-              <label className="block text-sm font-medium mb-1">Submission Date</label>
+              <label className="block  font-medium mb-1">Submission Date</label>
               <input
                 type="datetime-local"
                 className="border bg-neutral-300 text-black p-2 w-full rounded"
@@ -233,7 +233,7 @@ export default function BidDetailPage() {
             </div>
             {/* Notes */}
             <div>
-              <label className="block text-sm font-medium mb-1">Notes</label>
+              <label className="block  font-medium mb-1">Notes</label>
               <textarea
                 rows={3}
                 className="border bg-neutral-300 text-black p-2 w-full rounded"
@@ -243,7 +243,7 @@ export default function BidDetailPage() {
             </div>
             {/* Scope of Work */}
             <div>
-              <label className="block text-sm font-medium mb-1">Scope of Work</label>
+              <label className="block  font-medium mb-1">Scope of Work</label>
               <textarea
                 rows={2}
                 className="border bg-neutral-300 text-black p-2 w-full rounded"
@@ -253,7 +253,7 @@ export default function BidDetailPage() {
             </div>
             {/* Exclusions */}
             <div>
-              <label className="block text-sm font-medium mb-1">Exclusions</label>
+              <label className="block  font-medium mb-1">Exclusions</label>
               <textarea
                 rows={2}
                 className="border bg-neutral-300 text-black p-2 w-full rounded"
@@ -275,7 +275,7 @@ export default function BidDetailPage() {
         <Card>
           <h2 className="text-lg font-semibold">Attachments</h2>
           {bid.attachments && bid.attachments.length > 0 ? (
-            <ul className="list-disc ml-5 text-sm mt-2">
+            <ul className="list-disc ml-5  mt-2">
               {bid.attachments.map((url, i) => (
                 <li key={i}>
                   <a
@@ -290,11 +290,11 @@ export default function BidDetailPage() {
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-neutral-500 mt-1">No attachments yet.</p>
+            <p className=" text-neutral-500 mt-1">No attachments yet.</p>
           )}
 
           <div className="mt-4 space-y-2">
-            <label className="block text-sm font-medium">Upload Files</label>
+            <label className="block  font-medium">Upload Files</label>
             <input
               type="file"
               multiple
@@ -370,7 +370,7 @@ export default function BidDetailPage() {
       >
         <Card>
           <details>
-            <summary className="cursor-pointer text-sm font-semibold mb-1">
+            <summary className="cursor-pointer  font-semibold mb-1">
               Show Full JSON Data
             </summary>
             <pre className="text-xs bg-gray-200 p-2 overflow-x-auto mt-2">

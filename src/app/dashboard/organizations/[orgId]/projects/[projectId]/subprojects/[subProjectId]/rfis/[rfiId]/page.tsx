@@ -225,7 +225,7 @@ export default function RfiDetailPage() {
   // Render
   // ---------------------------------------
   if (loading) {
-    return <div className="p-6 text-sm">Loading RFI...</div>;
+    return <div className="p-6 ">Loading RFI...</div>;
   }
   if (error) {
     return <div className="p-6 text-red-600">{error}</div>;
@@ -240,7 +240,7 @@ export default function RfiDetailPage() {
       <div className="flex items-center justify-between">
         <Link
           href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/rfis`}
-          className="text-sm font-medium text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+          className=" font-medium text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
         >
           &larr; Back to RFIs
         </Link>
@@ -254,7 +254,7 @@ export default function RfiDetailPage() {
           {rfi.subject}
         </h1>
         {rfi.question && (
-          <p className="text-sm text-neutral-600 dark:text-neutral-400">{rfi.question}</p>
+          <p className=" text-neutral-600 dark:text-neutral-400">{rfi.question}</p>
         )}
       </div>
 
@@ -265,7 +265,7 @@ export default function RfiDetailPage() {
             <h2 className="text-lg font-semibold mb-2">Edit RFI</h2>
             <form onSubmit={handleUpdate} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium">Subject</label>
+                <label className="block  font-medium">Subject</label>
                 <input
                   type="text"
                   className="border p-2 w-full rounded"
@@ -274,9 +274,7 @@ export default function RfiDetailPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium">
-                  Question / Description
-                </label>
+                <label className="block  font-medium">Question / Description</label>
                 <textarea
                   className="border p-2 w-full rounded"
                   rows={4}
@@ -285,7 +283,7 @@ export default function RfiDetailPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium">Assigned To</label>
+                <label className="block  font-medium">Assigned To</label>
                 <input
                   type="text"
                   className="border p-2 w-full rounded"
@@ -294,7 +292,7 @@ export default function RfiDetailPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium">
+                <label className="block  font-medium">
                   Distribution List (comma-separated)
                 </label>
                 <input
@@ -305,7 +303,7 @@ export default function RfiDetailPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium">Due Date</label>
+                <label className="block  font-medium">Due Date</label>
                 <input
                   type="date"
                   className="border p-2 w-full rounded"
@@ -314,7 +312,7 @@ export default function RfiDetailPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium">Status</label>
+                <label className="block  font-medium">Status</label>
                 <input
                   type="text"
                   className="border p-2 w-full rounded"
@@ -323,7 +321,7 @@ export default function RfiDetailPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium">Importance</label>
+                <label className="block  font-medium">Importance</label>
                 <input
                   type="text"
                   className="border p-2 w-full rounded"
@@ -332,7 +330,7 @@ export default function RfiDetailPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium">Official Response</label>
+                <label className="block  font-medium">Official Response</label>
                 <textarea
                   className="border p-2 w-full rounded"
                   rows={3}
@@ -359,7 +357,7 @@ export default function RfiDetailPage() {
           {/* Left Column */}
           <div className="space-y-4">
             <div>
-              <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+              <p className=" font-medium text-neutral-600 dark:text-neutral-400">
                 Assigned To
               </p>
               <p className="text-base">
@@ -367,7 +365,7 @@ export default function RfiDetailPage() {
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+              <p className=" font-medium text-neutral-600 dark:text-neutral-400">
                 Due Date
               </p>
               <p className="text-base">
@@ -379,13 +377,13 @@ export default function RfiDetailPage() {
           {/* Right Column */}
           <div className="space-y-4">
             <div>
-              <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+              <p className=" font-medium text-neutral-600 dark:text-neutral-400">
                 Status
               </p>
               <p className="text-base">{rfi.status || "N/A"}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+              <p className=" font-medium text-neutral-600 dark:text-neutral-400">
                 Importance
               </p>
               <p className="text-base">{rfi.importance || "N/A"}</p>
@@ -398,9 +396,9 @@ export default function RfiDetailPage() {
       <Card className="mt-4">
         <h2 className="text-lg font-semibold">Activity / Comments</h2>
         {activityLog.length === 0 ? (
-          <p className="text-sm text-neutral-500">No activity yet.</p>
+          <p className=" text-neutral-500">No activity yet.</p>
         ) : (
-          <ul className="space-y-2 text-sm">
+          <ul className="space-y-2 ">
             {activityLog.map((act) => (
               <li key={act.id} className="p-2 rounded border">
                 <p>

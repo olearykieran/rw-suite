@@ -69,7 +69,7 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
                 key={item.name}
                 href={item.href}
                 className={`
-                  flex items-center gap-3 px-4 py-3 text-sm transition-colors
+                  flex items-center gap-3 px-4 py-3  transition-colors
                   ${
                     isActive
                       ? "bg-[var(--foreground)]/[0.1] font-medium"

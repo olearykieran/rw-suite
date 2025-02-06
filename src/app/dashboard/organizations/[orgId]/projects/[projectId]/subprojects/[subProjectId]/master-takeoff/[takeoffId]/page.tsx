@@ -104,7 +104,7 @@ export default function MasterTakeoffDetailPage() {
               `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/master-takeoff`
             )
           }
-          className="bg-gray-300 text-black hover:bg-gray-400 px-4 py-2 rounded-xl text-sm"
+          className="bg-gray-300 text-black hover:bg-gray-400 px-4 py-2 rounded-xl "
         >
           &larr; Back
         </button>
@@ -133,7 +133,7 @@ export default function MasterTakeoffDetailPage() {
           Master Takeoff: {takeoff.name || takeoff.id}
         </h1>
         <div className="mb-4">
-          <label className="block text-sm font-medium">Name</label>
+          <label className="block  font-medium">Name</label>
           <input
             className="border bg-white text-black p-2 w-full rounded"
             value={name}
@@ -142,7 +142,7 @@ export default function MasterTakeoffDetailPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium">Items (JSON)</label>
+          <label className="block  font-medium">Items (JSON)</label>
           <textarea
             className="border bg-white text-black p-2 w-full rounded text-xs"
             rows={10}
