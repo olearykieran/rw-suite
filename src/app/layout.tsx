@@ -33,6 +33,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           bg-[var(--background)] 
           text-[var(--foreground)]
           min-h-screen
+          text-black
+          dark:text-white
         `}
       >
         {children}

@@ -32,8 +32,8 @@ function ScrollableCard({
     <section
       {...props}
       className={`
-        dark:bg-neutral-900 bg-white
-        dark:text-neutral-100 text-black
+        dark:bg-neutral-900 bg-neutral-900
+        dark:text-neutral-100 text-white
         border border-neutral-700 dark:border-neutral-800
         rounded-lg
         p-6

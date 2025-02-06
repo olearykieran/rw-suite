@@ -102,11 +102,6 @@ function SubmittalsPageContent() {
           >
             <GrayButton>Create New Submittal</GrayButton>
           </Link>
-          <Link
-            href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/submittals/report`}
-          >
-            <GrayButton>Generate Report</GrayButton>
-          </Link>
         </div>
       </div>
 

@@ -127,8 +127,8 @@ function RfiListContent() {
 
       {/* Filters */}
       <Card>
-        <h2 className="text-lg font-semibold">Filter RFIs</h2>
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+        <h2 className="text-lg text-black dark:text-white font-semibold">Filter RFIs</h2>
+        <div className="flex  text-black dark:text-white flex-col sm:flex-row gap-4 items-start sm:items-center">
           <label htmlFor="statusFilter" className="font-medium">
             Filter by Status:
           </label>
@@ -164,7 +164,7 @@ function RfiListContent() {
         renderItem={(rfi) => (
           <>
             {/* Table view for desktop */}
-            <div className="hidden sm:block overflow-x-auto bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg">
+            <div className="hidden sm:block  text-black dark:text-white overflow-x-auto bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg">
               <table className="w-full min-w-[600px]">
                 <thead className="border-b">
                   <tr>
@@ -198,7 +198,7 @@ function RfiListContent() {
 
             {/* Card view for mobile */}
             <div className="block sm:hidden">
-              <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded p-3 shadow-sm hover:shadow-md transition">
+              <div className="bg-white  dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded p-3 shadow-sm hover:shadow-md transition">
                 <div className="flex justify-between items-center">
                   <h2 className="font-bold text-lg">RFI #{rfi.rfiNumber || "--"}</h2>
                   <Link

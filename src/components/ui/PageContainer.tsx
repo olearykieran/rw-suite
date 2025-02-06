@@ -16,7 +16,7 @@ export function PageContainer({
     <div
       {...props}
       className={`
-        w-full max-w-5xl mx-auto px-4 py-6 space-y-8
+        w-full max-w-5xl mx-auto px-4 py-6 space-y-8 
         ${className}
       `}
     >

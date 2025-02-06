@@ -78,9 +78,11 @@ export default function SiteVisitListPage() {
       </div>
 
       <Card>
-        <h1 className="text-xl font-semibold mb-2">Site Visits</h1>
+        <h1 className="text-xl font-semibold mb-2 text-black dark:text-white ">
+          Site Visits
+        </h1>
         {visits.length === 0 ? (
-          <p className="text-sm text-neutral-600">No site visits found.</p>
+          <p className="text-sm text-black">No site visits found.</p>
         ) : (
           <div className="space-y-3">
             {visits.map((visit) => (
@@ -90,7 +92,7 @@ export default function SiteVisitListPage() {
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">
+                    <p className="font-medium text-black dark:text-white">
                       {new Date(visit.visitDate).toLocaleDateString()}
                     </p>
                     <p className="text-sm text-neutral-600">

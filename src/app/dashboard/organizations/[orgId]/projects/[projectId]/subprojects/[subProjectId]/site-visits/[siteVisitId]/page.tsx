@@ -150,7 +150,7 @@ function NewEntryModal({
                 onSelect={() => {}}
                 selectedId={null}
               />
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-black dark:text-white">
                 Draw on the image as desired. Annotations will be saved with this photo.
               </p>
             </div>
@@ -164,7 +164,9 @@ function NewEntryModal({
             audio
             render={({ status, startRecording, stopRecording, mediaBlobUrl }) => (
               <div className="mb-2">
-                <p className="text-xs text-gray-600">Recording Status: {status}</p>
+                <p className="text-xs text-black dark:text-white">
+                  Recording Status: {status}
+                </p>
                 <div className="flex gap-2 mb-2">
                   <GrayButton onClick={startRecording}>Start</GrayButton>
                   <GrayButton onClick={stopRecording}>Stop</GrayButton>
@@ -289,17 +291,17 @@ export default function SiteVisitDetailPage() {
         <GrayButton onClick={() => setShowNewEntryModal(true)}>+ New Entry</GrayButton>
       </div>
 
-      <Card className="mb-4 p-4">
+      <Card className="mb-4 p-4 text-black dark:text-white">
         <h1 className="text-2xl font-bold mb-1">
           Site Visit: {new Date(visit.visitDate).toLocaleDateString()}
         </h1>
-        <p className="text-sm text-gray-600 mb-2">
+        <p className="text-sm text-black dark:text-white mb-2">
           Participants: {visit.participants.join(", ") || "N/A"}
         </p>
         <div>
           <label className="block text-sm font-medium mb-1">Main Notes</label>
           <textarea
-            className="border p-2 w-full rounded"
+            className="border p-2 w-full text-black dark:text-black rounded"
             rows={3}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
@@ -320,10 +322,12 @@ export default function SiteVisitDetailPage() {
             )
             .map((entry: SiteVisitEntry) => (
               <Card key={entry.id} className="p-4">
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-black dark:text-white">
                   {new Date(entry.timestamp).toLocaleString()}
                 </p>
-                {entry.note && <p className="mt-2 text-sm text-gray-700">{entry.note}</p>}
+                {entry.note && (
+                  <p className="mt-2 text-sm text-black dark:text-white">{entry.note}</p>
+                )}
                 {entry.photos && entry.photos.length > 0 && (
                   <div className="mt-2 grid grid-cols-2 gap-2">
                     {entry.photos.map(
@@ -360,7 +364,7 @@ export default function SiteVisitDetailPage() {
             ))
         ) : (
           <Card className="p-4">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-black dark:text-white">
               No entries have been added for this site visit.
             </p>
           </Card>

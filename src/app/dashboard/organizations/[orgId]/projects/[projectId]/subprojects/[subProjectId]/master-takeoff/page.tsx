@@ -90,7 +90,7 @@ export default function MasterTakeoffListPage() {
             {takeoffs.map((t) => (
               <div
                 key={t.id}
-                className="p-2 border-b last:border-none hover:bg-neutral-50 rounded"
+                className="p-2 border-b last:border-none hover:bg-gray-900 rounded"
               >
                 <div className="flex justify-between items-center">
                   <div>

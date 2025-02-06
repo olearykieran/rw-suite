@@ -29,3 +29,7 @@ body {
     since layout.tsx does it on <body> with Tailwind classes 
   */
 }
+
+h1 {
+  color: var(--foreground);
+}
