@@ -9,9 +9,9 @@ import { LoadingProvider } from "@/components/ui/LoadingProvider";
  */
 function PublicLayoutContent({ children }: { children: ReactNode }) {
   return (
-    <>
+    <div className="min-h-screen flex flex-col">
       {/* Fixed Header: remains at the top of the viewport */}
-      <header className="fixed top-0 left-0 right-0 h-16 flex items-center justify-between px-6 md:px-8 border-b bg-real-bg border-gray-500 z-50">
+      <header className="fixed top-0 left-0 right-0 h-16 flex items-center justify-between px-6 md:px-8 border-b bg-black border-white z-50">
         <div className="text-xl text-white font-bold">RW Suite</div>
         <nav className="text-white text-sm space-x-4">
           <a href="/public/about" className="hover:underline">
@@ -27,8 +27,8 @@ function PublicLayoutContent({ children }: { children: ReactNode }) {
       </header>
 
       {/* Main content starts below the fixed header */}
-      <main className="pt-16 pb-10 px-4 md:px-8">{children}</main>
-    </>
+      <main className="flex-1 mt-16 px-4 md:px-8">{children}</main>
+    </div>
   );
 }
 

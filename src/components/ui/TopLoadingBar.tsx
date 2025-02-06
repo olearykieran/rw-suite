@@ -49,7 +49,7 @@ export function TopLoadingBar({ isLoading }: TopLoadingBarProps) {
         style={{
           height: "3px",
           width: `${progress}%`,
-          background: "linear-gradient(90deg, #60a5fa, #4b5563, #FFFFFF)",
+          background: "linear-gradient(90deg, #4b5563, #10100E, #FFFFE3)",
           transition: "width 0.2s ease-out",
         }}
       />
