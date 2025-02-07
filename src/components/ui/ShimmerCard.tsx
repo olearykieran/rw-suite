@@ -96,12 +96,12 @@ export function ShimmerCard() {
   return (
     <>
       {/* Container for the shimmer card */}
-      <div className="w-full max-w-5xl mx-auto px-4 py-6 space-y-8 relative">
+      <div className="w-full max-w-5xl mx-auto px-4 py-0 space-y-8 relative">
         {/* Section 1: Header Placeholder */}
         <div>
           {/* Back button placeholder */}
           <div className="flex items-center justify-between mb-4 sm:mb-6">
-            <div className="h-10 sm:h-12 w-28 sm:w-32 rounded-xl shimmer-bg"></div>
+            <div className="h-24 sm:h-12 w-56 sm:w-96 rounded-xl shimmer-bg"></div>
           </div>
           {/* Sub‑Project Header Card Placeholder */}
           <div className="border rounded-xl p-4 sm:p-6 space-y-4 sm:space-y-6 border-gray-300 dark:border-gray-600">
