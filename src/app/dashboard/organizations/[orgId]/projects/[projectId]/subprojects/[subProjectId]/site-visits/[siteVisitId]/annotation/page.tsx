@@ -59,7 +59,7 @@ export default function AnnotationPage() {
         if (!entry) return;
 
         const photo = entry.photos?.find((p: any) => p.url === photoUrl);
-        if (photo?.annotations?.length > 0) {
+        if (photo && photo.annotations?.length > 0) {
           setAnnotations(photo.annotations);
           if (canvasRef.current && imageLoaded) {
             await canvasRef.current.loadPaths(photo.annotations[0].paths);
@@ -241,7 +241,6 @@ export default function AnnotationPage() {
                 strokeWidth={3}
                 strokeColor="red"
                 canvasColor="transparent"
-                preserveAspectRatio="xMidYMid meet"
               />
             </div>
           )}

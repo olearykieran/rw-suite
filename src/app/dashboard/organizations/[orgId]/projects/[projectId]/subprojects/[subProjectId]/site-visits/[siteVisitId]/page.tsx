@@ -209,7 +209,6 @@ function NewEntryModal({
                       strokeWidth={3}
                       strokeColor="red"
                       canvasColor="transparent"
-                      preserveAspectRatio="xMidYMid meet"
                     />
                   </div>
                 )}
