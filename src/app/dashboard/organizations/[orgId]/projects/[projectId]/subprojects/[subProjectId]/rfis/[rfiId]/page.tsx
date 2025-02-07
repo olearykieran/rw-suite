@@ -249,22 +249,20 @@ export default function RfiDetailPage() {
           {rfi.rfiNumber ? `RFI #${rfi.rfiNumber}: ` : ""}
           {rfi.subject}
         </h1>
-        {rfi.question && (
-          <p className="text-neutral-600 dark:text-neutral-400">{rfi.question}</p>
-        )}
+        {rfi.question && <p className="">{rfi.question}</p>}
       </div>
 
       {/* Edit Mode */}
       <div className="mt-4">
         {isEditing ? (
           <Card>
-            <h2 className="text-lg font-semibold mb-2">Edit RFI</h2>
-            <form onSubmit={handleUpdate} className="space-y-4">
+            <h2 className="text-lg  font-semibold mb-2">Edit RFI</h2>
+            <form onSubmit={handleUpdate} className=" space-y-4">
               <div>
                 <label className="block font-medium">Subject</label>
                 <input
                   type="text"
-                  className="border p-2 w-full rounded"
+                  className="border p-2 w-full text-black dark:text-black rounded"
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                 />
@@ -272,7 +270,7 @@ export default function RfiDetailPage() {
               <div>
                 <label className="block font-medium">Question / Description</label>
                 <textarea
-                  className="border p-2 w-full rounded"
+                  className="border p-2 w-full text-black dark:text-black rounded"
                   rows={4}
                   value={question}
                   onChange={(e) => setQuestion(e.target.value)}
@@ -282,7 +280,7 @@ export default function RfiDetailPage() {
                 <label className="block font-medium">Assigned To</label>
                 <input
                   type="text"
-                  className="border p-2 w-full rounded"
+                  className="border p-2 w-full text-black dark:text-black rounded"
                   value={assignedTo}
                   onChange={(e) => setAssignedTo(e.target.value)}
                 />
@@ -293,7 +291,7 @@ export default function RfiDetailPage() {
                 </label>
                 <input
                   type="text"
-                  className="border p-2 w-full rounded"
+                  className="border p-2 w-full text-black dark:text-black rounded"
                   value={distributionList}
                   onChange={(e) => setDistributionList(e.target.value)}
                 />
@@ -302,7 +300,7 @@ export default function RfiDetailPage() {
                 <label className="block font-medium">Due Date</label>
                 <input
                   type="date"
-                  className="border p-2 w-full rounded"
+                  className="border p-2 w-full text-black dark:text-black rounded"
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
                 />
@@ -311,7 +309,7 @@ export default function RfiDetailPage() {
                 <label className="block font-medium">Status</label>
                 <input
                   type="text"
-                  className="border p-2 w-full rounded"
+                  className="border p-2 w-full text-black dark:text-black rounded"
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
                 />
@@ -320,7 +318,7 @@ export default function RfiDetailPage() {
                 <label className="block font-medium">Importance</label>
                 <input
                   type="text"
-                  className="border p-2 w-full rounded"
+                  className="border p-2 w-full text-black dark:text-black rounded"
                   value={importance}
                   onChange={(e) => setImportance(e.target.value)}
                 />
@@ -328,7 +326,7 @@ export default function RfiDetailPage() {
               <div>
                 <label className="block font-medium">Official Response</label>
                 <textarea
-                  className="border p-2 w-full rounded"
+                  className="border p-2 w-full text-black dark:text-black rounded"
                   rows={3}
                   value={officialResponse}
                   onChange={(e) => setOfficialResponse(e.target.value)}
@@ -353,17 +351,13 @@ export default function RfiDetailPage() {
           {/* Left Column */}
           <div className="space-y-4">
             <div>
-              <p className="font-medium text-neutral-600 dark:text-neutral-400">
-                Assigned To
-              </p>
+              <p className="font-medium ">Assigned To</p>
               <p className="text-base">
                 {rfi.assignedTo || <span className="opacity-70">N/A</span>}
               </p>
             </div>
             <div>
-              <p className="font-medium text-neutral-600 dark:text-neutral-400">
-                Due Date
-              </p>
+              <p className="font-medium ">Due Date</p>
               <p className="text-base">
                 {rfi.dueDate ? new Date(rfi.dueDate).toLocaleDateString() : "No due date"}
               </p>
@@ -373,13 +367,11 @@ export default function RfiDetailPage() {
           {/* Right Column */}
           <div className="space-y-4">
             <div>
-              <p className="font-medium text-neutral-600 dark:text-neutral-400">Status</p>
+              <p className="font-medium ">Status</p>
               <p className="text-base">{rfi.status || "N/A"}</p>
             </div>
             <div>
-              <p className="font-medium text-neutral-600 dark:text-neutral-400">
-                Importance
-              </p>
+              <p className="font-medium ">Importance</p>
               <p className="text-base">{rfi.importance || "N/A"}</p>
             </div>
           </div>
