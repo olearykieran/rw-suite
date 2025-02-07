@@ -293,7 +293,7 @@ export default function SubProjectOverview() {
                   href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/${feature.route}`}
                   // Trigger the global loading bar when a feature is clicked.
                   onClick={() => setIsLoading(true)}
-                  className="bg-white text-black dark:text-white dark:bg-neutral-700 border dark:hover:bg-black hover:bg-black hover:text-white border-black dark:border-gray-600 rounded-xl p-4 sm:p-6 shadow-sm hover:shadow-md transition"
+                  className="bg-white text-black min-h-52 dark:text-white dark:bg-neutral-700 border dark:hover:bg-black hover:bg-black hover:text-white border-black dark:border-gray-600 rounded-xl p-4 sm:p-6 shadow-sm hover:shadow-md transition"
                 >
                   <h3 className="font-bold mb-1">
                     {feature.label} ({counts[feature.route] ?? 0})

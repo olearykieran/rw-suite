@@ -124,7 +124,7 @@ export function ShimmerCard() {
             {/* Grid of feature card placeholders */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {features.map((_, index) => (
-                <div key={index} className="h-24 sm:h-48 rounded-xl shimmer-bg"></div>
+                <div key={index} className="h-52 rounded-xl shimmer-bg"></div>
               ))}
             </div>
           </div>
