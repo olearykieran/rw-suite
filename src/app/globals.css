@@ -5,19 +5,19 @@
 /* globals.css */
 :root {
   --background: #ffffe3;
-  --foreground: #10100e;
-  --accent: #2a9d8f;
+  --foreground: #1d1f25;
+  --accent: #10100e;
 }
 
 .dark {
-  --background: #10100e; /* example dark background (gray-800) */
+  --background: #1d1f25; /* example dark background (gray-800) */
   --foreground: #ffffe3; /* example dark foreground (gray-50) */
 }
 
 /* Rely on OS preference for dark mode automatically */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #10100e;
+    --background: #1d1f25;
     --foreground: #ffffe3;
   }
 }
@@ -34,7 +34,7 @@ li {
 }
 
 body {
-  background: "#10100E";
+  background: "#1D1F25";
   background-size: cover;
   min-height: 100vh;
   margin: 0;
