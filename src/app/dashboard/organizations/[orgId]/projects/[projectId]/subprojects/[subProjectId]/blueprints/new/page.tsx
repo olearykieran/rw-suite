@@ -1,5 +1,4 @@
 // src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/blueprints/new/page.tsx
-
 "use client";
 
 import { FormEvent, useState } from "react";
@@ -10,6 +9,8 @@ import { createBlueprint } from "@/lib/services/BlueprintService";
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Card } from "@/components/ui/Card";
 import { GrayButton } from "@/components/ui/GrayButton";
+// Import the global loading bar hook.
+import { useLoadingBar } from "@/context/LoadingBarContext";
 
 export default function NewBlueprintPage() {
   const router = useRouter();
@@ -18,6 +19,8 @@ export default function NewBlueprintPage() {
     projectId: string;
     subProjectId: string;
   };
+
+  const { setIsLoading } = useLoadingBar();
 
   const [title, setTitle] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -33,6 +36,7 @@ export default function NewBlueprintPage() {
     setLoading(true);
     try {
       await createBlueprint(orgId, projectId, subProjectId, title, file);
+      setIsLoading(true);
       router.push(
         `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/blueprints`
       );
@@ -45,6 +49,7 @@ export default function NewBlueprintPage() {
   }
 
   function handleCancel() {
+    setIsLoading(true);
     router.push(
       `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/blueprints`
     );
@@ -64,11 +69,7 @@ export default function NewBlueprintPage() {
           <div>
             <label className="block font-medium">Title</label>
             <input
-              className="
-                border p-2 w-full rounded
-                bg-white text-black
-                dark:bg-neutral-800 dark:text-white
-              "
+              className="border p-2 w-full rounded bg-white text-black dark:bg-neutral-800 dark:text-white"
               placeholder="Floor Plan Level 1"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -82,15 +83,7 @@ export default function NewBlueprintPage() {
               type="file"
               accept=".pdf,image/*"
               onChange={(e) => setFile(e.target.files?.[0] || null)}
-              className="
-                file:mr-2 file:py-2 file:px-3 
-                file:border-0 file:rounded 
-                file:bg-gray-300 file:text-black
-                hover:file:bg-gray-400
-                dark:file:bg-gray-700 dark:file:text-white
-                dark:hover:file:bg-gray-600
-                transition-colors
-              "
+              className="file:mr-2 file:py-2 file:px-3 file:border-0 file:rounded file:bg-gray-300 file:text-black hover:file:bg-gray-400 dark:file:bg-gray-700 dark:file:text-white dark:hover:file:bg-gray-600 transition-colors"
             />
           </div>
 

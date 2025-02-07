@@ -1,3 +1,4 @@
+// src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/rfis/[rfiId]/page.tsx
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
@@ -16,9 +17,8 @@ import { auth } from "@/lib/firebaseConfig";
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Card } from "@/components/ui/Card";
 import { GrayButton } from "@/components/ui/GrayButton";
-
-// Import the RFI PDF generator function and interface
 import { generateRfiPDF, RfiPDFData } from "@/lib/services/RfiPDFGenerator";
+import { useLoadingBar } from "@/context/LoadingBarContext";
 
 interface RfiDoc {
   id: string;
@@ -44,8 +44,8 @@ export default function RfiDetailPage() {
     subProjectId: string;
     rfiId: string;
   };
-
   const router = useRouter();
+  const { setIsLoading } = useLoadingBar();
 
   const [rfi, setRfi] = useState<RfiDoc | null>(null);
   const [loading, setLoading] = useState(true);
@@ -79,29 +79,28 @@ export default function RfiDetailPage() {
     try {
       setLoading(true);
       const data = await fetchRfi(orgId, projectId, subProjectId, rfiId);
-      // Fix: Ensure that the fetched data has a 'subject' property.
-      // If 'subject' is missing, default it to an empty string.
+      // Ensure a 'subject' property exists.
       const completeData = { subject: "", ...data } as RfiDoc;
       setRfi(completeData);
 
       // Load activity log
       const logData = await fetchActivityLog(orgId, projectId, subProjectId, rfiId);
-      const sorted = logData.sort((a: any, b: any) => {
+      const sortedLog = logData.sort((a: any, b: any) => {
         const aTime = a.createdAt?.seconds || 0;
         const bTime = b.createdAt?.seconds || 0;
         return aTime - bTime;
       });
-      setActivityLog(sorted);
+      setActivityLog(sortedLog);
 
       // Load versions
       setVersionLoading(true);
       const vData: any[] = await fetchRfiVersions(orgId, projectId, subProjectId, rfiId);
-      const vSorted = vData.sort((a, b) => {
+      const sortedVersions = vData.sort((a, b) => {
         const aTime = a.savedAt?.toMillis?.() || a.savedAt?.seconds || 0;
         const bTime = b.savedAt?.toMillis?.() || b.savedAt?.seconds || 0;
         return bTime - aTime;
       });
-      setVersions(vSorted);
+      setVersions(sortedVersions);
     } catch (err: any) {
       console.error("Load RFI error:", err);
       setError("Failed to load RFI");
@@ -143,7 +142,6 @@ export default function RfiDetailPage() {
     e.preventDefault();
     if (!rfi) return;
     try {
-      // Update the RFI record with values from the edit form
       await updateRfi(orgId, projectId, subProjectId, rfiId, {
         subject,
         question,
@@ -158,7 +156,6 @@ export default function RfiDetailPage() {
         officialResponse,
       });
 
-      // Save a version snapshot for record-keeping (this does not trigger a notification)
       await saveRfiVersion(orgId, projectId, subProjectId, rfiId, {
         subject,
         question,
@@ -174,7 +171,6 @@ export default function RfiDetailPage() {
         updatedAt: new Date(),
       });
 
-      // Refresh data and exit edit mode
       loadFullData();
       setIsEditing(false);
     } catch (err: any) {
@@ -214,18 +210,14 @@ export default function RfiDetailPage() {
       officialResponse: rfi.officialResponse || "",
       distributionList: rfi.distributionList || [],
       attachments: rfi.attachments || [],
-      // Use the same logo URL as the meeting minutes page
       logoUrl:
         "https://firebasestorage.googleapis.com/v0/b/rw-project-management.firebasestorage.app/o/rw-logo-title.png?alt=media&token=03a42c6c-980c-4857-ae0d-f84c37baa2fe",
     };
     generateRfiPDF(pdfData);
   }
 
-  // ---------------------------------------
-  // Render
-  // ---------------------------------------
   if (loading) {
-    return <div className="p-6 ">Loading RFI...</div>;
+    return <div className="p-6">Loading RFI...</div>;
   }
   if (error) {
     return <div className="p-6 text-red-600">{error}</div>;
@@ -238,12 +230,16 @@ export default function RfiDetailPage() {
     <PageContainer>
       {/* Top Navigation */}
       <div className="flex items-center justify-between">
-        <Link
-          href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/rfis`}
-          className=" font-medium text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+        <GrayButton
+          onClick={() => {
+            setIsLoading(true);
+            router.push(
+              `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/rfis`
+            );
+          }}
         >
           &larr; Back to RFIs
-        </Link>
+        </GrayButton>
         <GrayButton onClick={handleDownloadPDF}>Download as PDF</GrayButton>
       </div>
 
@@ -254,7 +250,7 @@ export default function RfiDetailPage() {
           {rfi.subject}
         </h1>
         {rfi.question && (
-          <p className=" text-neutral-600 dark:text-neutral-400">{rfi.question}</p>
+          <p className="text-neutral-600 dark:text-neutral-400">{rfi.question}</p>
         )}
       </div>
 
@@ -265,7 +261,7 @@ export default function RfiDetailPage() {
             <h2 className="text-lg font-semibold mb-2">Edit RFI</h2>
             <form onSubmit={handleUpdate} className="space-y-4">
               <div>
-                <label className="block  font-medium">Subject</label>
+                <label className="block font-medium">Subject</label>
                 <input
                   type="text"
                   className="border p-2 w-full rounded"
@@ -274,7 +270,7 @@ export default function RfiDetailPage() {
                 />
               </div>
               <div>
-                <label className="block  font-medium">Question / Description</label>
+                <label className="block font-medium">Question / Description</label>
                 <textarea
                   className="border p-2 w-full rounded"
                   rows={4}
@@ -283,7 +279,7 @@ export default function RfiDetailPage() {
                 />
               </div>
               <div>
-                <label className="block  font-medium">Assigned To</label>
+                <label className="block font-medium">Assigned To</label>
                 <input
                   type="text"
                   className="border p-2 w-full rounded"
@@ -292,7 +288,7 @@ export default function RfiDetailPage() {
                 />
               </div>
               <div>
-                <label className="block  font-medium">
+                <label className="block font-medium">
                   Distribution List (comma-separated)
                 </label>
                 <input
@@ -303,7 +299,7 @@ export default function RfiDetailPage() {
                 />
               </div>
               <div>
-                <label className="block  font-medium">Due Date</label>
+                <label className="block font-medium">Due Date</label>
                 <input
                   type="date"
                   className="border p-2 w-full rounded"
@@ -312,7 +308,7 @@ export default function RfiDetailPage() {
                 />
               </div>
               <div>
-                <label className="block  font-medium">Status</label>
+                <label className="block font-medium">Status</label>
                 <input
                   type="text"
                   className="border p-2 w-full rounded"
@@ -321,7 +317,7 @@ export default function RfiDetailPage() {
                 />
               </div>
               <div>
-                <label className="block  font-medium">Importance</label>
+                <label className="block font-medium">Importance</label>
                 <input
                   type="text"
                   className="border p-2 w-full rounded"
@@ -330,7 +326,7 @@ export default function RfiDetailPage() {
                 />
               </div>
               <div>
-                <label className="block  font-medium">Official Response</label>
+                <label className="block font-medium">Official Response</label>
                 <textarea
                   className="border p-2 w-full rounded"
                   rows={3}
@@ -357,7 +353,7 @@ export default function RfiDetailPage() {
           {/* Left Column */}
           <div className="space-y-4">
             <div>
-              <p className=" font-medium text-neutral-600 dark:text-neutral-400">
+              <p className="font-medium text-neutral-600 dark:text-neutral-400">
                 Assigned To
               </p>
               <p className="text-base">
@@ -365,7 +361,7 @@ export default function RfiDetailPage() {
               </p>
             </div>
             <div>
-              <p className=" font-medium text-neutral-600 dark:text-neutral-400">
+              <p className="font-medium text-neutral-600 dark:text-neutral-400">
                 Due Date
               </p>
               <p className="text-base">
@@ -377,13 +373,11 @@ export default function RfiDetailPage() {
           {/* Right Column */}
           <div className="space-y-4">
             <div>
-              <p className=" font-medium text-neutral-600 dark:text-neutral-400">
-                Status
-              </p>
+              <p className="font-medium text-neutral-600 dark:text-neutral-400">Status</p>
               <p className="text-base">{rfi.status || "N/A"}</p>
             </div>
             <div>
-              <p className=" font-medium text-neutral-600 dark:text-neutral-400">
+              <p className="font-medium text-neutral-600 dark:text-neutral-400">
                 Importance
               </p>
               <p className="text-base">{rfi.importance || "N/A"}</p>
@@ -396,9 +390,9 @@ export default function RfiDetailPage() {
       <Card className="mt-4">
         <h2 className="text-lg font-semibold">Activity / Comments</h2>
         {activityLog.length === 0 ? (
-          <p className=" text-neutral-500">No activity yet.</p>
+          <p className="text-neutral-500">No activity yet.</p>
         ) : (
-          <ul className="space-y-2 ">
+          <ul className="space-y-2">
             {activityLog.map((act) => (
               <li key={act.id} className="p-2 rounded border">
                 <p>

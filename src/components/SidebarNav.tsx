@@ -1,4 +1,3 @@
-// src/components/SidebarNav.tsx
 "use client";
 
 import { useState } from "react";
@@ -13,12 +12,14 @@ import {
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useLoadingBar } from "@/context/LoadingBarContext";
 import { useOrgId } from "@/hooks/useOrgId";
+// Use the new context hook.
+import { useSelectedProject } from "@/context/SelectedProjectContext";
 
 export default function SidebarNav() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Get the effective orgId using the custom hook.
+  // You can still get the effective org from your hook...
   const effectiveOrgId = useOrgId();
 
   // Global loading bar setter.
@@ -26,6 +27,9 @@ export default function SidebarNav() {
 
   // Real user profile from Firestore.
   const { profile, loading, error } = useUserProfile();
+
+  // Retrieve the current selection from context.
+  const { selectedProjectName, selectedSubprojectName } = useSelectedProject();
 
   // Navigation items.
   const navItems = [
@@ -37,10 +41,8 @@ export default function SidebarNav() {
     },
     {
       name: "Contractors",
-      // Build the link using effectiveOrgId.
       href: `/dashboard/organizations/${effectiveOrgId}/contractors`,
       icon: <UserIcon className="h-5 w-5" />,
-      // Trigger the loading bar on click.
       onClick: () => setIsLoading(true),
     },
     {
@@ -101,7 +103,6 @@ export default function SidebarNav() {
             <Link
               key={item.name}
               href={item.href}
-              // If the nav item has its own onClick (like Contractors), call it.
               onClick={item.onClick}
               className={`
                 flex items-center gap-3 px-4 py-3 
@@ -127,6 +128,24 @@ export default function SidebarNav() {
         })}
       </nav>
 
+      {/* Current selection display (shown only when sidebar is expanded)
+      {!isCollapsed && (
+        <div className="p-4 border-t border-gray-500">
+          <div className="text-xs font-medium mb-1">Current Selection:</div>
+          <div className="text-xs">
+            <div>
+              <strong>Org:</strong> {effectiveOrgId || "None"}
+            </div>
+            <div>
+              <strong>Project:</strong> {selectedProjectName || "None"}
+            </div>
+            <div>
+              <strong>Sub‑Project:</strong> {selectedSubprojectName || "None"}
+            </div>
+          </div>
+        </div>
+      )} */}
+
       {/* Bottom user profile */}
       <div className="p-4 border-t border-gray-500 flex items-center gap-3">
         <div
@@ -135,7 +154,7 @@ export default function SidebarNav() {
             ${isCollapsed ? "hidden" : ""}
           `}
         />
-        <div className={`${isCollapsed ? "hidden" : "block"} `}>
+        <div className={`${isCollapsed ? "hidden" : "block"}`}>
           {loading && <div className="text-xs">Loading…</div>}
           {error && <div className="text-xs text-red-500">{error}</div>}
           {!loading && !error && profile && (

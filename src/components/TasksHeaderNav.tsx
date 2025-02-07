@@ -1,6 +1,9 @@
+// src/components/TasksHeaderNav.tsx
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { GrayButton } from "@/components/ui/GrayButton";
+import { useLoadingBar } from "@/context/LoadingBarContext";
 
 interface Props {
   orgId: string;
@@ -12,60 +15,41 @@ interface Props {
  * Renders a small nav bar for Tasks:
  *  - Back to Sub-Project
  *  - List/Table
- *  - Card View
  *  - Gantt
  *  - Import/Export
- *  - New Task
  */
 export default function TasksHeaderNav({ orgId, projectId, subProjectId }: Props) {
+  const router = useRouter();
+  const { setIsLoading } = useLoadingBar();
+
+  // Construct base URLs for navigation.
   const baseTasksUrl = `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/tasks`;
   const subProjectUrl = `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`;
 
+  // Helper to navigate with loading bar trigger.
+  const handleNavigate = (path: string) => {
+    setIsLoading(true);
+    router.push(path);
+  };
+
   return (
-    <nav className="mb-4 flex items-center gap-4  flex-wrap">
+    <nav className="mb-4 flex items-center gap-4 flex-wrap">
       {/* Back to sub-project */}
-      <Link
-        href={subProjectUrl}
-        className="
-           font-medium text-blue-600 underline
-          hover:text-blue-700 dark:text-blue-400
-          dark:hover:text-blue-300 transition-colors
-        "
-      >
+      <GrayButton onClick={() => handleNavigate(subProjectUrl)}>
         &larr; Back to Sub-Project
-      </Link>
+      </GrayButton>
 
       <span className="text-neutral-400">|</span>
 
-      <Link
-        href={`${baseTasksUrl}`}
-        className="
-          underline text-blue-600 hover:text-blue-700
-          dark:text-blue-400 dark:hover:text-blue-300
-        "
-      >
-        List/Table
-      </Link>
+      <GrayButton onClick={() => handleNavigate(baseTasksUrl)}>List/Table</GrayButton>
 
-      <Link
-        href={`${baseTasksUrl}/gantt`}
-        className="
-          underline text-blue-600 hover:text-blue-700
-          dark:text-blue-400 dark:hover:text-blue-300
-        "
-      >
+      <GrayButton onClick={() => handleNavigate(`${baseTasksUrl}/gantt`)}>
         Gantt
-      </Link>
+      </GrayButton>
 
-      <Link
-        href={`${baseTasksUrl}/importexport`}
-        className="
-          underline text-blue-600 hover:text-blue-700
-          dark:text-blue-400 dark:hover:text-blue-300
-        "
-      >
+      <GrayButton onClick={() => handleNavigate(`${baseTasksUrl}/importexport`)}>
         Import/Export
-      </Link>
+      </GrayButton>
     </nav>
   );
 }

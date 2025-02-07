@@ -1,4 +1,3 @@
-// src/app/dashboard/organizations/[orgId]/projects/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -13,8 +12,10 @@ import { Card } from "@/components/ui/Card";
 import { GrayButton } from "@/components/ui/GrayButton";
 import { AnimatedList } from "@/components/ui/AnimatedList";
 
-// Import the global loading bar hook.
+// Global loading bar hook.
 import { useLoadingBar } from "@/context/LoadingBarContext";
+// Import our selected project context hook.
+import { useSelectedProject } from "@/context/SelectedProjectContext";
 
 interface Project {
   id: string;
@@ -30,9 +31,9 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const router = useRouter();
-
-  // Use the global loading bar setter.
   const { setIsLoading } = useLoadingBar();
+  // Get the context update function.
+  const { updateSelectedProject } = useSelectedProject();
 
   useEffect(() => {
     async function fetchProjects() {
@@ -64,7 +65,11 @@ export default function ProjectsPage() {
       )}
       <Link
         href={`/dashboard/organizations/${orgId}/projects/${project.id}/subprojects`}
-        onClick={() => setIsLoading(true)}
+        onClick={() => {
+          setIsLoading(true);
+          // Update the context with the selected project.
+          updateSelectedProject(project.id, project.name || project.id);
+        }}
         className="mt-2 inline-block"
       >
         <GrayButton>View Project</GrayButton>
@@ -82,20 +87,14 @@ export default function ProjectsPage() {
 
   return (
     <PageContainer>
-      {/* Back to all organizations */}
-      <button
-        onClick={() => router.push("/dashboard/organizations")}
-        className="
-          bg-gray-300 text-black
-          hover:bg-gray-400
-          dark:bg-gray-700 dark:text-white
-          dark:hover:bg-gray-600
-          transition-colors
-          px-4 py-2 rounded-xl 
-        "
+      <GrayButton
+        onClick={() => {
+          setIsLoading(true);
+          router.push("/dashboard/organizations");
+        }}
       >
         &larr; Back to Organizations
-      </button>
+      </GrayButton>
 
       <div className="flex justify-between items-center mt-4">
         <h1 className="text-2xl font-bold">Projects under Org {orgId}</h1>
@@ -110,7 +109,7 @@ export default function ProjectsPage() {
         isLoading={loading}
         className="mt-4 text-black dark:text-white"
         emptyMessage={
-          <p className=" text-neutral-600  dark:text-neutral-300 mt-2">
+          <p className="text-neutral-600 dark:text-neutral-300 mt-2">
             No projects found. Create one!
           </p>
         }

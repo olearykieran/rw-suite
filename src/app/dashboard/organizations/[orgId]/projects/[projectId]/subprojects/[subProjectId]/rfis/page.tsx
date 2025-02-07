@@ -5,12 +5,12 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { fetchAllRfis } from "@/lib/services/RfiService";
-// Import both the hook and provider from your LoadingProvider file.
-import { useLoading, LoadingProvider } from "@/components/ui/LoadingProvider";
 import { AnimatedList } from "@/components/ui/AnimatedList";
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Card } from "@/components/ui/Card";
 import { GrayButton } from "@/components/ui/GrayButton";
+// Use our global loading bar hook from context.
+import { useLoadingBar } from "@/context/LoadingBarContext";
 
 /**
  * Interface representing a single RFI item.
@@ -26,16 +26,15 @@ interface RfiItem {
 
 /**
  * RfiListContent contains the actual page content for listing RFIs.
- * It uses the useLoading hook so must be rendered within a LoadingProvider.
  */
 function RfiListContent() {
-  const { withLoading } = useLoading();
   const { orgId, projectId, subProjectId } = useParams() as {
     orgId: string;
     projectId: string;
     subProjectId: string;
   };
   const router = useRouter();
+  const { setIsLoading } = useLoadingBar();
 
   const [rfis, setRfis] = useState<RfiItem[]>([]);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -96,39 +95,33 @@ function RfiListContent() {
     <PageContainer>
       {/* Back button */}
       <div className="flex items-center justify-between">
-        <button
-          onClick={() =>
+        <GrayButton
+          onClick={() => {
+            setIsLoading(true); // Trigger the loading bar before navigating.
             router.push(
               `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`
-            )
-          }
-          className="
-            bg-gray-300 text-black
-            hover:bg-gray-400
-            dark:bg-gray-700 dark:text-white
-            dark:hover:bg-gray-600
-            transition-colors
-            px-4 py-2 rounded-xl 
-          "
+            );
+          }}
         >
           &larr; Back to Sub-Project
-        </button>
+        </GrayButton>
       </div>
 
       {/* Title and Create RFI button */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mt-4">
         <h1 className="text-2xl font-bold">RFIs</h1>
         <Link
           href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/rfis/new`}
+          onClick={() => setIsLoading(true)}
         >
           <GrayButton>Create New RFI</GrayButton>
         </Link>
       </div>
 
       {/* Filters */}
-      <Card>
+      <Card className="mt-4">
         <h2 className="text-lg text-black dark:text-white font-semibold">Filter RFIs</h2>
-        <div className="flex  text-black dark:text-white flex-col sm:flex-row gap-4 items-start sm:items-center">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 text-black dark:text-white">
           <label htmlFor="statusFilter" className="font-medium">
             Filter by Status:
           </label>
@@ -157,23 +150,23 @@ function RfiListContent() {
         isLoading={isInitialLoading}
         className="mt-4"
         emptyMessage={
-          <p className=" text-neutral-700 dark:text-neutral-300">
+          <p className="text-neutral-700 dark:text-neutral-300">
             No RFIs match your filter.
           </p>
         }
         renderItem={(rfi) => (
           <>
             {/* Table view for desktop */}
-            <div className="hidden sm:block  text-black dark:text-white overflow-x-auto bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg">
+            <div className="hidden sm:block text-black dark:text-white overflow-x-auto bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg">
               <table className="w-full min-w-[600px]">
                 <thead className="border-b">
                   <tr>
-                    <th className="p-3 text-left  font-medium">RFI #</th>
-                    <th className="p-3 text-left  font-medium">Subject</th>
-                    <th className="p-3 text-left  font-medium">Status</th>
-                    <th className="p-3 text-left  font-medium">Importance</th>
-                    <th className="p-3 text-left  font-medium">Assigned To</th>
-                    <th className="p-3 text-left  font-medium"></th>
+                    <th className="p-3 text-left font-medium">RFI #</th>
+                    <th className="p-3 text-left font-medium">Subject</th>
+                    <th className="p-3 text-left font-medium">Status</th>
+                    <th className="p-3 text-left font-medium">Importance</th>
+                    <th className="p-3 text-left font-medium">Assigned To</th>
+                    <th className="p-3 text-left font-medium"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -186,6 +179,7 @@ function RfiListContent() {
                     <td className="p-3">
                       <Link
                         href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/rfis/${rfi.id}`}
+                        onClick={() => setIsLoading(true)}
                         className="inline-block"
                       >
                         <GrayButton>View</GrayButton>
@@ -198,26 +192,27 @@ function RfiListContent() {
 
             {/* Card view for mobile */}
             <div className="block sm:hidden">
-              <div className="bg-white  dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded p-3 shadow-sm hover:shadow-md transition">
+              <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded p-3 shadow-sm hover:shadow-md transition">
                 <div className="flex justify-between items-center">
                   <h2 className="font-bold text-lg">RFI #{rfi.rfiNumber || "--"}</h2>
                   <Link
                     href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/rfis/${rfi.id}`}
+                    onClick={() => setIsLoading(true)}
                     className="inline-block"
                   >
                     <GrayButton>View</GrayButton>
                   </Link>
                 </div>
-                <p className=" mt-1">
+                <p className="mt-1">
                   <strong>Subject:</strong> {rfi.subject}
                 </p>
-                <p className="">
+                <p>
                   <strong>Status:</strong> {rfi.status}
                 </p>
-                <p className="">
+                <p>
                   <strong>Importance:</strong> {rfi.importance}
                 </p>
-                <p className="">
+                <p>
                   <strong>Assigned To:</strong> {rfi.assignedTo || "N/A"}
                 </p>
               </div>
@@ -235,7 +230,7 @@ function RfiListContent() {
           >
             Prev
           </GrayButton>
-          <span className="">
+          <span>
             Page {currentPage} of {totalPages}
           </span>
           <GrayButton
@@ -251,13 +246,10 @@ function RfiListContent() {
 }
 
 /**
- * RfiListPage wraps the RFIs list content in a LoadingProvider.
- * This ensures that useLoading works correctly.
+ * RfiListPage is the exported component.
+ * Since our LoadingBarContext is provided at a higher level in our DashboardLayout,
+ * we do not need to wrap it again here.
  */
 export default function RfiListPage() {
-  return (
-    <LoadingProvider>
-      <RfiListContent />
-    </LoadingProvider>
-  );
+  return <RfiListContent />;
 }

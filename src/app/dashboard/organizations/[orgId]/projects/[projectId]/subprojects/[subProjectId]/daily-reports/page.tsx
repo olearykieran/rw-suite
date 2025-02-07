@@ -1,18 +1,21 @@
+// src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/daily-reports/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Card } from "@/components/ui/Card";
 import { GrayButton } from "@/components/ui/GrayButton";
+import { AnimatedList } from "@/components/ui/AnimatedList";
 
 import {
   fetchAllDailyReports,
   deleteDailyReport,
   DailyReportDoc,
 } from "@/lib/services/DailyReportService";
+import { useLoadingBar } from "@/context/LoadingBarContext";
 
 export default function DailyReportListPage() {
   const { orgId, projectId, subProjectId } = useParams() as {
@@ -20,6 +23,8 @@ export default function DailyReportListPage() {
     projectId: string;
     subProjectId: string;
   };
+  const router = useRouter();
+  const { setIsLoading } = useLoadingBar();
 
   const [reports, setReports] = useState<DailyReportDoc[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,7 +71,7 @@ export default function DailyReportListPage() {
 
   return (
     <PageContainer>
-      {/* === Section #1: Back link & Title === */}
+      {/* === Section #1: Back Button & Title === */}
       <div
         className={`
           opacity-0 transition-all duration-500 ease-out delay-[0ms]
@@ -74,22 +79,23 @@ export default function DailyReportListPage() {
         `}
       >
         <div className="flex items-center justify-between">
-          <Link
-            href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`}
-            className="
-               font-medium text-blue-600 underline 
-              hover:text-blue-700 dark:text-blue-400 
-              dark:hover:text-blue-300 transition-colors
-            "
+          <GrayButton
+            onClick={() => {
+              setIsLoading(true);
+              router.push(
+                `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`
+              );
+            }}
           >
             &larr; Back to Sub-Project
-          </Link>
+          </GrayButton>
         </div>
 
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mt-4">
           <h1 className="text-2xl font-bold">Daily Reports</h1>
           <Link
             href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/daily-reports/new`}
+            onClick={() => setIsLoading(true)}
           >
             <GrayButton>Create Daily Report</GrayButton>
           </Link>
@@ -113,19 +119,21 @@ export default function DailyReportListPage() {
               <Card key={r.id} className="flex justify-between items-center">
                 <div>
                   <p className="font-semibold">Date: {r.date}</p>
-                  {r.weatherNote && <p className="">Weather: {r.weatherNote}</p>}
-                  {r.location && <p className="">Location: {r.location}</p>}
+                  {r.weatherNote && <p>Weather: {r.weatherNote}</p>}
+                  {r.location && <p>Location: {r.location}</p>}
                 </div>
                 <div className="flex gap-3">
-                  <Link
-                    href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/daily-reports/${r.id}`}
-                    className="
-                      text-blue-600 underline 
-                      hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300
-                    "
+                  <GrayButton
+                    onClick={() => {
+                      setIsLoading(true);
+                      router.push(
+                        `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/daily-reports/${r.id}`
+                      );
+                    }}
+                    className="text-blue-600"
                   >
                     View
-                  </Link>
+                  </GrayButton>
                   <GrayButton
                     onClick={() => handleDelete(r.id)}
                     className="text-xs bg-red-600 hover:bg-red-700"

@@ -8,7 +8,11 @@ import React from "react";
  *   - A header section with a back button and sub‑project header placeholders.
  *   - A features section with a grid of feature card placeholders.
  *
- * The animate-pulse utility from Tailwind CSS is used to create the shimmer effect.
+ * This updated version uses a custom CSS shimmer effect rather than the default Tailwind animate-pulse.
+ * The shimmer effect is implemented by overlaying a moving gradient on each placeholder.
+ *
+ * If you need the shimmer to more closely match the page’s background colors,
+ * adjust the background-color and gradient colors in the CSS below.
  */
 export function ShimmerCard() {
   // Define the features array so that the number of feature placeholders matches the actual UI.
@@ -87,78 +91,89 @@ export function ShimmerCard() {
       label: "Bid Leveler",
       description: "Compare contractor bids and identify scope gaps.",
     },
-    {
-      route: "lighting-schedule",
-      collectionName: "lighting-schedule",
-      label: "Lighting Schedule",
-      description: "Estimate lighting costs and schedule installation.",
-    },
-    {
-      route: "bid-management",
-      collectionName: "bidSubmissions",
-      label: "Bid Management",
-      description: "Manage bid submissions and guidelines.",
-    },
-    {
-      route: "bid-leveler",
-      collectionName: "bids",
-      label: "Bid Leveler",
-      description: "Compare contractor bids and identify scope gaps.",
-    },
-    {
-      route: "lighting-schedule",
-      collectionName: "lighting-schedule",
-      label: "Lighting Schedule",
-      description: "Estimate lighting costs and schedule installation.",
-    },
-    {
-      route: "bid-management",
-      collectionName: "bidSubmissions",
-      label: "Bid Management",
-      description: "Manage bid submissions and guidelines.",
-    },
-    {
-      route: "bid-management",
-      collectionName: "bidSubmissions",
-      label: "Bid Management",
-      description: "Manage bid submissions and guidelines.",
-    },
   ];
 
   return (
-    <div className="w-full max-w-5xl mx-auto px-4 py-6 space-y-8 relative animate-pulse">
-      {/* Section 1: Header Placeholder */}
-      <div>
-        {/* Back button placeholder */}
-        <div className="flex items-center justify-between mb-4 sm:mb-6">
-          <div className="bg-white dark:bg-white h-10 sm:h-12 w-28 sm:w-32 rounded-xl"></div>
-        </div>
-        {/* Sub‑Project Header Card Placeholder */}
-        <div className="bg-white dark:bg-white border border-black dark:border-gray-600 rounded-xl p-4 sm:p-6 space-y-4 sm:space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            {/* Title placeholder */}
-            <div className="bg-black h-8 sm:h-10 w-1/2 rounded"></div>
-            {/* Deselect button placeholder */}
-            <div className="bg-black h-10 sm:h-12 w-28 sm:w-32 rounded-xl"></div>
+    <>
+      {/* Container for the shimmer card */}
+      <div className="w-full max-w-5xl mx-auto px-4 py-6 space-y-8 relative">
+        {/* Section 1: Header Placeholder */}
+        <div>
+          {/* Back button placeholder */}
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <div className="h-10 sm:h-12 w-28 sm:w-32 rounded-xl shimmer-bg"></div>
           </div>
-          {/* Status placeholder */}
-          <div className="bg-black h-4 sm:h-5 w-1/3 rounded"></div>
+          {/* Sub‑Project Header Card Placeholder */}
+          <div className="border rounded-xl p-4 sm:p-6 space-y-4 sm:space-y-6 border-gray-300 dark:border-gray-600">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              {/* Title placeholder */}
+              <div className="h-8 sm:h-10 w-1/2 rounded shimmer-bg"></div>
+              {/* Deselect button placeholder */}
+              <div className="h-10 sm:h-12 w-28 sm:w-32 rounded-xl shimmer-bg"></div>
+            </div>
+            {/* Status placeholder */}
+            <div className="h-4 sm:h-5 w-1/3 rounded shimmer-bg"></div>
+          </div>
+        </div>
+
+        {/* Section 2: Features Placeholder */}
+        <div>
+          <div className="border rounded-xl p-4 sm:p-6 space-y-4 sm:space-y-6 border-gray-300 dark:border-gray-600">
+            {/* Features header placeholder */}
+            <div className="h-8 sm:h-10 w-1/3 rounded mb-4 sm:mb-6 shimmer-bg"></div>
+            {/* Grid of feature card placeholders */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {features.map((_, index) => (
+                <div key={index} className="h-24 sm:h-48 rounded-xl shimmer-bg"></div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Section 2: Features Placeholder */}
-      <div>
-        <div className="bg-white dark:bg-white border border-black dark:border-gray-600 rounded-xl p-4 sm:p-6 space-y-4 sm:space-y-6">
-          {/* Features header placeholder */}
-          <div className="bg-black h-8 sm:h-10 w-1/3 rounded mb-4 sm:mb-6"></div>
-          {/* Grid of feature card placeholders */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {features.map((_, index) => (
-              <div key={index} className="bg-black h-24 sm:h-32 rounded-xl"></div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
+      {/* Custom CSS for the shimmer effect */}
+      <style jsx>{`
+        /* 
+         * The shimmer-bg class applies a shimmering gradient background 
+         * that sweeps across the element to simulate a loading placeholder.
+         */
+        .shimmer-bg {
+          position: relative;
+          overflow: hidden;
+          /* Base background color; update these values to match your page if needed */
+          background-color: #f6f7f8;
+        }
+        /* Adjust the base color for dark mode */
+        @media (prefers-color-scheme: dark) {
+          .shimmer-bg {
+            background-color: #2a2a2a;
+          }
+        }
+        /* The ::after pseudo-element creates the moving gradient overlay */
+        .shimmer-bg::after {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: -150%;
+          width: 150%;
+          height: 100%;
+          background-image: linear-gradient(
+            90deg,
+            rgba(246, 247, 248, 0) 0%,
+            rgba(246, 247, 248, 0.8) 50%,
+            rgba(246, 247, 248, 0) 100%
+          );
+          animation: shimmer 1.5s linear infinite;
+        }
+        @keyframes shimmer {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(100%);
+          }
+        }
+      `}</style>
+    </>
   );
 }

@@ -3,9 +3,15 @@
 
 import { useState } from "react";
 import { firestore } from "@/lib/firebaseConfig";
-import { doc, setDoc, serverTimestamp, collection, addDoc } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, collection } from "firebase/firestore";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+
+// Shared UI Components
+import { PageContainer } from "@/components/ui/PageContainer";
+import { GrayButton } from "@/components/ui/GrayButton";
+
+// Import the global loading bar hook.
+import { useLoadingBar } from "@/context/LoadingBarContext";
 
 export default function NewProjectPage() {
   const router = useRouter();
@@ -14,30 +20,38 @@ export default function NewProjectPage() {
   const [status, setStatus] = useState("active");
   const [hasSubprojects, setHasSubprojects] = useState(false);
   const [subprojectNames, setSubprojectNames] = useState<string[]>([]);
-
   const [error, setError] = useState("");
 
+  // Get the global loading bar setter.
+  const { setIsLoading } = useLoadingBar();
+
+  // Adds an empty field for a new sub-project.
   const handleAddSubprojectField = () => {
     setSubprojectNames([...subprojectNames, ""]);
   };
 
+  // Updates the sub-project name at the specified index.
   const handleSubprojectNameChange = (index: number, value: string) => {
     const updated = [...subprojectNames];
     updated[index] = value;
     setSubprojectNames(updated);
   };
 
+  // Handles the form submission to create the new project.
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    // Activate the global loading bar.
+    setIsLoading(true);
 
     try {
-      // main project
+      // Create a slug for the main project based on the name.
       const mainProjectId = name.trim().toLowerCase().replace(/\s+/g, "-");
       if (!mainProjectId) {
         throw new Error("Please provide a valid project name.");
       }
 
+      // Reference to the main project document.
       const mainProjectRef = doc(
         firestore,
         "organizations",
@@ -53,10 +67,7 @@ export default function NewProjectPage() {
       });
 
       if (hasSubprojects) {
-        // create multiple sub-projects
-        // Sub-projects stored in a sub-collection "subprojects"
-        // OR stored as separate docs in the same "projects" collection referencing the mainProjectId
-        // We'll do a sub-collection approach:
+        // Create multiple sub-projects in a sub-collection "subprojects".
         for (const spName of subprojectNames) {
           const spSlug =
             spName.trim().toLowerCase().replace(/\s+/g, "-") ||
@@ -66,12 +77,11 @@ export default function NewProjectPage() {
             name: spName.trim() || "Untitled Sub-Project",
             status: "active",
             createdAt: serverTimestamp(),
-            // Possibly store mainProjectId again if needed
           });
         }
       } else {
-        // auto-create a single sub-project with the same name
-        const spRef = doc(collection(mainProjectRef, "subprojects"), mainProjectId); // same slug
+        // Auto-create a single sub-project with the same name.
+        const spRef = doc(collection(mainProjectRef, "subprojects"), mainProjectId);
         await setDoc(spRef, {
           name: name.trim(),
           status: "active",
@@ -79,27 +89,32 @@ export default function NewProjectPage() {
         });
       }
 
+      // Navigate to the newly created project's page.
       router.push(`/dashboard/organizations/${orgId}/projects/${mainProjectId}`);
     } catch (err: any) {
       console.error("Create project error:", err);
       setError(err.message || "Failed to create project");
+      // Deactivate the loading bar if there was an error.
+      setIsLoading(false);
     }
   };
 
   return (
-    <main className="p-4">
-      {/* Back button */}
-      <Link
-        href={`/dashboard/organizations/${orgId}/projects`}
-        className="text-blue-600 underline mb-4 inline-block"
+    <PageContainer>
+      {/* Back button with loading bar trigger */}
+      <GrayButton
+        onClick={() => {
+          setIsLoading(true); // Trigger loading bar before navigation
+          router.push(`/dashboard/organizations/${orgId}/projects`);
+        }}
       >
         &larr; Back to Projects
-      </Link>
+      </GrayButton>
 
-      <h1 className="text-xl font-semibold mb-4">Create Project (Umbrella)</h1>
+      <h1 className="text-2xl font-bold mt-4">Create Project (Umbrella)</h1>
       {error && <p className="text-red-600 mb-4">{error}</p>}
 
-      <form onSubmit={handleCreateProject} className="space-y-4">
+      <form onSubmit={handleCreateProject} className="space-y-4 mt-4">
         <div>
           <label className="block mb-1">Main Project Name</label>
           <input
@@ -114,7 +129,7 @@ export default function NewProjectPage() {
         <div>
           <label className="block mb-1">Status</label>
           <select
-            className="border p-2"
+            className="border p-2 w-full"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
           >
@@ -124,7 +139,7 @@ export default function NewProjectPage() {
           </select>
         </div>
 
-        {/* new checkbox for hasSubprojects */}
+        {/* Checkbox to determine if the project has multiple sub-projects */}
         <div>
           <label className="block mb-1 font-medium">
             Does this project have multiple sub-projects?
@@ -133,8 +148,9 @@ export default function NewProjectPage() {
             type="checkbox"
             checked={hasSubprojects}
             onChange={(e) => setHasSubprojects(e.target.checked)}
-          />{" "}
-          <span className="ml-2">Yes, I'd like to create sub-projects.</span>
+            className="mr-2"
+          />
+          <span>Yes, I'd like to create sub-projects.</span>
         </div>
 
         {hasSubprojects && (
@@ -150,20 +166,15 @@ export default function NewProjectPage() {
                 />
               </div>
             ))}
-            <button
-              type="button"
-              onClick={handleAddSubprojectField}
-              className=" px-3 py-1 rounded  hover:"
-            >
+            <GrayButton type="button" onClick={handleAddSubprojectField}>
               + Add Another Sub-Project
-            </button>
+            </GrayButton>
           </div>
         )}
 
-        <button type="submit" className="bg-black text-white px-4 py-2">
-          Create
-        </button>
+        {/* Create button with loading bar trigger on form submission */}
+        <GrayButton type="submit">Create</GrayButton>
       </form>
-    </main>
+    </PageContainer>
   );
 }

@@ -1,5 +1,4 @@
 // src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/page.tsx
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -14,6 +13,8 @@ import { Card } from "@/components/ui/Card";
 import { GrayButton } from "@/components/ui/GrayButton";
 import { AnimatedList } from "@/components/ui/AnimatedList";
 import { useLoadingBar } from "@/context/LoadingBarContext";
+// Import the context hook to update the selected sub‑project.
+import { useSelectedProject } from "@/context/SelectedProjectContext";
 
 interface SubProject {
   id: string;
@@ -32,6 +33,8 @@ export default function SubProjectsPage() {
 
   // Use the global loading bar state.
   const { setIsLoading } = useLoadingBar();
+  // Get the update function from context to update the selected sub‑project.
+  const { updateSelectedSubproject } = useSelectedProject();
 
   useEffect(() => {
     async function fetchData() {
@@ -72,13 +75,18 @@ export default function SubProjectsPage() {
     }
   }, [orgId, projectId]);
 
+  // Renders each sub‑project card.
   const renderSubProject = (sp: SubProject) => (
     <Card key={sp.id}>
       <p className="font-semibold text-lg">{sp.name || sp.id}</p>
       <p className="">Status: {sp.status || "active"}</p>
       <Link
         href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${sp.id}`}
-        onClick={() => setIsLoading(true)}
+        onClick={() => {
+          setIsLoading(true);
+          // Update the context with the selected sub‑project.
+          updateSelectedSubproject(sp.id, sp.name || sp.id);
+        }}
         className="mt-2 inline-block"
       >
         <GrayButton>Open Project</GrayButton>
@@ -86,6 +94,7 @@ export default function SubProjectsPage() {
     </Card>
   );
 
+  // Display an error message if data loading fails.
   if (error) {
     return (
       <PageContainer>
@@ -96,12 +105,15 @@ export default function SubProjectsPage() {
 
   return (
     <PageContainer>
-      <button
-        onClick={() => router.push(`/dashboard/organizations/${orgId}/projects`)}
-        className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 transition-colors px-4 py-2 rounded-xl "
+      {/* Back button using GrayButton with loading context */}
+      <GrayButton
+        onClick={() => {
+          setIsLoading(true); // Activate the global loading bar before navigation.
+          router.push(`/dashboard/organizations/${orgId}/projects`);
+        }}
       >
         &larr; Back to {mainProjectName}
-      </button>
+      </GrayButton>
 
       <div className="flex justify-between items-center mt-4">
         <h1 className="text-2xl font-bold">Sub‑Projects under {mainProjectName}</h1>
@@ -113,7 +125,7 @@ export default function SubProjectsPage() {
         isLoading={loading}
         className="mt-4 text-black dark:text-white"
         emptyMessage={
-          <p className=" text-neutral-600 dark:text-neutral-300 mt-2">
+          <p className="text-neutral-600 dark:text-neutral-300 mt-2">
             No sub‑projects found.
           </p>
         }

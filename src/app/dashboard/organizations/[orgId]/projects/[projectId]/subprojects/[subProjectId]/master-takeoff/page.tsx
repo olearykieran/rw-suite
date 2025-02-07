@@ -57,16 +57,15 @@ export default function MasterTakeoffListPage() {
   return (
     <PageContainer>
       <div className="flex items-center justify-between mb-4">
-        <button
+        <GrayButton
           onClick={() =>
             router.push(
               `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`
             )
           }
-          className="bg-gray-300 text-black hover:bg-gray-400 px-4 py-2 rounded-xl "
         >
           &larr; Back
-        </button>
+        </GrayButton>
         <div className="flex gap-2">
           <Link
             href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/master-takeoff/new`}

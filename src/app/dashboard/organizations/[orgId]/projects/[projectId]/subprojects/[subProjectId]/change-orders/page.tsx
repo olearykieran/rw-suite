@@ -1,12 +1,13 @@
+// src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/change-orders/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import Link from "next/link";
-
+import { useParams, useRouter } from "next/navigation";
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Card } from "@/components/ui/Card";
 import { GrayButton } from "@/components/ui/GrayButton";
+import { AnimatedList } from "@/components/ui/AnimatedList";
+import { useLoadingBar } from "@/context/LoadingBarContext";
 
 import {
   fetchAllChangeOrders,
@@ -20,12 +21,14 @@ export default function ChangeOrderListPage() {
     projectId: string;
     subProjectId: string;
   };
+  const router = useRouter();
+  const { setIsLoading } = useLoadingBar();
 
   const [changeOrders, setChangeOrders] = useState<ChangeOrderDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // For fade-in
+  // For fade-in effect
   const [showContent, setShowContent] = useState(false);
 
   useEffect(() => {
@@ -60,7 +63,7 @@ export default function ChangeOrderListPage() {
   }
 
   if (loading) {
-    return <div className="p-6 ">Loading Change Orders...</div>;
+    return <div className="p-6 text-white">Loading Change Orders...</div>;
   }
   if (error) {
     return <div className="p-6 text-red-600">{error}</div>;
@@ -68,7 +71,7 @@ export default function ChangeOrderListPage() {
 
   return (
     <PageContainer>
-      {/* === Section #1: Back link & Title === */}
+      {/* === Section #1: Back Button & Title === */}
       <div
         className={`
           opacity-0 transition-all duration-500 ease-out delay-[0ms]
@@ -76,25 +79,30 @@ export default function ChangeOrderListPage() {
         `}
       >
         <div className="flex items-center justify-between">
-          <Link
-            href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`}
-            className="
-               font-medium text-blue-600 underline
-              hover:text-blue-700 dark:text-blue-400
-              dark:hover:text-blue-300 transition-colors
-            "
+          <GrayButton
+            onClick={() => {
+              setIsLoading(true);
+              router.push(
+                `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`
+              );
+            }}
           >
             &larr; Back to Sub-Project
-          </Link>
+          </GrayButton>
         </div>
 
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mt-4">
           <h1 className="text-2xl font-bold">Change Orders</h1>
-          <Link
-            href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/change-orders/new`}
+          <GrayButton
+            onClick={() => {
+              setIsLoading(true);
+              router.push(
+                `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/change-orders/new`
+              );
+            }}
           >
-            <GrayButton>Create Change Order</GrayButton>
-          </Link>
+            Create Change Order
+          </GrayButton>
         </div>
       </div>
 
@@ -116,23 +124,25 @@ export default function ChangeOrderListPage() {
                 <div>
                   <p className="font-semibold">{co.title}</p>
                   {co.costImpact !== undefined && (
-                    <p className="">Cost Impact: ${co.costImpact.toFixed(2)}</p>
+                    <p>Cost Impact: ${co.costImpact.toFixed(2)}</p>
                   )}
                   {co.scheduleImpact !== undefined && (
-                    <p className="">Schedule Impact: {co.scheduleImpact} day(s)</p>
+                    <p>Schedule Impact: {co.scheduleImpact} day(s)</p>
                   )}
-                  {co.status && <p className="">Status: {co.status}</p>}
+                  {co.status && <p>Status: {co.status}</p>}
                 </div>
                 <div className="flex gap-3">
-                  <Link
-                    href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/change-orders/${co.id}`}
-                    className="
-                      text-blue-600 underline 
-                      hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300
-                    "
+                  <GrayButton
+                    onClick={() => {
+                      setIsLoading(true);
+                      router.push(
+                        `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/change-orders/${co.id}`
+                      );
+                    }}
+                    className="text-xs"
                   >
                     View
-                  </Link>
+                  </GrayButton>
                   <GrayButton
                     onClick={() => handleDelete(co.id)}
                     className="text-xs bg-red-600 hover:bg-red-700"

@@ -1,15 +1,19 @@
+// src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/blueprints/page.tsx
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { fetchAllBlueprints } from "@/lib/services/BlueprintService";
 
-// Shared UI
+// Shared UI components
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Card } from "@/components/ui/Card";
 import { GrayButton } from "@/components/ui/GrayButton";
 import { AnimatedList } from "@/components/ui/AnimatedList";
+
+// Import the global loading bar hook.
+import { useLoadingBar } from "@/context/LoadingBarContext";
 
 export default function BlueprintListPage() {
   const { orgId, projectId, subProjectId } = useParams() as {
@@ -17,6 +21,8 @@ export default function BlueprintListPage() {
     projectId: string;
     subProjectId: string;
   };
+  const router = useRouter();
+  const { setIsLoading } = useLoadingBar();
 
   const [blueprints, setBlueprints] = useState<any[]>([]);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -44,48 +50,45 @@ export default function BlueprintListPage() {
 
   return (
     <PageContainer>
-      {/* === Back link === */}
-      <Link
-        href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`}
-        className="
-           font-medium text-blue-600 underline 
-          hover:text-blue-700 dark:text-blue-400 
-          dark:hover:text-blue-300 transition-colors
-        "
+      {/* === Back Button === */}
+      <GrayButton
+        onClick={() => {
+          setIsLoading(true);
+          router.push(
+            `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`
+          );
+        }}
       >
         &larr; Back to Subproject
-      </Link>
+      </GrayButton>
 
-      {/* === Title & Button === */}
+      {/* === Title & Upload Blueprint Button === */}
       <div className="flex justify-between items-start sm:items-center flex-col sm:flex-row gap-2 mt-4">
         <h1 className="text-2xl font-bold">Blueprints</h1>
         <Link
           href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/blueprints/new`}
+          onClick={() => setIsLoading(true)}
         >
           <GrayButton>Upload Blueprint</GrayButton>
         </Link>
       </div>
 
-      {/* === Animated List of blueprints === */}
+      {/* === Animated List of Blueprints === */}
       <AnimatedList
         items={blueprints}
         isLoading={isInitialLoading}
         className="mt-4"
         emptyMessage={
-          <p className=" text-neutral-600 dark:text-neutral-300">No blueprints found.</p>
+          <p className="text-neutral-600 dark:text-neutral-300">No blueprints found.</p>
         }
         renderItem={(bp) => (
           <Card key={bp.id} className="flex flex-col gap-2">
             <p className="font-medium">{bp.title}</p>
             <Link
               href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/blueprints/${bp.id}`}
-              className="
-                text-blue-600 underline 
-                hover:text-blue-700
-                dark:text-blue-400 dark:hover:text-blue-300
-              "
+              onClick={() => setIsLoading(true)}
             >
-              View
+              <GrayButton>View</GrayButton>
             </Link>
           </Card>
         )}

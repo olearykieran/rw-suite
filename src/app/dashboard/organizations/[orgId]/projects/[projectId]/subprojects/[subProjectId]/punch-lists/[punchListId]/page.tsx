@@ -1,7 +1,8 @@
+// src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/punch-lists/[punchListId]/page.tsx
 "use client";
 
 import { useState, useEffect, FormEvent } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { PageContainer } from "@/components/ui/PageContainer";
@@ -15,6 +16,7 @@ import {
   PunchListDoc,
   PunchItem,
 } from "@/lib/services/PunchListService";
+import { useLoadingBar } from "@/context/LoadingBarContext";
 
 export default function PunchListDetailPage() {
   const { orgId, projectId, subProjectId, punchListId } = useParams() as {
@@ -23,6 +25,8 @@ export default function PunchListDetailPage() {
     subProjectId: string;
     punchListId: string;
   };
+  const router = useRouter();
+  const { setIsLoading } = useLoadingBar();
 
   const [punchList, setPunchList] = useState<PunchListDoc | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,7 +64,7 @@ export default function PunchListDetailPage() {
         setError("Failed to load punch list.");
       } finally {
         setLoading(false);
-        // fade-in
+        // Fade-in effect
         setTimeout(() => setShowContent(true), 100);
       }
     }
@@ -133,9 +137,8 @@ export default function PunchListDetailPage() {
     }
   }
 
-  // ---------- RENDER ----------
   if (loading) {
-    return <div className="p-6 ">Loading Punch List...</div>;
+    return <div className="p-6">Loading Punch List...</div>;
   }
   if (error) {
     return <div className="p-6 text-red-600">{error}</div>;
@@ -146,23 +149,23 @@ export default function PunchListDetailPage() {
 
   return (
     <PageContainer>
-      {/* === Fade-in #1: Back link & Title === */}
+      {/* === Fade-in #1: Back Button & Title === */}
       <div
         className={`
           opacity-0 transition-all duration-500 ease-out delay-[0ms]
           ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
         `}
       >
-        <Link
-          href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/punch-lists`}
-          className="
-             font-medium text-blue-600 underline
-            hover:text-blue-700 dark:text-blue-400
-            dark:hover:text-blue-300 transition-colors
-          "
+        <GrayButton
+          onClick={() => {
+            setIsLoading(true);
+            router.push(
+              `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/punch-lists`
+            );
+          }}
         >
           &larr; Back to Punch Lists
-        </Link>
+        </GrayButton>
 
         <div className="space-y-1 mt-2">
           <h1 className="text-2xl font-bold">{punchList.title}</h1>
@@ -179,12 +182,9 @@ export default function PunchListDetailPage() {
         <Card>
           <form onSubmit={handleUpdatePunchList} className="space-y-4">
             <div>
-              <label className="block  font-medium mb-1">Title</label>
+              <label className="block font-medium mb-1">Title</label>
               <input
-                className="
-                  border p-2 w-full rounded
-                  bg-white dark:bg-neutral-800 dark:text-white
-                "
+                className="border p-2 w-full rounded bg-white dark:bg-neutral-800 dark:text-white"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
@@ -192,12 +192,9 @@ export default function PunchListDetailPage() {
             </div>
 
             <div>
-              <label className="block  font-medium mb-1">Description</label>
+              <label className="block font-medium mb-1">Description</label>
               <textarea
-                className="
-                  border p-2 w-full rounded
-                  bg-white dark:bg-neutral-800 dark:text-white
-                "
+                className="border p-2 w-full rounded bg-white dark:bg-neutral-800 dark:text-white"
                 rows={3}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -205,12 +202,9 @@ export default function PunchListDetailPage() {
             </div>
 
             <div>
-              <label className="block  font-medium mb-1">Status</label>
+              <label className="block font-medium mb-1">Status</label>
               <select
-                className="
-                  border p-2 w-full rounded
-                  bg-white dark:bg-neutral-800 dark:text-white
-                "
+                className="border p-2 w-full rounded bg-white dark:bg-neutral-800 dark:text-white"
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
               >
@@ -228,13 +222,13 @@ export default function PunchListDetailPage() {
               </GrayButton>
 
               {items.length === 0 && (
-                <p className=" text-neutral-600 dark:text-neutral-300">No items yet.</p>
+                <p className="text-neutral-600 dark:text-neutral-300">No items yet.</p>
               )}
 
               {items.map((item) => (
                 <Card key={item.id} className="space-y-2 mb-2">
                   <div className="flex gap-2 items-center">
-                    <label className="block  w-16">Title</label>
+                    <label className="block w-16">Title</label>
                     <input
                       className="border p-1 flex-1 rounded"
                       value={item.title}
@@ -243,7 +237,7 @@ export default function PunchListDetailPage() {
                   </div>
 
                   <div className="flex gap-2 items-center">
-                    <label className="block  w-16">Location</label>
+                    <label className="block w-16">Location</label>
                     <input
                       className="border p-1 flex-1 rounded"
                       value={item.location || ""}
@@ -254,7 +248,7 @@ export default function PunchListDetailPage() {
                   </div>
 
                   <div className="flex gap-2 items-center">
-                    <label className="block  w-16">Assigned</label>
+                    <label className="block w-16">Assigned</label>
                     <input
                       className="border p-1 flex-1 rounded"
                       value={item.assignedTo || ""}
@@ -265,7 +259,7 @@ export default function PunchListDetailPage() {
                   </div>
 
                   <div className="flex gap-2 items-center">
-                    <label className="block  w-16">Status</label>
+                    <label className="block w-16">Status</label>
                     <select
                       className="border p-1 rounded"
                       value={item.status || "open"}
@@ -279,7 +273,7 @@ export default function PunchListDetailPage() {
                   </div>
 
                   <div>
-                    <label className="block  mb-1">Notes</label>
+                    <label className="block mb-1">Notes</label>
                     <textarea
                       className="border p-1 w-full rounded"
                       rows={2}
@@ -316,7 +310,7 @@ export default function PunchListDetailPage() {
         <Card>
           <h2 className="text-lg font-semibold">Attachments</h2>
           {punchList.attachments && punchList.attachments.length > 0 ? (
-            <ul className="list-disc ml-5  mt-2">
+            <ul className="list-disc ml-5 mt-2">
               {punchList.attachments.map((url, i) => (
                 <li key={i}>
                   <a
@@ -325,8 +319,7 @@ export default function PunchListDetailPage() {
                     rel="noopener noreferrer"
                     className="
                       text-blue-600 underline
-                      hover:text-blue-700
-                      dark:text-blue-400 dark:hover:text-blue-300
+                      hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300
                     "
                   >
                     {url.split("/").pop()}
@@ -335,12 +328,12 @@ export default function PunchListDetailPage() {
               ))}
             </ul>
           ) : (
-            <p className=" mt-1">No attachments yet.</p>
+            <p className="mt-1">No attachments yet.</p>
           )}
 
           {/* Upload new attachments */}
           <div className="mt-4 space-y-2">
-            <label className="block  font-medium">Upload Attachments</label>
+            <label className="block font-medium">Upload Attachments</label>
             <input
               type="file"
               multiple

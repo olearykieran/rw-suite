@@ -1,3 +1,4 @@
+// /dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -8,6 +9,7 @@ import { firestore } from "@/lib/firebaseConfig";
 import Link from "next/link";
 import { ShimmerCard } from "@/components/ui/ShimmerCard";
 import { useLoadingBar } from "@/context/LoadingBarContext";
+import { GrayButton } from "@/components/ui/GrayButton"; // Import GrayButton for consistent styling
 
 interface SubProjectDoc {
   id: string;
@@ -44,12 +46,12 @@ export default function SubProjectOverview() {
       label: "RFIs",
       description: "Create, distribute, and track Requests for Information.",
     },
-    {
-      route: "submittals",
-      collectionName: "submittals",
-      label: "Submittals",
-      description: "Create, distribute, and track Submittals.",
-    },
+    // {
+    //   route: "submittals",
+    //   collectionName: "submittals",
+    //   label: "Submittals",
+    //   description: "Create, distribute, and track Submittals.",
+    // },
     {
       route: "blueprints",
       collectionName: "blueprints",
@@ -62,12 +64,12 @@ export default function SubProjectOverview() {
       label: "Tasks & Scheduling",
       description: "Create, distribute, and track Tasks.",
     },
-    {
-      route: "finances",
-      collectionName: "finances",
-      label: "Finances",
-      description: "Create, distribute, and track Finances.",
-    },
+    // {
+    //   route: "finances",
+    //   collectionName: "finances",
+    //   label: "Finances",
+    //   description: "Create, distribute, and track Finances.",
+    // },
     {
       route: "change-orders",
       collectionName: "change-orders",
@@ -244,16 +246,17 @@ export default function SubProjectOverview() {
           }`}
         >
           <div className="flex items-center justify-between mb-4 sm:mb-6">
-            <button
-              onClick={() =>
+            {/* Updated back button using GrayButton with loading context */}
+            <GrayButton
+              onClick={() => {
+                setIsLoading(true); // Activate the global loading bar before navigation.
                 router.push(
                   `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects`
-                )
-              }
-              className=" text-white hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 transition-colors px-4 py-2 sm:px-6 sm:py-3 rounded-xl text-base"
+                );
+              }}
             >
               &larr; Back to Sub‑Projects of {mainProjectName}
-            </button>
+            </GrayButton>
           </div>
           <div className="bg-white dark:bg-neutral-900 border border-black dark:border-gray-600 rounded-xl p-4 sm:p-6 space-y-4 sm:space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -290,7 +293,7 @@ export default function SubProjectOverview() {
                   href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/${feature.route}`}
                   // Trigger the global loading bar when a feature is clicked.
                   onClick={() => setIsLoading(true)}
-                  className="bg-white text-black dark:text-white dark:bg-neutral-700 border border-black dark:border-gray-600 rounded-xl p-4 sm:p-6 shadow-sm hover:shadow-md transition"
+                  className="bg-white text-black dark:text-white dark:bg-neutral-700 border dark:hover:bg-black hover:bg-black hover:text-white border-black dark:border-gray-600 rounded-xl p-4 sm:p-6 shadow-sm hover:shadow-md transition"
                 >
                   <h3 className="font-bold mb-1">
                     {feature.label} ({counts[feature.route] ?? 0})

@@ -1,10 +1,11 @@
+// src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/site-visits/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, FormEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { ReactPictureAnnotation } from "react-picture-annotation";
+import { ReactSketchCanvas } from "react-sketch-canvas";
 import { ReactMediaRecorder } from "react-media-recorder";
 import { v4 as uuidv4 } from "uuid";
 
@@ -25,11 +26,8 @@ import { GrayButton } from "@/components/ui/GrayButton";
 // --------------------------------------------------------------------
 interface Annotation {
   id: string;
-  mark: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
+  // For ReactSketchCanvas, we store the exported paths as the annotation data.
+  paths: any[];
   comment?: string;
 }
 
@@ -49,9 +47,13 @@ function NewEntryModal({
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [tempImage, setTempImage] = useState<string | null>(null);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const storage = getStorage();
 
-  // Upload file and return its download URL
+  const canvasRef = useRef<any>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
+
+  // Upload file and return its download URL.
   async function uploadFile(file: File, folder: string): Promise<string> {
     const uniqueName = `${uuidv4()}-${file.name}`;
     const fileRef = ref(storage, `${folder}/${uniqueName}`);
@@ -59,19 +61,50 @@ function NewEntryModal({
     return await getDownloadURL(fileRef);
   }
 
-  // Handle photo selection and set up for annotation
+  // Handle photo selection and set up for annotation.
   function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files && e.target.files.length > 0) {
       setPhotoFiles(e.target.files);
-      // Use the first photo for annotation preview.
       const file = e.target.files[0];
-      setTempImage(URL.createObjectURL(file));
+      const previewUrl = URL.createObjectURL(file);
+      setTempImage(previewUrl);
       setSelectedImageUrl(null);
       setAnnotations([]);
+      setImageLoaded(false);
+      if (canvasRef.current) {
+        canvasRef.current.clearCanvas();
+      }
     }
   }
 
-  // Save the new site visit entry
+  // Save the annotation drawn on the canvas.
+  async function handleSaveAnnotation() {
+    if (canvasRef.current) {
+      const paths = await canvasRef.current.exportPaths();
+      if (!paths || paths.length === 0) {
+        alert("No annotation found. Please draw on the image before saving.");
+        return;
+      }
+      const newAnnotation: Annotation = {
+        id: uuidv4(),
+        paths,
+      };
+      setAnnotations([newAnnotation]);
+      setSelectedImageUrl(tempImage);
+      alert("Annotation saved!");
+    }
+  }
+
+  // Clear the current annotation from the canvas.
+  function handleClearAnnotation() {
+    if (canvasRef.current) {
+      canvasRef.current.clearCanvas();
+      setAnnotations([]);
+      setSelectedImageUrl(null);
+    }
+  }
+
+  // Save the new site visit entry.
   async function handleSaveEntry() {
     try {
       const photoData: { url: string; annotations?: Annotation[] }[] = [];
@@ -115,14 +148,14 @@ function NewEntryModal({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded p-6 max-w-2xl w-full relative overflow-auto"
+        className="bg-white rounded p-6 max-w-4xl w-full relative overflow-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-2xl font-bold mb-4">New Site Visit Entry</h2>
         <div className="mb-4">
-          <label className="block  font-medium mb-1">Entry Note</label>
+          <label className="block font-medium mb-1 text-black">Entry Note</label>
           <textarea
-            className="w-full border p-2 rounded"
+            className="w-full border p-2 rounded text-black"
             rows={3}
             value={entryNote}
             onChange={(e) => setEntryNote(e.target.value)}
@@ -130,7 +163,7 @@ function NewEntryModal({
           />
         </div>
         <div className="mb-4">
-          <label className="block  font-medium mb-1">Add Photos</label>
+          <label className="block font-medium mb-1">Add Photos</label>
           <input
             type="file"
             multiple
@@ -140,33 +173,71 @@ function NewEntryModal({
           />
           {tempImage && (
             <div className="mt-2">
-              <p className=" font-medium mb-1">Annotate Photo:</p>
-              <ReactPictureAnnotation
-                image={tempImage}
-                width={600}
-                height={400}
-                annotationData={annotations}
-                onChange={(data: any[]) => setAnnotations(data as Annotation[])}
-                onSelect={() => {}}
-                selectedId={null}
-              />
-              <p className="text-xs text-black dark:text-white">
-                Draw on the image as desired. Annotations will be saved with this photo.
+              <p className="font-medium mb-1">Annotate Photo:</p>
+              <div
+                className="relative border rounded overflow-hidden bg-gray-100"
+                style={{
+                  minHeight: "400px",
+                  maxHeight: "80vh",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <img
+                  ref={imageRef}
+                  src={tempImage}
+                  alt="Preview"
+                  className="max-w-full max-h-full object-contain"
+                  onLoad={() => setImageLoaded(true)}
+                />
+                {imageLoaded && (
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                    }}
+                  >
+                    <ReactSketchCanvas
+                      ref={canvasRef}
+                      width="100%"
+                      height="100%"
+                      strokeWidth={3}
+                      strokeColor="red"
+                      canvasColor="transparent"
+                      preserveAspectRatio="xMidYMid meet"
+                    />
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2 mt-2">
+                <GrayButton onClick={handleSaveAnnotation} disabled={!imageLoaded}>
+                  Save Annotation
+                </GrayButton>
+                <GrayButton onClick={handleClearAnnotation} disabled={!imageLoaded}>
+                  Clear Annotation
+                </GrayButton>
+              </div>
+              <p className="text-xs text-black mt-1">
+                Draw on the image as desired. You can circle items, add notes, or freehand
+                annotate.
               </p>
             </div>
           )}
         </div>
         <div className="mb-4">
-          <label className="block  font-medium mb-1">
+          <label className="block font-medium mb-1">
             Add Voice Notes (Record or Upload)
           </label>
           <ReactMediaRecorder
             audio
             render={({ status, startRecording, stopRecording, mediaBlobUrl }) => (
               <div className="mb-2">
-                <p className="text-xs text-black dark:text-white">
-                  Recording Status: {status}
-                </p>
+                <p className="text-xs text-black">Recording Status: {status}</p>
                 <div className="flex gap-2 mb-2">
                   <GrayButton onClick={startRecording}>Start</GrayButton>
                   <GrayButton onClick={stopRecording}>Stop</GrayButton>
@@ -282,26 +353,27 @@ export default function SiteVisitDetailPage() {
   return (
     <PageContainer>
       <div className="flex items-center justify-between mb-4">
-        <Link
-          href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/site-visits`}
-          className=" font-medium text-blue-600 underline"
+        <GrayButton
+          onClick={() =>
+            router.push(
+              `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/site-visits`
+            )
+          }
         >
           &larr; Back to Site Visits
-        </Link>
+        </GrayButton>
         <GrayButton onClick={() => setShowNewEntryModal(true)}>+ New Entry</GrayButton>
       </div>
 
-      <Card className="mb-4 p-4 text-black dark:text-white">
+      <Card className="mb-4 p-4">
         <h1 className="text-2xl font-bold mb-1">
           Site Visit: {new Date(visit.visitDate).toLocaleDateString()}
         </h1>
-        <p className=" text-black dark:text-white mb-2">
-          Participants: {visit.participants.join(", ") || "N/A"}
-        </p>
+        <p className="mb-2">Participants: {visit.participants.join(", ") || "N/A"}</p>
         <div>
-          <label className="block  font-medium mb-1">Main Notes</label>
+          <label className="block font-medium mb-1">Main Notes</label>
           <textarea
-            className="border p-2 w-full text-black dark:text-black rounded"
+            className="border p-2 w-full rounded"
             rows={3}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
@@ -322,12 +394,8 @@ export default function SiteVisitDetailPage() {
             )
             .map((entry: SiteVisitEntry) => (
               <Card key={entry.id} className="p-4">
-                <p className=" text-black dark:text-white">
-                  {new Date(entry.timestamp).toLocaleString()}
-                </p>
-                {entry.note && (
-                  <p className="mt-2  text-black dark:text-white">{entry.note}</p>
-                )}
+                <p className="text-black">{new Date(entry.timestamp).toLocaleString()}</p>
+                {entry.note && <p className="mt-2 text-black">{entry.note}</p>}
                 {entry.photos && entry.photos.length > 0 && (
                   <div className="mt-2 grid grid-cols-2 gap-2">
                     {entry.photos.map(
@@ -364,9 +432,7 @@ export default function SiteVisitDetailPage() {
             ))
         ) : (
           <Card className="p-4">
-            <p className=" text-black dark:text-white">
-              No entries have been added for this site visit.
-            </p>
+            <p>No entries have been added for this site visit.</p>
           </Card>
         )}
       </div>

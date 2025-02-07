@@ -8,7 +8,8 @@ import { collection, getDocs } from "firebase/firestore";
 import SidebarNav from "@/components/SidebarNav";
 import TopHeader from "@/components/TopHeader";
 import { AnimatedPage } from "@/components/ui/AnimatedPage";
-import { LoadingBarProvider } from "@/context/LoadingBarContext"; // <-- import here
+import { LoadingBarProvider } from "@/context/LoadingBarContext";
+import { SelectedProjectProvider } from "@/context/SelectedProjectContext"; // <-- Import the provider
 
 function DashboardLayoutContent({ children }: { children: ReactNode }) {
   const [user, authLoading] = useAuthState(auth);
@@ -74,9 +75,11 @@ function DashboardLayoutContent({ children }: { children: ReactNode }) {
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
-    // Wrap with the LoadingBarProvider so all child components can trigger the loading bar.
+    // Wrap with both providers.
     <LoadingBarProvider>
-      <DashboardLayoutContent>{children}</DashboardLayoutContent>
+      <SelectedProjectProvider>
+        <DashboardLayoutContent>{children}</DashboardLayoutContent>
+      </SelectedProjectProvider>
     </LoadingBarProvider>
   );
 }

@@ -77,16 +77,15 @@ export default function MeetingMinutesListPage() {
     <PageContainer>
       {/* Top controls: Back button + Create new */}
       <div className="flex items-center justify-between mb-4">
-        <button
+        <GrayButton
           onClick={() =>
             router.push(
               `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`
             )
           }
-          className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 px-4 py-2 rounded-xl "
         >
           &larr; Back
-        </button>
+        </GrayButton>
         <Link
           href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/meeting-minutes/new`}
         >

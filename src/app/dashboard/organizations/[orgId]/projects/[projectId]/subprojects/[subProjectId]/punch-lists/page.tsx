@@ -1,19 +1,18 @@
+// src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/punch-lists/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import Link from "next/link";
-
+import { useParams, useRouter } from "next/navigation";
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Card } from "@/components/ui/Card";
 import { GrayButton } from "@/components/ui/GrayButton";
-import { AnimatedList } from "@/components/ui/AnimatedList"; // <-- AnimatedList import
-
+import { AnimatedList } from "@/components/ui/AnimatedList";
 import {
   fetchAllPunchLists,
   deletePunchList,
   PunchListDoc,
 } from "@/lib/services/PunchListService";
+import { useLoadingBar } from "@/context/LoadingBarContext";
 
 export default function PunchListIndexPage() {
   const { orgId, projectId, subProjectId } = useParams() as {
@@ -21,6 +20,8 @@ export default function PunchListIndexPage() {
     projectId: string;
     subProjectId: string;
   };
+  const router = useRouter();
+  const { setIsLoading } = useLoadingBar();
 
   const [punchLists, setPunchLists] = useState<PunchListDoc[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,7 +60,6 @@ export default function PunchListIndexPage() {
     }
   }
 
-  // ---------- RENDER ----------
   if (loading) {
     return <div className="p-6 ">Loading Punch Lists...</div>;
   }
@@ -69,35 +69,40 @@ export default function PunchListIndexPage() {
 
   return (
     <PageContainer>
-      {/* === Section #1: Back link + Title === */}
+      {/* === Section #1: Back Button & Title === */}
       <div
         className={`
           opacity-0 transition-all duration-500 ease-out delay-[0ms]
           ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
         `}
       >
-        {/* Back link */}
+        {/* Back Button */}
         <div className="flex items-center justify-between">
-          <Link
-            href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`}
-            className="
-               font-medium text-blue-600 underline
-              hover:text-blue-700 dark:text-blue-400
-              dark:hover:text-blue-300 transition-colors
-            "
+          <GrayButton
+            onClick={() => {
+              setIsLoading(true);
+              router.push(
+                `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}`
+              );
+            }}
           >
             &larr; Back to Sub-Project
-          </Link>
+          </GrayButton>
         </div>
 
-        {/* Title + Create Button */}
+        {/* Title & Create Button */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mt-4">
           <h1 className="text-2xl font-bold">Punch Lists</h1>
-          <Link
-            href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/punch-lists/new`}
+          <GrayButton
+            onClick={() => {
+              setIsLoading(true);
+              router.push(
+                `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/punch-lists/new`
+              );
+            }}
           >
-            <GrayButton>Create Punch List</GrayButton>
-          </Link>
+            Create Punch List
+          </GrayButton>
         </div>
       </div>
 
@@ -125,19 +130,20 @@ export default function PunchListIndexPage() {
               <Card key={pl.id} className="flex justify-between items-center">
                 <div>
                   <p className="font-semibold">{pl.title}</p>
-                  <p className="">Status: {pl.status || "open"}</p>
+                  <p>Status: {pl.status || "open"}</p>
                 </div>
                 <div className="flex gap-3">
-                  <Link
-                    href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/punch-lists/${pl.id}`}
-                    className="
-                      text-blue-600 underline 
-                      hover:text-blue-700 dark:text-blue-400
-                      dark:hover:text-blue-300
-                    "
+                  <GrayButton
+                    onClick={() => {
+                      setIsLoading(true);
+                      router.push(
+                        `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/punch-lists/${pl.id}`
+                      );
+                    }}
+                    className="text-blue-600"
                   >
                     View
-                  </Link>
+                  </GrayButton>
                   <GrayButton
                     onClick={() => handleDelete(pl.id)}
                     className="text-xs bg-red-600 hover:bg-red-700"

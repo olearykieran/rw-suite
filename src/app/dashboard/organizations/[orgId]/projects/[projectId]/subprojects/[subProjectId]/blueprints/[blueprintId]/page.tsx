@@ -1,9 +1,8 @@
 // src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/blueprints/[blueprintId]/page.tsx
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import {
   fetchBlueprint,
   updateAnnotations,
@@ -11,9 +10,12 @@ import {
 } from "@/lib/services/BlueprintService";
 import PDFAnnotator from "@/components/PDFAnnotatorWithZoom";
 import ImageAnnotator from "@/components/ImageAnnotatorWithZoom";
+// Import the global loading bar hook and GrayButton for consistent styling.
+import { useLoadingBar } from "@/context/LoadingBarContext";
+import { GrayButton } from "@/components/ui/GrayButton";
 
 /**
- * Detect if a file is PDF by extension
+ * Detect if a file is PDF by extension.
  */
 function isPdfFile(url: string): boolean {
   const lower = url.split("?")[0].toLowerCase();
@@ -28,6 +30,9 @@ export default function BlueprintDetailPage() {
     blueprintId: string;
   };
 
+  const router = useRouter();
+  const { setIsLoading } = useLoadingBar();
+
   const [blueprint, setBlueprint] = useState<any>(null);
   const [pins, setPins] = useState<BlueprintAnnotation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,7 +43,6 @@ export default function BlueprintDetailPage() {
       try {
         if (!orgId || !projectId || !subProjectId || !blueprintId) return;
         setLoading(true);
-
         const doc = await fetchBlueprint(orgId, projectId, subProjectId, blueprintId);
         setBlueprint(doc);
         setPins(doc.annotations || []);
@@ -52,14 +56,14 @@ export default function BlueprintDetailPage() {
     load();
   }, [orgId, projectId, subProjectId, blueprintId]);
 
-  // Add new pin to array + Firestore
+  // Add a new pin and update Firestore.
   async function handleAddPin(pin: BlueprintAnnotation) {
     const updated = [...pins, pin];
     setPins(updated);
     await updateAnnotations(orgId, projectId, subProjectId, blueprintId, updated);
   }
 
-  // Update or delete pin (if pinType="DELETED")
+  // Update an existing pin (or delete if pinType === "DELETED").
   async function handleUpdatePin(pin: BlueprintAnnotation) {
     if (pin.pinType === "DELETED") {
       const filtered = pins.filter((p) => p.id !== pin.id);
@@ -72,7 +76,7 @@ export default function BlueprintDetailPage() {
     await updateAnnotations(orgId, projectId, subProjectId, blueprintId, updated);
   }
 
-  // Direct delete
+  // Directly delete a pin.
   async function handleDeletePin(pinId: string) {
     const filtered = pins.filter((p) => p.id !== pinId);
     setPins(filtered);
@@ -93,12 +97,17 @@ export default function BlueprintDetailPage() {
 
   return (
     <main className="p-4 space-y-4">
-      <Link
-        href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/blueprints`}
-        className="text-blue-600 underline"
+      {/* Back Button */}
+      <GrayButton
+        onClick={() => {
+          setIsLoading(true); // Trigger the loading bar before navigation.
+          router.push(
+            `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/blueprints`
+          );
+        }}
       >
         &larr; Back to Blueprints
-      </Link>
+      </GrayButton>
 
       <h1 className="text-xl font-bold">{blueprint.title}</h1>
 
