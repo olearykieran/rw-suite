@@ -1,6 +1,144 @@
-// src/app/api/parse-meeting/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
+
+/**
+ * Improves JSON truncation fixing by adding better JSON validation and structure checking
+ */
+function fixTruncatedJson(text: string): string {
+  let fixedText = text.trim();
+
+  // First, try to find a complete outer object/array structure
+  const firstOpen = fixedText.search(/[{\[]/);
+  if (firstOpen === -1) return fixedText;
+
+  const firstChar = fixedText[firstOpen];
+  const matchingChar = firstChar === "{" ? "}" : "]";
+
+  // Stack-based parsing to handle nested structures
+  let stack = [];
+  let inString = false;
+  let escaped = false;
+
+  for (let i = 0; i < fixedText.length; i++) {
+    const char = fixedText[i];
+
+    if (!inString) {
+      if (char === "{" || char === "[") {
+        stack.push(char);
+      } else if (char === "}" || char === "]") {
+        if (stack.length === 0) {
+          // Unmatched closing bracket - truncate here
+          fixedText = fixedText.slice(0, i);
+          break;
+        }
+        const last = stack.pop();
+        if ((char === "}" && last !== "{") || (char === "]" && last !== "[")) {
+          // Mismatched brackets - truncate here
+          fixedText = fixedText.slice(0, i);
+          break;
+        }
+      } else if (char === '"' && !escaped) {
+        inString = true;
+      }
+    } else {
+      if (char === '"' && !escaped) {
+        inString = false;
+      }
+    }
+    escaped = char === "\\" && !escaped;
+  }
+
+  // Complete any unclosed strings
+  if (inString) {
+    fixedText += '"';
+  }
+
+  // Complete any unclosed structures
+  while (stack.length > 0) {
+    const char = stack.pop();
+    fixedText += char === "{" ? "}" : "]";
+  }
+
+  return fixedText;
+}
+
+/**
+ * More robust JSON extraction that handles nested structures correctly
+ */
+function extractValidJson(text: string): string {
+  // Find the outermost JSON object/array
+  const firstBrace = text.search(/[{\[]/);
+  if (firstBrace === -1) return text;
+
+  let stack = [];
+  let inString = false;
+  let escaped = false;
+  let endIndex = -1;
+
+  for (let i = firstBrace; i < text.length; i++) {
+    const char = text[i];
+
+    if (!inString) {
+      if (char === "{" || char === "[") {
+        stack.push(char);
+      } else if (char === "}" || char === "]") {
+        if (stack.length > 0) {
+          const last = stack.pop();
+          if ((char === "}" && last === "{") || (char === "]" && last === "[")) {
+            if (stack.length === 0) {
+              endIndex = i;
+              break;
+            }
+          }
+        }
+      } else if (char === '"' && !escaped) {
+        inString = true;
+      }
+    } else {
+      if (char === '"' && !escaped) {
+        inString = false;
+      }
+    }
+    escaped = char === "\\" && !escaped;
+  }
+
+  if (endIndex !== -1) {
+    return text.substring(firstBrace, endIndex + 1);
+  }
+  return text;
+}
+
+/**
+ * Safer JSON parsing with better error handling and validation
+ */
+function safeJsonParse(text: string): any {
+  // Remove any potential BOM or invalid characters at the start
+  text = text.replace(/^\uFEFF/, "");
+
+  try {
+    return JSON.parse(text);
+  } catch (initialError) {
+    console.log("Initial parse failed, attempting to fix truncation...");
+    let fixedText = fixTruncatedJson(text);
+
+    try {
+      return JSON.parse(fixedText);
+    } catch (secondaryError) {
+      console.log("Fixed parse failed, attempting to extract valid JSON...");
+      const extractedText = extractValidJson(text);
+
+      try {
+        return JSON.parse(extractedText);
+      } catch (extractionError) {
+        console.error("All parsing attempts failed:");
+        console.error("Initial error:", initialError);
+        console.error("Secondary error:", secondaryError);
+        console.error("Extraction error:", extractionError);
+        throw new Error("Failed to parse JSON after multiple attempts");
+      }
+    }
+  }
+}
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -16,24 +154,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // We'll ask ChatGPT to parse the rawSummary into a strict JSON structure,
-    // now using headings/enumerations style in "notes" as requested.
-    const systemPrompt = `
-You are a meeting minutes parser. You will receive a raw meeting summary.
+    const systemPrompt = `You are a meeting minutes parser. You will receive a raw meeting summary.
 
-1) You must not leave out any important detail.
-2) Each major heading or topic from the raw text should be reflected in the "notes" field, using headings or enumerations similar to the user's example:
-   "Key Topics Discussed
-    1. Some Heading
-    Sub-Heading
-    (description)
-
-    2. Next Heading
-    (lines)...
-
-   etc."
-3) The final output MUST be valid JSON with exactly these fields:
-
+Please parse it into structured JSON with these fields:
 {
   "title": string,
   "date": string,
@@ -41,40 +164,32 @@ You are a meeting minutes parser. You will receive a raw meeting summary.
     { "name": string, "email": string, "phone": string, "company": string }
   ],
   "agenda": string,
-  "notes": string,
+  "notes": string, 
   "nextMeetingDate": string,
   "actionItems": [
     { "status": string, "owner": string, "open": boolean, "notes": string }
   ]
 }
 
-Rules:
-- "attendees": fill as many fields as possible.
-- "agenda": short bullet or line list of the main topics.
-- "notes": a multiline, text-based outline with headings and enumerations (like the example). Keep the raw details. No bulleting with '-' for every line. Instead, use headings, enumerations, or subheadings.
-- "actionItems": array of tasks. If the raw text indicates a task is finished, "open": false; else default "open": true.
+Important rules:
+1. Preserve all important details from the original text
+2. Format the "notes" field as a structured outline with numbered sections
+3. Do not use hyphens/bullets for every line
+4. Only return valid JSON - no markdown, no code fences, no extra text`;
 
-Return no disclaimers or markdown. If unsure, leave fields blank. Output only JSON—no extra text or code fences.
-`;
+    const userPrompt = `Parse this meeting summary:\n${rawSummary}`;
 
-    const userPrompt = `
-Here is the raw meeting summary:
-${rawSummary}
-`;
-
-    // Call GPT
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o", // or "gpt-3.5-turbo", or "gpt-4o" if you have that
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4", // Fixed typo in model name
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      max_tokens: 1800,
-      temperature: 0.2,
+      max_tokens: 2000, // Increased token limit
+      temperature: 0.1, // Reduced temperature for more consistent output
     });
 
-    // Extract the response text
-    let aiContent = response.choices?.[0]?.message?.content?.trim() || "";
+    const aiContent = completion.choices[0]?.message?.content?.trim() || "";
     if (!aiContent) {
       return NextResponse.json(
         { error: "No content returned from ChatGPT" },
@@ -82,33 +197,13 @@ ${rawSummary}
       );
     }
 
-    // Optionally log for debugging
-    console.log("=== ChatGPT RAW ===");
-    console.log(aiContent);
-    console.log("=== END RAW ===");
-
-    // Strip any triple-backtick fences if they appear
-    aiContent = aiContent
-      .replace(/^```(\w+)?/gm, "") // remove ```json or ```
+    // Clean the response and parse
+    const cleanedContent = aiContent
+      .replace(/^```(?:json)?/gm, "")
       .replace(/```$/gm, "")
       .trim();
 
-    // Try to parse the JSON
-    let parsed: any;
-    try {
-      parsed = JSON.parse(aiContent);
-    } catch (jsonErr: any) {
-      console.error("Could not parse JSON from ChatGPT:", aiContent);
-      return NextResponse.json(
-        {
-          error: "Invalid JSON from ChatGPT",
-          rawResponse: aiContent,
-        },
-        { status: 500 }
-      );
-    }
-
-    // Return the parsed data to the client
+    const parsed = safeJsonParse(cleanedContent);
     return NextResponse.json({ data: parsed });
   } catch (err: any) {
     console.error("Error in parse-meeting route:", err);

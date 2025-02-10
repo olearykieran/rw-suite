@@ -1,3 +1,5 @@
+// src/app/components/SidebarNav.tsx
+
 "use client";
 
 import { useState } from "react";
@@ -8,30 +10,28 @@ import {
   BuildingOffice2Icon,
   Cog6ToothIcon,
   UserIcon,
+  DocumentTextIcon, // Newly added icon for the PDF Generator
 } from "@heroicons/react/24/outline";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useLoadingBar } from "@/context/LoadingBarContext";
 import { useOrgId } from "@/hooks/useOrgId";
-// Use the new context hook.
 import { useSelectedProject } from "@/context/SelectedProjectContext";
 
 export default function SidebarNav() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // You can still get the effective org from your hook...
+  // Effective organization ID from hook
   const effectiveOrgId = useOrgId();
-
-  // Global loading bar setter.
   const { setIsLoading } = useLoadingBar();
 
-  // Real user profile from Firestore.
+  // Get user profile data
   const { profile, loading, error } = useUserProfile();
 
-  // Retrieve the current selection from context.
+  // Retrieve current project/subproject names from context
   const { selectedProjectName, selectedSubprojectName } = useSelectedProject();
 
-  // Navigation items.
+  // Define navigation items (added PDF Generator item)
   const navItems = [
     { name: "Dashboard", href: "/dashboard", icon: <HomeIcon className="h-5 w-5" /> },
     {
@@ -44,6 +44,11 @@ export default function SidebarNav() {
       href: `/dashboard/organizations/${effectiveOrgId}/contractors`,
       icon: <UserIcon className="h-5 w-5" />,
       onClick: () => setIsLoading(true),
+    },
+    {
+      name: "PDF Generator",
+      href: "/dashboard/generic-pdf",
+      icon: <DocumentTextIcon className="h-5 w-5" />,
     },
     {
       name: "Settings",
@@ -95,7 +100,7 @@ export default function SidebarNav() {
         </div>
       </div>
 
-      {/* Nav Items */}
+      {/* Navigation Items */}
       <nav className="flex-1 overflow-y-auto">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
@@ -127,24 +132,6 @@ export default function SidebarNav() {
           );
         })}
       </nav>
-
-      {/* Current selection display (shown only when sidebar is expanded)
-      {!isCollapsed && (
-        <div className="p-4 border-t border-gray-500">
-          <div className="text-xs font-medium mb-1">Current Selection:</div>
-          <div className="text-xs">
-            <div>
-              <strong>Org:</strong> {effectiveOrgId || "None"}
-            </div>
-            <div>
-              <strong>Project:</strong> {selectedProjectName || "None"}
-            </div>
-            <div>
-              <strong>Sub‑Project:</strong> {selectedSubprojectName || "None"}
-            </div>
-          </div>
-        </div>
-      )} */}
 
       {/* Bottom user profile */}
       <div className="p-4 border-t border-gray-500 flex items-center gap-3">
