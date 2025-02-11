@@ -90,7 +90,7 @@ export default function NewProjectPage() {
       }
 
       // Navigate to the newly created project's page.
-      router.push(`/dashboard/organizations/${orgId}/projects/${mainProjectId}`);
+      router.push(`/dashboard/organizations/${orgId}/projects`);
     } catch (err: any) {
       console.error("Create project error:", err);
       setError(err.message || "Failed to create project");
@@ -118,7 +118,7 @@ export default function NewProjectPage() {
         <div>
           <label className="block mb-1">Main Project Name</label>
           <input
-            className="border p-2 w-full"
+            className="border text-black p-2 w-full"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Example: Chinatown Conversion"
@@ -129,7 +129,7 @@ export default function NewProjectPage() {
         <div>
           <label className="block mb-1">Status</label>
           <select
-            className="border p-2 w-full"
+            className="border text-black p-2 w-full"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
           >
@@ -159,7 +159,7 @@ export default function NewProjectPage() {
             {subprojectNames.map((sp, idx) => (
               <div key={idx} className="mb-2">
                 <input
-                  className="border p-2 w-full"
+                  className="border text-black p-2 w-full"
                   placeholder={`Sub-Project ${idx + 1}`}
                   value={sp}
                   onChange={(e) => handleSubprojectNameChange(idx, e.target.value)}

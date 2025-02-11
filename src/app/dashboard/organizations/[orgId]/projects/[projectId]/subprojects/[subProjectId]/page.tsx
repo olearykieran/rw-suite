@@ -76,12 +76,12 @@ export default function SubProjectOverview() {
       label: "Change Orders",
       description: "Track changes to scope, costs, or schedule.",
     },
-    {
-      route: "daily-reports",
-      collectionName: "daily-reports",
-      label: "Daily Reports",
-      description: "Log site conditions, progress, and any incidents daily.",
-    },
+    // {
+    //   route: "daily-reports",
+    //   collectionName: "daily-reports",
+    //   label: "Daily Reports",
+    //   description: "Log site conditions, progress, and any incidents daily.",
+    // },
     {
       route: "meeting-minutes",
       collectionName: "meeting-minutes",
@@ -125,6 +125,12 @@ export default function SubProjectOverview() {
       collectionName: "bidSubmissions",
       label: "Bid Management",
       description: "Manage bid submissions and guidelines.",
+    },
+    {
+      route: "research",
+      collectionName: "research",
+      label: "Research",
+      description: "Manage research and documentation.",
     },
   ];
 
