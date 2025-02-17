@@ -132,6 +132,12 @@ export default function SubProjectOverview() {
       label: "Research",
       description: "Manage research and documentation.",
     },
+    {
+      route: "analytics",
+      collectionName: "analytics",
+      label: "Analytics",
+      description: "View analytics data.",
+    },
   ];
 
   // Fetch data for the detailed sub‑project view.

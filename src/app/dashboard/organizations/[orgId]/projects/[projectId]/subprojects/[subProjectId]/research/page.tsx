@@ -11,12 +11,17 @@ import { GrayButton } from "@/components/ui/GrayButton";
 import { fetchResearchEntries } from "@/lib/services/ResearchService";
 import { ResearchEntry } from "@/lib/services/ResearchService";
 
-// PreviewImage component using our API route to fetch preview image URL
+/**
+ * PreviewImage component
+ * Uses our API route to fetch a preview image URL and displays it.
+ * Note: We have removed the "export" keyword here so that Next.js does not
+ * treat it as a page export field.
+ */
 interface PreviewImageProps {
   url: string;
 }
 
-export function PreviewImage({ url }: PreviewImageProps) {
+function PreviewImage({ url }: PreviewImageProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -39,7 +44,7 @@ export function PreviewImage({ url }: PreviewImageProps) {
 
   if (loading) {
     return (
-      <div className="w-24 h-24 animate-pulse bg-gray-200 dark:bg-gray-700 rounded" />
+      <div className="w-full h-48 animate-pulse bg-gray-200 dark:bg-gray-700 rounded-t-lg" />
     );
   }
 
@@ -48,16 +53,19 @@ export function PreviewImage({ url }: PreviewImageProps) {
       <img
         src={imageUrl}
         alt="Preview"
-        className="w-24 h-24 object-cover rounded"
+        className="w-full h-full object-cover"
         onError={() => setImageUrl(null)}
       />
     );
   }
 
-  return <div className="w-24 h-24 bg-gray-300 dark:bg-gray-600 rounded" />;
+  return <div className="w-full h-48 bg-gray-300 dark:bg-gray-600 rounded-t-lg" />;
 }
 
-// Modal component to display the full summary of an entry
+/**
+ * SummaryModal component
+ * Displays the full summary of a research entry in a modal dialog.
+ */
 interface SummaryModalProps {
   isOpen: boolean;
   title: string;
@@ -80,6 +88,7 @@ function SummaryModal({ isOpen, title, summary, onClose }: SummaryModalProps) {
         >
           <div className="fixed inset-0 bg-black bg-opacity-30 dark:bg-opacity-80" />
         </Transition.Child>
+
         <div className="fixed inset-0 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4 text-center">
             <Transition.Child
@@ -115,7 +124,10 @@ function SummaryModal({ isOpen, title, summary, onClose }: SummaryModalProps) {
   );
 }
 
-// PaginationControls component
+/**
+ * PaginationControls component
+ * Provides previous/next navigation for paginated research entries.
+ */
 interface PaginationControlsProps {
   currentPage: number;
   totalPages: number;
@@ -144,7 +156,11 @@ function PaginationControls({
   );
 }
 
-// Main ResearchListPage component with toggle between Table and Card views
+/**
+ * ResearchListPage component
+ * The main page component with toggle between Table and Card views.
+ * The default view mode has been updated to "card".
+ */
 export default function ResearchListPage() {
   const { orgId, projectId, subProjectId } = useParams() as {
     orgId: string;
@@ -156,7 +172,7 @@ export default function ResearchListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Modal state for showing full summary
+  // Modal state for full summary
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
   const [modalSummary, setModalSummary] = useState("");
@@ -170,7 +186,8 @@ export default function ResearchListPage() {
     currentPage * pageSize
   );
 
-  // View mode state: default is now "card" view.
+  // View mode state: "table" or "card"
+  // Updated default view mode to "card"
   const [viewMode, setViewMode] = useState<"table" | "card">("card");
 
   // Fetch research entries on mount or when route parameters change
@@ -191,11 +208,10 @@ export default function ResearchListPage() {
   }, [orgId, projectId, subProjectId]);
 
   // Utility to truncate long summaries
-  const truncate = (text: string, maxLength: number): string => {
-    return text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
-  };
+  const truncate = (text: string, maxLength: number): string =>
+    text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
 
-  // Handlers for modal
+  // Handlers for modal operations
   const openModal = (title: string, summary: string) => {
     setModalTitle(title);
     setModalSummary(summary);
@@ -216,7 +232,7 @@ export default function ResearchListPage() {
   // Handler for toggling view mode
   const toggleViewMode = (mode: "table" | "card") => {
     setViewMode(mode);
-    setCurrentPage(1); // reset pagination when switching views
+    setCurrentPage(1); // Reset pagination when switching views
   };
 
   return (
@@ -350,10 +366,10 @@ export default function ResearchListPage() {
                 {paginatedEntries.map((entry, index) => (
                   <Card
                     key={index}
-                    className="shadow-lg rounded-lg overflow-hidden transform hover:scale-105 transition duration-200 flex flex-col"
+                    className="shadow-lg rounded-lg overflow-hidden transform hover:scale-105 transition duration-200"
                   >
                     {/* Image Section */}
-                    <div className="w-full h-56 overflow-hidden">
+                    <div className="w-full h-48 overflow-hidden">
                       {entry.image ? (
                         <img
                           src={entry.image}
@@ -365,7 +381,7 @@ export default function ResearchListPage() {
                       )}
                     </div>
                     {/* Content Section */}
-                    <div className="p-4 flex flex-col space-y-2 flex-1">
+                    <div className="p-4 flex flex-col space-y-2">
                       <a
                         href={entry.url}
                         target="_blank"
@@ -387,7 +403,7 @@ export default function ResearchListPage() {
                         <span className="font-semibold">Tags:</span>{" "}
                         {Array.isArray(entry.tags) ? entry.tags.join(", ") : ""}
                       </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-300 flex flex-wrap">
+                      <div className="text-sm text-gray-600 dark:text-gray-300">
                         <span className="font-semibold">Summary:</span>{" "}
                         {truncate(entry.summary, 80)}
                         {entry.summary.length > 80 && (

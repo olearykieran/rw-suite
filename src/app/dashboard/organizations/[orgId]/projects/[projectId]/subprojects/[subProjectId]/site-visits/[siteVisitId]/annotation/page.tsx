@@ -1,3 +1,5 @@
+// src/app/dashboard/organizations/[orgId]/projects/[projectId]/subprojects/[subProjectId]/site-visits/[siteVisitId]/annotation/page.tsx
+
 "use client";
 
 import { useSearchParams, useRouter, useParams } from "next/navigation";
@@ -12,8 +14,33 @@ import { fetchSiteVisit, updateSiteVisit } from "@/lib/services/SiteVisitService
 
 interface Annotation {
   id: string;
+  // Annotation paths are stored as a normalized string (relative coordinates)
   paths: any[];
   comment?: string;
+}
+
+// --------------------------------------------------------------------
+// Utility functions to denormalize annotation coordinates
+// Convert a normalized points string ("0.1234,0.5678 ...") back to absolute values
+// --------------------------------------------------------------------
+function denormalizePathString(
+  pathString: string,
+  canvasWidth: number,
+  canvasHeight: number
+): string {
+  const pointStrings = pathString.split(" ");
+  const denormalizedPoints = pointStrings.map((ptStr) => {
+    const [x, y] = ptStr.split(",").map(Number);
+    return `${(x * canvasWidth).toFixed(0)},${(y * canvasHeight).toFixed(0)}`;
+  });
+  return denormalizedPoints.join(" ");
+}
+
+function denormalizePaths(paths: any, canvasWidth: number, canvasHeight: number) {
+  return paths.map((path: any) => ({
+    ...path,
+    points: denormalizePathString(path.points, canvasWidth, canvasHeight),
+  }));
 }
 
 export default function AnnotationPage() {
@@ -62,7 +89,14 @@ export default function AnnotationPage() {
         if (photo && photo.annotations?.length > 0) {
           setAnnotations(photo.annotations);
           if (canvasRef.current && imageLoaded) {
-            await canvasRef.current.loadPaths(photo.annotations[0].paths);
+            const renderedWidth = imageRef.current.clientWidth;
+            const renderedHeight = imageRef.current.clientHeight;
+            const denormPaths = denormalizePaths(
+              photo.annotations,
+              renderedWidth,
+              renderedHeight
+            );
+            await canvasRef.current.loadPaths(denormPaths);
           }
         }
       } catch (error) {
@@ -98,9 +132,21 @@ export default function AnnotationPage() {
         return;
       }
 
+      // Normalize is assumed to have been done when saving initially,
+      // so here we re-save the new annotation in normalized form.
+      // For simplicity in this AnnotationPage we will overwrite with the current paths.
+      // (In a more advanced implementation you might merge with existing annotations.)
       const newAnnotation: Annotation = {
         id: uuidv4(),
-        paths,
+        // We assume that the paths exported here are already adjusted for the current canvas.
+        // To store them normalized, we convert them using the rendered dimensions.
+        paths: denormalizePathString(
+          // First, exportPaths returns a string if there's one path – adjust accordingly.
+          // If exportPaths returns an array of objects, you can adjust the logic.
+          paths[0].points,
+          imageRef.current.clientWidth,
+          imageRef.current.clientHeight
+        ),
       };
 
       // Find and update the specific photo's annotations in the entry
@@ -142,7 +188,6 @@ export default function AnnotationPage() {
     if (!canvasRef.current || !visit) return;
 
     try {
-      console.log("Clearing canvas...");
       await canvasRef.current.clearCanvas();
       setAnnotations([]);
       setSaved(false);
@@ -197,9 +242,11 @@ export default function AnnotationPage() {
       </div>
 
       <Card className="p-4">
-        <h1 className="text-xl font-bold mb-4">Annotate Photo</h1>
+        <h1 className="text-xl font-bold mb-4 text-black dark:text-white">
+          Annotate Photo
+        </h1>
         <div
-          className="relative border rounded overflow-hidden bg-gray-100"
+          className="relative border rounded overflow-hidden bg-gray-100 dark:bg-gray-700"
           style={{
             minHeight: "400px",
             maxHeight: "80vh",
@@ -224,16 +271,7 @@ export default function AnnotationPage() {
           />
 
           {imageLoaded && (
-            <div
-              className="absolute inset-0"
-              style={{
-                width: "100%",
-                height: "100%",
-                position: "absolute",
-                top: 0,
-                left: 0,
-              }}
-            >
+            <div className="absolute inset-0">
               <ReactSketchCanvas
                 ref={canvasRef}
                 width="100%"

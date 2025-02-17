@@ -15,6 +15,7 @@ export interface ResearchEntry {
   summary: string;
   author?: string; // Optional: author of the article
   notes?: string; // Optional: additional personal notes or commentary
+  image?: string; // Add the image property here
 }
 
 /**
