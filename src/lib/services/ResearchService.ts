@@ -13,9 +13,12 @@ export interface ResearchEntry {
   date: string; // ISO date string (e.g., "2024-01-01")
   tags: string[]; // Array of tag strings (e.g., ["Market Growth", "NYC"])
   summary: string;
-  author?: string; // Optional: author of the article
+  author?: string; // Optional: author of the article or social media account name
   notes?: string; // Optional: additional personal notes or commentary
-  image?: string; // Add the image property here
+  image?: string; // URL to an image, especially for social media posts
+  likes?: number; // Number of likes (for social media posts)
+  shares?: number; // Number of shares/retweets (for social media posts)
+  comments?: number; // Number of comments (for social media posts)
 }
 
 /**
@@ -104,25 +107,26 @@ export async function fetchResearchEntries(
     }
 
     console.log("Found entries:", snapshot.docs.length);
-    return snapshot.docs.map(
-      (doc) => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          title: data.title || "",
-          url: data.url || "",
-          type: data.type || "",
-          source: data.source || "",
-          date: data.date || "",
-          tags: data.tags || [],
-          summary: data.summary || "",
-          author: data.author,
-          notes: data.notes,
-          image: data.image,
-          ...data
-        } as ResearchEntry;
-      }
-    );
+    return snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        title: data.title || "",
+        url: data.url || "",
+        type: data.type || "",
+        source: data.source || "",
+        date: data.date || "",
+        tags: data.tags || [],
+        summary: data.summary || "",
+        author: data.author,
+        notes: data.notes,
+        image: data.image,
+        likes: data.likes,
+        shares: data.shares,
+        comments: data.comments,
+        ...data,
+      } as ResearchEntry;
+    });
   } catch (error) {
     console.error("Error fetching research entries:", error);
     throw error;
