@@ -29,26 +29,21 @@ import {
 
 /**
  * Attempt to parse a string from <input type="datetime-local" /> into a JS Date.
- * - If there's no "T" in the string, we'll append "T00:00" so that YYYY-MM-DD alone is accepted.
- * - If the result is an invalid JS Date, we return null.
+ * If there's no "T" in the string, we'll append "T00:00" so that YYYY-MM-DD alone is accepted.
  */
 function parseDateTime(value: string): Date | null {
   if (!value) return null;
-
-  // If user only typed YYYY-MM-DD (no T in it), append T00:00
   if (!value.includes("T")) {
     value += "T00:00";
   }
-
   const d = new Date(value);
   if (isNaN(d.getTime())) {
-    // It's invalid
     return null;
   }
   return d;
 }
 
-/** Convert a JS Date => "YYYY-MM-DDTHH:mm" for <input type="datetime-local" /> */
+/** Convert a JS Date into "YYYY-MM-DDTHH:mm" format for <input type="datetime-local" /> */
 function formatDateTime(d: any): string {
   if (!d) return "";
   const dt = new Date(d);
@@ -92,6 +87,9 @@ export default function MeetingDetailPage() {
   // Attachments
   const [files, setFiles] = useState<FileList | null>(null);
 
+  // New state for custom logo image file
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+
   // Fade-in effect
   const [showContent, setShowContent] = useState(false);
 
@@ -115,7 +113,7 @@ export default function MeetingDetailPage() {
         setAgenda(data.agenda || "");
         setNotes(data.notes || "");
 
-        // Format the DB Date => <input type="datetime-local" />
+        // Format the DB Date for <input type="datetime-local" />
         setDate(formatDateTime(data.date));
         setNextMeetingDate(formatDateTime(data.nextMeetingDate));
 
@@ -141,23 +139,21 @@ export default function MeetingDetailPage() {
     if (!meeting) return;
 
     try {
-      // Attempt to parse the date fields
+      // Parse the date fields
       const dateObj = parseDateTime(date);
       const nextObj = parseDateTime(nextMeetingDate);
 
-      // If either is a weird string that couldn't parse => dateObj is null
-      // We can either let Firestore store "null" or we can show an error to the user
       if (date && dateObj === null) {
         alert(
           `The Date field is invalid: "${date}".\n\nPlease use the format YYYY-MM-DDTHH:mm`
         );
-        return; // do not proceed
+        return;
       }
       if (nextMeetingDate && nextObj === null) {
         alert(
           `The Next Meeting Date field is invalid: "${nextMeetingDate}".\n\nPlease use the format YYYY-MM-DDTHH:mm`
         );
-        return; // do not proceed
+        return;
       }
 
       // Parse JSON fields
@@ -174,7 +170,7 @@ export default function MeetingDetailPage() {
         console.warn("Could not parse actionItems JSON:", jsonErr);
       }
 
-      // Save to Firestore
+      // Save updates to Firestore
       await updateMeeting(orgId, projectId, subProjectId, meeting.id, {
         title,
         propertyCode,
@@ -196,7 +192,7 @@ export default function MeetingDetailPage() {
   }
 
   // ---------------------------------------
-  // 3) Upload attachments
+  // 3) Upload Attachments
   // ---------------------------------------
   async function handleUpload() {
     if (!meeting || !files || files.length === 0) return;
@@ -226,7 +222,34 @@ export default function MeetingDetailPage() {
   }
 
   // ---------------------------------------
-  // 4) PDF
+  // 4) Upload Custom Logo Image for PDF Header
+  // ---------------------------------------
+  async function handleUploadLogo() {
+    if (!meeting || !logoFile) return;
+    try {
+      // Upload the logo file using the existing upload function
+      const logoUrl = await uploadMeetingAttachment(
+        orgId,
+        projectId,
+        subProjectId,
+        meeting.id,
+        logoFile
+      );
+      // Update the meeting record with the custom logo URL
+      await updateMeeting(orgId, projectId, subProjectId, meeting.id, {
+        customLogoUrl: logoUrl,
+      });
+      setMeeting({ ...meeting, customLogoUrl: logoUrl });
+      setLogoFile(null);
+      alert("Custom logo uploaded!");
+    } catch (err: any) {
+      console.error("Upload logo error:", err);
+      setError("Failed to upload custom logo.");
+    }
+  }
+
+  // ---------------------------------------
+  // 5) Download PDF
   // ---------------------------------------
   async function handleDownloadPDF() {
     if (!meeting) return;
@@ -239,14 +262,16 @@ export default function MeetingDetailPage() {
       attendees: meeting.attendees || [],
       notes: meeting.notes || "",
       actionItems: meeting.actionItems || [],
+      // Use the custom logo if available; otherwise fall back to the default logo URL
       logoUrl:
+        meeting.customLogoUrl ||
         "https://firebasestorage.googleapis.com/v0/b/rw-project-management.firebasestorage.app/o/rw-logo-title.png?alt=media&token=03a42c6c-980c-4857-ae0d-f84c37baa2fe",
     };
     generateMeetingMinutesPDF(pdfData);
   }
 
   // ---------------------------------------
-  // 5) DOCX
+  // 6) Download DOCX
   // ---------------------------------------
   async function handleDownloadDoc() {
     if (!meeting) return;
@@ -273,6 +298,7 @@ export default function MeetingDetailPage() {
       actionItems: docActions,
     };
     const logoUrl =
+      meeting.customLogoUrl ||
       "https://firebasestorage.googleapis.com/v0/b/rw-project-management.firebasestorage.app/o/rw-logo-title.png?alt=media&token=03a42c6c-980c-4857-ae0d-f84c37baa2fe";
     await generateMeetingMinutesDoc(docData, logoUrl);
   }
@@ -281,7 +307,7 @@ export default function MeetingDetailPage() {
   // Render
   // ---------------------------------------
   if (loading) {
-    return <div className="p-6 ">Loading Meeting...</div>;
+    return <div className="p-6">Loading Meeting...</div>;
   }
   if (error) {
     return <div className="p-6 text-red-600">{error}</div>;
@@ -305,7 +331,7 @@ export default function MeetingDetailPage() {
               `/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/meeting-minutes`
             )
           }
-          className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 px-4 py-2 rounded-xl "
+          className="bg-gray-300 text-black hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 px-4 py-2 rounded-xl"
         >
           &larr; Back
         </button>
@@ -325,7 +351,7 @@ export default function MeetingDetailPage() {
           <form onSubmit={handleUpdate} className="space-y-4">
             {/* Title */}
             <div>
-              <label className="block  font-medium text-neutral-300 mb-1">Title</label>
+              <label className="block font-medium text-neutral-300 mb-1">Title</label>
               <input
                 className="border bg-neutral-300 text-black p-2 w-full rounded"
                 value={title}
@@ -335,7 +361,7 @@ export default function MeetingDetailPage() {
 
             {/* Property Code */}
             <div>
-              <label className="block  font-medium text-neutral-300 mb-1">
+              <label className="block font-medium text-neutral-300 mb-1">
                 Property Code
               </label>
               <input
@@ -347,7 +373,7 @@ export default function MeetingDetailPage() {
 
             {/* Prepared By */}
             <div>
-              <label className="block  font-medium text-neutral-300 mb-1">
+              <label className="block font-medium text-neutral-300 mb-1">
                 Prepared By
               </label>
               <input
@@ -359,7 +385,7 @@ export default function MeetingDetailPage() {
 
             {/* Location */}
             <div>
-              <label className="block  font-medium text-neutral-300 mb-1">Location</label>
+              <label className="block font-medium text-neutral-300 mb-1">Location</label>
               <input
                 className="border bg-neutral-300 text-black p-2 w-full rounded"
                 value={location}
@@ -369,7 +395,7 @@ export default function MeetingDetailPage() {
 
             {/* Date */}
             <div>
-              <label className="block  font-medium text-neutral-300 mb-1">Date</label>
+              <label className="block font-medium text-neutral-300 mb-1">Date</label>
               <input
                 type="datetime-local"
                 className="border bg-neutral-300 text-black p-2 w-full rounded"
@@ -383,7 +409,7 @@ export default function MeetingDetailPage() {
 
             {/* Agenda */}
             <div>
-              <label className="block  font-medium text-neutral-300 mb-1">Agenda</label>
+              <label className="block font-medium text-neutral-300 mb-1">Agenda</label>
               <textarea
                 rows={2}
                 className="border bg-neutral-300 text-black p-2 w-full rounded"
@@ -394,7 +420,7 @@ export default function MeetingDetailPage() {
 
             {/* Notes */}
             <div>
-              <label className="block  font-medium text-neutral-300 mb-1">Notes</label>
+              <label className="block font-medium text-neutral-300 mb-1">Notes</label>
               <textarea
                 rows={3}
                 className="border bg-neutral-300 text-black p-2 w-full rounded"
@@ -405,7 +431,7 @@ export default function MeetingDetailPage() {
 
             {/* Next Meeting */}
             <div>
-              <label className="block  font-medium text-neutral-300 mb-1">
+              <label className="block font-medium text-neutral-300 mb-1">
                 Next Meeting Date
               </label>
               <input
@@ -421,12 +447,12 @@ export default function MeetingDetailPage() {
 
             {/* Attendees (JSON) */}
             <div>
-              <label className="block  font-medium text-neutral-300 mb-1">
+              <label className="block font-medium text-neutral-300 mb-1">
                 Attendees (JSON)
               </label>
               <textarea
                 rows={4}
-                className="border bg-neutral-300 text-black p-2 w-full rounded "
+                className="border bg-neutral-300 text-black p-2 w-full rounded"
                 value={attendeesJSON}
                 onChange={(e) => setAttendeesJSON(e.target.value)}
               />
@@ -437,12 +463,12 @@ export default function MeetingDetailPage() {
 
             {/* Action Items (JSON) */}
             <div>
-              <label className="block  font-medium text-neutral-300 mb-1">
+              <label className="block font-medium text-neutral-300 mb-1">
                 Action Items (JSON)
               </label>
               <textarea
                 rows={4}
-                className="border bg-neutral-300 text-black p-2 w-full rounded "
+                className="border bg-neutral-300 text-black p-2 w-full rounded"
                 value={actionItemsJSON}
                 onChange={(e) => setActionItemsJSON(e.target.value)}
               />
@@ -466,7 +492,7 @@ export default function MeetingDetailPage() {
         <Card>
           <h2 className="text-lg font-semibold">Attachments</h2>
           {meeting.attachments && meeting.attachments.length > 0 ? (
-            <ul className="list-disc ml-5  mt-2">
+            <ul className="list-disc ml-5 mt-2">
               {meeting.attachments.map((url, i) => (
                 <li key={i}>
                   <a href={url} target="_blank" rel="noopener noreferrer">
@@ -476,11 +502,11 @@ export default function MeetingDetailPage() {
               ))}
             </ul>
           ) : (
-            <p className=" text-neutral-500 mt-1">No attachments yet.</p>
+            <p className="text-neutral-500 mt-1">No attachments yet.</p>
           )}
 
           <div className="mt-4 space-y-2">
-            <label className="block  font-medium">Upload Files</label>
+            <label className="block font-medium">Upload Files</label>
             <input
               type="file"
               multiple
@@ -497,6 +523,43 @@ export default function MeetingDetailPage() {
         </Card>
       </div>
 
+      {/* ===== Custom Logo Upload ===== */}
+      <div
+        className={`
+          opacity-0 transition-all duration-500 ease-out delay-[250ms]
+          ${showContent ? "opacity-100 translate-y-0" : "translate-y-4"}
+        `}
+      >
+        <Card>
+          <h2 className="text-lg font-semibold">Custom Logo for PDF Header</h2>
+          {meeting.customLogoUrl ? (
+            <div className="mt-2">
+              <img src={meeting.customLogoUrl} alt="Custom Logo" className="max-w-xs" />
+              <p className="text-sm text-neutral-500 mt-1">
+                Current logo used for PDF header.
+              </p>
+            </div>
+          ) : (
+            <p className="text-neutral-500 mt-1">No custom logo uploaded yet.</p>
+          )}
+          <div className="mt-4 space-y-2">
+            <label className="block font-medium">Upload Custom Logo</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setLogoFile(e.target.files ? e.target.files[0] : null)}
+              className="
+                file:mr-2 file:py-2 file:px-3
+                file:border-0 file:rounded
+                file:bg-gray-300 file:text-black
+                hover:file:bg-gray-400
+              "
+            />
+            <GrayButton onClick={handleUploadLogo}>Upload Custom Logo</GrayButton>
+          </div>
+        </Card>
+      </div>
+
       {/* ===== Attendees (Detailed) ===== */}
       <div
         className={`
@@ -507,7 +570,7 @@ export default function MeetingDetailPage() {
         <Card>
           <h2 className="text-lg font-semibold">Attendees (Detailed)</h2>
           {meeting.attendees && meeting.attendees.length > 0 ? (
-            <table className="w-full  mt-2 border border-gray-300">
+            <table className="w-full mt-2 border border-gray-300">
               <thead className="bg-gray-100 text-black">
                 <tr>
                   <th className="border px-2 py-1">Name</th>
@@ -532,7 +595,7 @@ export default function MeetingDetailPage() {
               </tbody>
             </table>
           ) : (
-            <p className=" text-neutral-500 mt-1">No attendee info.</p>
+            <p className="text-neutral-500 mt-1">No attendee info.</p>
           )}
         </Card>
       </div>
@@ -547,7 +610,7 @@ export default function MeetingDetailPage() {
         <Card>
           <h2 className="text-lg font-semibold">Action Items</h2>
           {meeting.actionItems && meeting.actionItems.length > 0 ? (
-            <table className="w-full  mt-2 border border-gray-300">
+            <table className="w-full mt-2 border border-gray-300">
               <thead className="bg-gray-100 text-black">
                 <tr>
                   <th className="border px-2 py-1">Status/To Do</th>
@@ -568,7 +631,7 @@ export default function MeetingDetailPage() {
               </tbody>
             </table>
           ) : (
-            <p className=" text-neutral-500 mt-1">No action items found.</p>
+            <p className="text-neutral-500 mt-1">No action items found.</p>
           )}
         </Card>
       </div>
@@ -582,7 +645,7 @@ export default function MeetingDetailPage() {
       >
         <Card>
           <details>
-            <summary className="cursor-pointer  font-semibold mb-1">
+            <summary className="cursor-pointer font-semibold mb-1">
               Show Full JSON Data
             </summary>
             <pre className="text-xs bg-gray-200 p-2 overflow-x-auto mt-2">

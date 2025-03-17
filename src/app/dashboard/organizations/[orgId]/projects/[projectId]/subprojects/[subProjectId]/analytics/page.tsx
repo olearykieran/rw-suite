@@ -44,6 +44,37 @@ interface AnalyticsData {
   last_updated: string; // Using string for simplicity
 }
 
+/**
+ * Helper function to parse a timeslot string into minutes since midnight.
+ * Expected timeslot formats:
+ * - "9 AM"
+ * - "10:30 PM"
+ * This allows proper numerical sorting of the timeslots.
+ *
+ * @param timeslot The timeslot string to parse.
+ * @returns The total minutes since midnight.
+ */
+function parseTimeslot(timeslot: string): number {
+  const trimmed = timeslot.trim().toUpperCase();
+  // Regex to capture hour, optional minute, and period (AM/PM)
+  const match = trimmed.match(/^(\d+)(?::(\d+))?\s*(AM|PM)$/);
+  if (!match) {
+    // If parsing fails, return Infinity to sort this entry last.
+    return Infinity;
+  }
+  let hour = parseInt(match[1], 10);
+  const minute = match[2] ? parseInt(match[2], 10) : 0;
+  const period = match[3];
+  // Convert to 24-hour format
+  if (period === "PM" && hour !== 12) {
+    hour += 12;
+  }
+  if (period === "AM" && hour === 12) {
+    hour = 0;
+  }
+  return hour * 60 + minute;
+}
+
 export default function AnalyticsPage() {
   // State variables for analytics data, selected date, selected location, loading, error, and totalSold.
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData[]>([]);
@@ -79,13 +110,18 @@ export default function AnalyticsPage() {
     fetchData();
   }, [selectedDate, selectedLocation]);
 
-  // Prepare the data for the line chart (Ticket Sales Over Time).
+  // Create a sorted copy of analyticsData based on the parsed timeslot.
+  const sortedAnalyticsData = [...analyticsData].sort((a, b) => {
+    return parseTimeslot(a.timeslot) - parseTimeslot(b.timeslot);
+  });
+
+  // Prepare the data for the line chart (Ticket Sales Over Time) using sorted data.
   const lineChartData = {
-    labels: analyticsData.map((item) => item.timeslot),
+    labels: sortedAnalyticsData.map((item) => item.timeslot),
     datasets: [
       {
         label: "Ticket Sales",
-        data: analyticsData.map((item) => item.sold_tickets),
+        data: sortedAnalyticsData.map((item) => item.sold_tickets),
         borderColor: "rgba(75,192,192,1)",
         backgroundColor: "rgba(75,192,192,0.2)",
       },
@@ -199,7 +235,7 @@ export default function AnalyticsPage() {
                 </tr>
               </thead>
               <tbody>
-                {analyticsData.map((item) => (
+                {sortedAnalyticsData.map((item) => (
                   <tr
                     key={item.timeslot_id}
                     className="odd:bg-white even:bg-gray-50 dark:odd:bg-gray-700 dark:even:bg-gray-600"

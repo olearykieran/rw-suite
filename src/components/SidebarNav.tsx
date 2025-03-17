@@ -1,5 +1,4 @@
 // src/app/components/SidebarNav.tsx
-
 "use client";
 
 import { useState } from "react";
@@ -10,7 +9,8 @@ import {
   BuildingOffice2Icon,
   Cog6ToothIcon,
   UserIcon,
-  DocumentTextIcon, // Newly added icon for the PDF Generator
+  DocumentTextIcon,
+  DocumentIcon,
 } from "@heroicons/react/24/outline";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useLoadingBar } from "@/context/LoadingBarContext";
@@ -21,17 +21,12 @@ export default function SidebarNav() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Effective organization ID from hook
   const effectiveOrgId = useOrgId();
   const { setIsLoading } = useLoadingBar();
-
-  // Get user profile data
   const { profile, loading, error } = useUserProfile();
-
-  // Retrieve current project/subproject names from context
   const { selectedProjectName, selectedSubprojectName } = useSelectedProject();
 
-  // Define navigation items (added PDF Generator item)
+  // Define navigation items without unnecessary onClick handlers
   const navItems = [
     { name: "Dashboard", href: "/dashboard", icon: <HomeIcon className="h-5 w-5" /> },
     {
@@ -43,12 +38,16 @@ export default function SidebarNav() {
       name: "Contractors",
       href: `/dashboard/organizations/${effectiveOrgId}/contractors`,
       icon: <UserIcon className="h-5 w-5" />,
-      onClick: () => setIsLoading(true),
     },
     {
-      name: "PDF Generator",
-      href: "/dashboard/generic-pdf",
+      name: "Estimate PDF",
+      href: "/dashboard/estimate-pdf",
       icon: <DocumentTextIcon className="h-5 w-5" />,
+    },
+    {
+      name: "Generic Letter",
+      href: "/dashboard/generic-pdf",
+      icon: <DocumentIcon className="h-5 w-5" />,
     },
     {
       name: "Settings",
@@ -108,7 +107,6 @@ export default function SidebarNav() {
             <Link
               key={item.name}
               href={item.href}
-              onClick={item.onClick}
               className={`
                 flex items-center gap-3 px-4 py-3 
                 transition-colors
@@ -122,9 +120,9 @@ export default function SidebarNav() {
               {item.icon}
               <span
                 className={`
-                  ${isCollapsed ? "hidden" : "block"}
-                  transition-all duration-300
-                `}
+                ${isCollapsed ? "hidden" : "block"}
+                transition-all duration-300
+              `}
               >
                 {item.name}
               </span>
@@ -137,9 +135,9 @@ export default function SidebarNav() {
       <div className="p-4 border-t border-gray-500 flex items-center gap-3">
         <div
           className={`
-            h-8 w-8 bg-neutral-300 rounded-full flex-shrink-0
-            ${isCollapsed ? "hidden" : ""}
-          `}
+          h-8 w-8 bg-neutral-300 rounded-full flex-shrink-0
+          ${isCollapsed ? "hidden" : ""}
+        `}
         />
         <div className={`${isCollapsed ? "hidden" : "block"}`}>
           {loading && <div className="text-xs">Loading…</div>}

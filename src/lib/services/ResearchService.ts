@@ -71,20 +71,48 @@ export async function fetchResearchEntries(
   projectId: string,
   subProjectId: string
 ): Promise<ResearchEntry[]> {
-  const researchCollection = collection(
-    firestore,
-    "organizations",
-    orgId,
-    "projects",
-    projectId,
-    "subprojects",
-    subProjectId,
-    "researchEntries"
-  );
-  const snapshot = await getDocs(researchCollection);
-  const entries: ResearchEntry[] = [];
-  snapshot.forEach((doc) => {
-    entries.push(doc.data() as ResearchEntry);
-  });
-  return entries;
+  try {
+    console.log("Fetching research entries for:", { orgId, projectId, subProjectId });
+
+    // Try both collection names to ensure we find the data
+    let collRef = collection(
+      firestore,
+      "organizations",
+      orgId,
+      "projects",
+      projectId,
+      "subprojects",
+      subProjectId,
+      "researchEntries" // Try this collection name first
+    );
+
+    let snapshot = await getDocs(collRef);
+
+    // If no documents found, try the other collection name
+    if (snapshot.empty) {
+      collRef = collection(
+        firestore,
+        "organizations",
+        orgId,
+        "projects",
+        projectId,
+        "subprojects",
+        subProjectId,
+        "research" // Try this collection name as fallback
+      );
+      snapshot = await getDocs(collRef);
+    }
+
+    console.log("Found entries:", snapshot.docs.length);
+    return snapshot.docs.map(
+      (doc) =>
+        ({
+          id: doc.id,
+          ...doc.data(),
+        } as ResearchEntry)
+    );
+  } catch (error) {
+    console.error("Error fetching research entries:", error);
+    throw error;
+  }
 }

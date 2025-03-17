@@ -4,6 +4,8 @@ import { useState, useEffect, Fragment } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Dialog, Transition } from "@headlessui/react";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth } from "@/lib/firebaseConfig";
 
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Card } from "@/components/ui/Card";
@@ -162,6 +164,7 @@ function PaginationControls({
  * The default view mode has been updated to "card".
  */
 export default function ResearchListPage() {
+  const [user, authLoading, authError] = useAuthState(auth);
   const { orgId, projectId, subProjectId } = useParams() as {
     orgId: string;
     projectId: string;
@@ -237,15 +240,17 @@ export default function ResearchListPage() {
 
   return (
     <PageContainer className="max-w-full">
-      {/* Navigation */}
-      <div className="flex items-center justify-between">
-        <GrayButton onClick={() => router.back()}>&larr; Back</GrayButton>
-        <Link
-          href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/research/new`}
-        >
-          <GrayButton>Add Research Entry</GrayButton>
-        </Link>
-      </div>
+      {/* Only show navigation buttons for authenticated users */}
+      {user && (
+        <div className="flex items-center justify-between">
+          <GrayButton onClick={() => router.back()}>&larr; Back</GrayButton>
+          <Link
+            href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/research/new`}
+          >
+            <GrayButton>Add Research Entry</GrayButton>
+          </Link>
+        </div>
+      )}
 
       <h1 className="text-2xl font-bold mt-4">Research Sources</h1>
 

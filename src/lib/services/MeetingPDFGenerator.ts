@@ -3,8 +3,28 @@
 import pdfMake from "pdfmake/build/pdfmake";
 import pdfFonts from "pdfmake/build/vfs_fonts";
 
-// Tells pdfmake about the embedded fonts
+// Set up embedded fonts for pdfMake
 pdfMake.vfs = pdfFonts.vfs;
+
+// Define your brand colors (adjust these values as needed)
+const brandPrimaryColor = "#000000"; // primary brand color (used for headers, grid lines)
+const gridLineColor = brandPrimaryColor;
+
+// A custom table layout that draws grid lines using the brand color
+const fullGridLayout = {
+  hLineWidth(i: number, node: any) {
+    return 1;
+  },
+  vLineWidth(i: number, node: any) {
+    return 1;
+  },
+  hLineColor(i: number, node: any) {
+    return gridLineColor;
+  },
+  vLineColor(i: number, node: any) {
+    return gridLineColor;
+  },
+};
 
 /** Data structures */
 export interface MeetingAttendee {
@@ -27,8 +47,8 @@ export interface MeetingPDFData {
   date?: string;
   preparedBy?: string;
   location?: string;
-  logoUrl?: string; // link to your Firebase or any image
-
+  // Pass the custom logo URL (if available) or a default logo URL.
+  logoUrl?: string;
   attendees: MeetingAttendee[];
   notes?: string;
   actionItems: ActionItem[];
@@ -65,46 +85,23 @@ function blobToBase64(blob: Blob): Promise<string> {
 }
 
 /**
- * A custom table layout object for pdfmake that draws
- * a 1pt black line around every row/column (i.e. a full grid).
- */
-const fullGridLayout = {
-  hLineWidth(i: number, node: any) {
-    return 1;
-  },
-  vLineWidth(i: number, node: any) {
-    return 1;
-  },
-  hLineColor(i: number, node: any) {
-    return "#000000";
-  },
-  vLineColor(i: number, node: any) {
-    return "#000000";
-  },
-};
-
-/**
- * Generate Meeting Minutes PDF with:
- * - Big logo
- * - Top info in a 2-col table (left = black BG, right = normal)
- * - Table headings = black BG + white text
- * - Summary in one big table box
- * - Full grid lines for tables
+ * Generate Meeting Minutes PDF with custom styling.
  */
 export async function generateMeetingMinutesPDF(meeting: MeetingPDFData) {
-  // 1) Possibly fetch the logo
+  // Use the custom logo if provided; otherwise, fall back to the default logo URL.
+  const defaultLogoUrl =
+    "https://firebasestorage.googleapis.com/v0/b/rw-project-management.firebasestorage.app/o/rw-logo-title.png?alt=media&token=03a42c6c-980c-4857-ae0d-f84c37baa2fe";
   let logoBase64 = "";
-  if (meeting.logoUrl) {
-    logoBase64 = await fetchLogoAsBase64(meeting.logoUrl);
+  if (meeting.logoUrl || defaultLogoUrl) {
+    logoBase64 = await fetchLogoAsBase64(meeting.logoUrl || defaultLogoUrl);
   }
 
-  // 2) docDefinition
+  // Define the PDF document structure and styles
   const docDefinition: any = {
     pageSize: "LETTER",
     pageMargins: [40, 60, 40, 60],
-
     content: [
-      // (A) Larger Logo
+      // (A) Display the logo if available
       ...(logoBase64
         ? [
             {
@@ -118,7 +115,7 @@ export async function generateMeetingMinutesPDF(meeting: MeetingPDFData) {
 
       // (B) Title
       {
-        text: "WEEKLY MEETING MINUTES",
+        text: "MEETING MINUTES",
         style: "header",
         alignment: "center",
         margin: [0, 0, 0, 10],
@@ -135,7 +132,7 @@ export async function generateMeetingMinutesPDF(meeting: MeetingPDFData) {
       },
       buildAttendeesTable(meeting.attendees),
 
-      // (E) Meeting Summary in one big table
+      // (E) Meeting Summary if notes exist
       ...(meeting.notes && meeting.notes.trim()
         ? [
             {
@@ -149,26 +146,31 @@ export async function generateMeetingMinutesPDF(meeting: MeetingPDFData) {
 
       // (F) Action Items
       {
-        text: "Project Meeting Minutes: General Information",
+        text: "Action Items",
         style: "subheader",
         margin: [0, 10, 0, 6],
       },
       buildActionItemsTable(meeting.actionItems),
     ],
-
     styles: {
       header: {
         fontSize: 16,
         bold: true,
+        color: brandPrimaryColor,
       },
       subheader: {
         fontSize: 14,
         bold: true,
+        color: brandPrimaryColor,
       },
       tableHeader: {
         bold: true,
-        fillColor: "#000000", // black BG
-        color: "#FFFFFF", // white text
+        fillColor: brandPrimaryColor,
+        color: "#FFFFFF",
+      },
+      tableCell: {
+        fontSize: 10,
+        margin: [5, 3, 5, 3],
       },
       notes: {
         fontSize: 11,
@@ -176,19 +178,15 @@ export async function generateMeetingMinutesPDF(meeting: MeetingPDFData) {
     },
   };
 
-  // Create + download
+  // Create and download the PDF
   const pdfDocGenerator = pdfMake.createPdf(docDefinition);
   pdfDocGenerator.download(`Meeting_Minutes_${meeting.date || "NoDate"}.pdf`);
 }
 
 /**
- * (1) Build a 2-col table for the top info:
- *   Left col: label with black background, white text
- *   Right col: normal BG
+ * Build a 2-column table for the top meeting info.
  */
 function buildInfoTable(meeting: MeetingPDFData) {
-  // For each row: [leftCell, rightCell]
-  // We'll define the text in the left cell with white text, black BG
   const rows = [
     labelValueRow("Meeting/Project Name:", meeting.title),
     labelValueRow("Property Code:", meeting.propertyCode),
@@ -207,18 +205,16 @@ function buildInfoTable(meeting: MeetingPDFData) {
 }
 
 /**
- * Helper to create a single row with:
- *   left cell => black BG, white text
- *   right cell => normal BG, black text
+ * Helper to create a row with a branded label cell and a value cell.
  */
 function labelValueRow(label: string, value?: string) {
   return [
     {
       text: label,
-      fillColor: "#000000",
-      color: "#ffffff",
+      fillColor: brandPrimaryColor,
+      color: "#FFFFFF",
       bold: true,
-      margin: [5, 3, 5, 3], // some padding
+      margin: [5, 3, 5, 3],
     },
     {
       text: value || "",
@@ -228,7 +224,7 @@ function labelValueRow(label: string, value?: string) {
 }
 
 /**
- * (2) Build the Team table
+ * Build the team table displaying attendee details.
  */
 function buildAttendeesTable(attendees: MeetingAttendee[]) {
   const body = [
@@ -260,7 +256,7 @@ function buildAttendeesTable(attendees: MeetingAttendee[]) {
 }
 
 /**
- * (3) Build a single table cell for the summary
+ * Build a table cell that contains the meeting summary (notes).
  */
 function buildSummaryTable(notes: string) {
   return {
@@ -282,7 +278,7 @@ function buildSummaryTable(notes: string) {
 }
 
 /**
- * (4) Build Action Items table
+ * Build the Action Items table.
  */
 function buildActionItemsTable(actionItems: ActionItem[]) {
   const body = [
