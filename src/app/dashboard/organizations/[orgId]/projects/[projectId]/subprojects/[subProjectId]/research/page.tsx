@@ -22,28 +22,59 @@ import { generatePublicResearchLink } from "@/lib/utils/publicLinks";
  */
 interface PreviewImageProps {
   url: string;
+  entryImage?: string;
 }
 
-function PreviewImage({ url }: PreviewImageProps) {
+function PreviewImage({ url, entryImage }: PreviewImageProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     async function getPreviewImage() {
       try {
+        setLoading(true);
+        setError(false);
+
+        // If we already have an entryImage, use it directly
+        if (entryImage) {
+          setImageUrl(entryImage);
+          setLoading(false);
+          return;
+        }
+
+        // Special handling for Instagram URLs
+        if (url.includes("instagram.com")) {
+          setImageUrl(null);
+          setLoading(false);
+          return;
+        }
+
+        // For other URLs, try to fetch a preview
         const res = await fetch(`/api/preview-image?url=${encodeURIComponent(url)}`);
+
+        if (!res.ok) {
+          // If the API returns an error, set error state
+          setError(true);
+          setImageUrl(null);
+          return;
+        }
+
         const data = await res.json();
         if (data.imageUrl) {
           setImageUrl(data.imageUrl);
+        } else {
+          setError(true);
         }
       } catch (err) {
         console.error("Error fetching preview image:", err);
+        setError(true);
       } finally {
         setLoading(false);
       }
     }
     getPreviewImage();
-  }, [url]);
+  }, [url, entryImage]);
 
   if (loading) {
     return <div className="w-full h-48 animate-pulse bg-gray-700 rounded-t-lg" />;
@@ -55,12 +86,54 @@ function PreviewImage({ url }: PreviewImageProps) {
         src={imageUrl}
         alt="Preview"
         className="w-full h-full object-cover"
-        onError={() => setImageUrl(null)}
+        onError={() => {
+          setImageUrl(null);
+          setError(true);
+        }}
       />
     );
   }
 
-  return <div className="w-full h-48 bg-gray-800 rounded-t-lg" />;
+  // Fallback for when no image is found or there was an error
+  return (
+    <div className="w-full h-48 bg-gray-800 rounded-t-lg flex items-center justify-center">
+      {error ? (
+        <div className="text-gray-500 text-center p-4">
+          <svg
+            className="w-10 h-10 mx-auto mb-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+          <p>Image unavailable</p>
+        </div>
+      ) : (
+        <div className="text-gray-500 text-center p-4">
+          <svg
+            className="w-10 h-10 mx-auto mb-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+          <p>No preview available</p>
+        </div>
+      )}
+    </div>
+  );
 }
 
 /**
@@ -230,6 +303,20 @@ export default function ResearchListPage() {
     });
   };
 
+  // Function to sort social media entries by platform (Twitter first, then Instagram)
+  const sortSocialMediaEntries = (entries: ResearchEntry[]) => {
+    return [...entries].sort((a, b) => {
+      // First sort by platform type (Twitter first, then Instagram)
+      if (a.type === "twitter" && b.type !== "twitter") return -1;
+      if (a.type !== "twitter" && b.type === "twitter") return 1;
+
+      // If both are the same type, sort by date (newest first)
+      const dateA = a.date ? new Date(a.date).getTime() : 0;
+      const dateB = b.date ? new Date(b.date).getTime() : 0;
+      return dateB - dateA;
+    });
+  };
+
   // Utility to truncate long summaries
   const truncate = (text: string, maxLength: number): string =>
     text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
@@ -382,7 +469,7 @@ export default function ResearchListPage() {
                                 className="w-24 h-24 object-cover rounded"
                               />
                             ) : (
-                              <PreviewImage url={entry.url} />
+                              <PreviewImage url={entry.url} entryImage={entry.image} />
                             )}
                           </td>
                           <td className="p-4 border-b">
@@ -440,7 +527,7 @@ export default function ResearchListPage() {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <PreviewImage url={entry.url} />
+                          <PreviewImage url={entry.url} entryImage={entry.image} />
                         )}
                       </div>
                       {/* Content Section */}
@@ -531,8 +618,8 @@ export default function ResearchListPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
-                {/* Filter social media entries */}
-                {researchEntries
+                {/* Filter and sort social media entries */}
+                {sortSocialMediaEntries(researchEntries)
                   .filter(
                     (entry) =>
                       (entry.type === "twitter" || entry.type === "instagram") &&
@@ -689,15 +776,7 @@ export default function ResearchListPage() {
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              <div className="w-full h-full bg-gray-800 flex items-center justify-center text-gray-600">
-                                <svg
-                                  className="w-16 h-16"
-                                  fill="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-                                </svg>
-                              </div>
+                              <PreviewImage url={entry.url} entryImage={entry.image} />
                             )}
                           </div>
 
