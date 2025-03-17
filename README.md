@@ -109,6 +109,27 @@ Please analyze the post and return the data in the following JSON format:
 ]
 ```
 
+### ig example
+
+```json
+[
+  {
+    "title": "Sauna culture in NYC is exploding. Went to @othership_us…",
+    "url": "https://x.com/c_gro/status/1893710132816560311",
+    "type": "instagram",
+    "source": "c_gro",
+    "author": "Connor Gross",
+    "date": "2025-02-24",
+    "tags": ["Sauna", "NYC", "Wellness", "Health"],
+    "summary": "Sauna culture in NYC is exploding. Went to @othership_us yesterday and it was a packed house. Friends in their 20's choosing a 75-minute sauna session over a night out.",
+    "image": "https://pbs.twimg.com/media/F9kLm2XXsAA7TBD?format=jpg",
+    "likes": 123,
+    "shares": 45,
+    "comments": 67
+  }
+]
+```
+
 ### Publication Example
 
 ```json

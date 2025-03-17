@@ -180,7 +180,7 @@ Important rules:
     const userPrompt = `Parse this meeting summary:\n${rawSummary}`;
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4", // Fixed typo in model name
+      model: "gpt-4o", // Fixed typo in model name
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
