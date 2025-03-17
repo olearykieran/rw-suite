@@ -21,13 +21,19 @@ export default function ResearchLayout({ children }: { children: ReactNode }) {
     subProjectId: string;
   };
 
-  console.log("Research layout rendering", { user, authLoading, orgId, projectId, subProjectId });
+  console.log("Research layout rendering", {
+    user,
+    authLoading,
+    orgId,
+    projectId,
+    subProjectId,
+  });
 
   // Show loading state while checking authentication
   if (authLoading) {
     console.log("Research layout - auth loading");
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-900 dark:bg-gray-900 flex items-center justify-center">
         <p className="text-gray-600 dark:text-gray-400">Loading...</p>
       </div>
     );

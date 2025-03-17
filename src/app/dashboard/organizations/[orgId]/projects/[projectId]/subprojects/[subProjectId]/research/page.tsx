@@ -103,15 +103,15 @@ function SummaryModal({ isOpen, title, summary, onClose }: SummaryModalProps) {
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-4xl transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-6 text-left align-middle shadow-xl transition-all">
+              <Dialog.Panel className="w-full max-w-4xl transform overflow-hidden rounded-2xl bg-gray-800 dark:bg-gray-800 p-6 text-left align-middle shadow-xl transition-all">
                 <Dialog.Title
                   as="h3"
-                  className="text-lg font-medium leading-6 text-gray-900 dark:text-white"
+                  className="text-lg font-medium leading-6 text-white dark:text-white"
                 >
                   {title}
                 </Dialog.Title>
                 <div className="mt-4">
-                  <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                  <p className="text-sm text-white dark:text-gray-300 whitespace-pre-wrap">
                     {summary}
                   </p>
                 </div>
@@ -195,7 +195,13 @@ export default function ResearchListPage() {
   // Updated default view mode to "card"
   const [viewMode, setViewMode] = useState<"table" | "card">("card");
 
-  console.log("Research page rendering", { user, authLoading, orgId, projectId, subProjectId });
+  console.log("Research page rendering", {
+    user,
+    authLoading,
+    orgId,
+    projectId,
+    subProjectId,
+  });
 
   // Fetch research entries on mount or when route parameters change
   useEffect(() => {
@@ -203,7 +209,7 @@ export default function ResearchListPage() {
       try {
         console.log("Loading research data", { user, orgId, projectId, subProjectId });
         setLoading(true);
-        
+
         // Use the public API if user is not authenticated
         if (!user) {
           console.log("Using public API to fetch research");
@@ -211,14 +217,20 @@ export default function ResearchListPage() {
             const response = await fetch(
               `/api/public/research?orgId=${orgId}&projectId=${projectId}&subProjectId=${subProjectId}`
             );
-            
+
             if (!response.ok) {
-              console.error("Public API response not OK", response.status, response.statusText);
+              console.error(
+                "Public API response not OK",
+                response.status,
+                response.statusText
+              );
               const errorText = await response.text();
               console.error("Error response:", errorText);
-              throw new Error(`Failed to fetch research entries: ${response.status} ${response.statusText}`);
+              throw new Error(
+                `Failed to fetch research entries: ${response.status} ${response.statusText}`
+              );
             }
-            
+
             const data = await response.json();
             console.log("Public API response", data);
             setResearchEntries(data.entries || []);
@@ -341,7 +353,7 @@ export default function ResearchListPage() {
               <Card className="mt-4 p-4 overflow-x-auto w-full max-w-none shadow-lg rounded-lg">
                 <table className="min-w-full border-collapse">
                   <thead>
-                    <tr className="bg-gray-200 dark:bg-gray-800">
+                    <tr className="bg-gray-900 dark:bg-gray-800">
                       <th className="p-4 border-b text-left uppercase tracking-wider whitespace-nowrap">
                         Image
                       </th>
@@ -372,7 +384,7 @@ export default function ResearchListPage() {
                     {paginatedEntries.map((entry, index) => (
                       <tr
                         key={index}
-                        className="odd:bg-white even:bg-gray-50 dark:odd:bg-gray-700 dark:even:bg-gray-600 transition-colors"
+                        className="odd:bg-gray-900 even:bg-gray-50 dark:odd:bg-gray-700 dark:even:bg-gray-600 transition-colors"
                       >
                         <td className="p-4 border-b">
                           {entry.image ? (
@@ -390,7 +402,7 @@ export default function ResearchListPage() {
                             href={entry.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-blue-600 dark:text-blue-400 underline"
+                            className="text-white dark:text-gray-400 underline"
                           >
                             {entry.title}
                           </a>
@@ -407,7 +419,7 @@ export default function ResearchListPage() {
                             {entry.summary.length > 100 && (
                               <button
                                 onClick={() => openModal(entry.title, entry.summary)}
-                                className="ml-2 text-sm text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap"
+                                className="ml-2 text-sm text-white dark:text-gray-400 hover:underline whitespace-nowrap"
                               >
                                 Read More
                               </button>
@@ -448,36 +460,36 @@ export default function ResearchListPage() {
                         href={entry.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xl font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                        className="text-xl font-bold text-white dark:text-gray-400 hover:underline"
                       >
                         {entry.title}
                       </a>
-                      <div className="text-sm text-gray-600 dark:text-gray-300">
+                      <div className="text-sm text-white dark:text-gray-300">
                         <span className="font-semibold">Type:</span> {entry.type}
                       </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-300">
+                      <div className="text-sm text-white dark:text-gray-300">
                         <span className="font-semibold">Source:</span> {entry.source}
                       </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-300">
+                      <div className="text-sm text-white dark:text-gray-300">
                         <span className="font-semibold">Date:</span> {entry.date}
                       </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-300">
+                      <div className="text-sm text-white dark:text-gray-300">
                         <span className="font-semibold">Tags:</span>{" "}
                         {Array.isArray(entry.tags) ? entry.tags.join(", ") : ""}
                       </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-300">
+                      <div className="text-sm text-white dark:text-gray-300">
                         <span className="font-semibold">Summary:</span>{" "}
                         {truncate(entry.summary, 80)}
                         {entry.summary.length > 80 && (
                           <button
                             onClick={() => openModal(entry.title, entry.summary)}
-                            className="ml-1 text-blue-600 dark:text-blue-400 hover:underline"
+                            className="ml-1 text-white dark:text-blue-400 hover:underline"
                           >
                             Read More
                           </button>
                         )}
                       </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-300">
+                      <div className="text-sm text-white dark:text-gray-300">
                         <span className="font-semibold">Author:</span>{" "}
                         {entry.author || "N/A"}
                       </div>
