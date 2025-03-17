@@ -149,7 +149,7 @@ function PaginationControls({
       <GrayButton onClick={onPrev} disabled={currentPage === 1}>
         Prev
       </GrayButton>
-      <span className="text-sm text-gray-700 dark:text-gray-300">
+      <span className="text-sm text-white dark:text-gray-300">
         Page {currentPage} of {totalPages}
       </span>
       <GrayButton onClick={onNext} disabled={currentPage === totalPages}>
@@ -353,7 +353,7 @@ export default function ResearchListPage() {
               <Card className="mt-4 p-4 overflow-x-auto w-full max-w-none shadow-lg rounded-lg">
                 <table className="min-w-full border-collapse">
                   <thead>
-                    <tr className="bg-gray-900 dark:bg-gray-800">
+                    <tr className="bg-gray-900 text-white dark:bg-gray-800">
                       <th className="p-4 border-b text-left uppercase tracking-wider whitespace-nowrap">
                         Image
                       </th>
@@ -384,7 +384,7 @@ export default function ResearchListPage() {
                     {paginatedEntries.map((entry, index) => (
                       <tr
                         key={index}
-                        className="odd:bg-gray-900 even:bg-gray-50 dark:odd:bg-gray-700 dark:even:bg-gray-600 transition-colors"
+                        className="odd:bg-gray-400 even:bg-gray-500 dark:odd:bg-gray-700 dark:even:bg-gray-600 transition-colors"
                       >
                         <td className="p-4 border-b">
                           {entry.image ? (
@@ -419,7 +419,7 @@ export default function ResearchListPage() {
                             {entry.summary.length > 100 && (
                               <button
                                 onClick={() => openModal(entry.title, entry.summary)}
-                                className="ml-2 text-sm text-white dark:text-gray-400 hover:underline whitespace-nowrap"
+                                className="ml-2 text-sm text-black dark:text-gray-400 hover:underline whitespace-nowrap"
                               >
                                 Read More
                               </button>
