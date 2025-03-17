@@ -39,6 +39,7 @@
     "react-datepicker": "^7.5.0",
     "react-dom": "^18.2.0",
     "react-firebase-hooks": "^5.1.1",
+    "react-hot-toast": "^2.5.2",
     "react-media-recorder": "^1.7.1",
     "react-pdf": "^9.2.1",
     "react-picture-annotation": "^1.2.0",

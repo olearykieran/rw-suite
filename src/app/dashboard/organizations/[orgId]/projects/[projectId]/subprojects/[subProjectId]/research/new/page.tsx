@@ -3,7 +3,8 @@
 
 import { FormEvent, useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth } from "@/lib/firebaseConfig";
 import { createResearchEntries, ResearchEntry } from "@/lib/services/ResearchService";
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Card } from "@/components/ui/Card";
@@ -47,6 +48,7 @@ export default function NewResearchPage() {
     projectId: string;
     subProjectId: string;
   };
+  const [user] = useAuthState(auth);
   const router = useRouter();
 
   // State for the JSON input method
@@ -76,6 +78,7 @@ export default function NewResearchPage() {
   const [error, setError] = useState("");
 
   // Add URL preview state
+  const [previewUrl, setPreviewUrl] = useState("");
   const [urlPreview, setUrlPreview] = useState<UrlPreview | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState("");
@@ -104,7 +107,8 @@ export default function NewResearchPage() {
       let parsedInput;
       try {
         parsedInput = JSON.parse(cleanedInput);
-      } catch (parseError) {
+      } catch (e) {
+        const parseError = e as Error;
         console.error("JSON Parse Error:", parseError);
         console.log("Attempted to parse:", cleanedInput);
 
@@ -436,7 +440,7 @@ export default function NewResearchPage() {
                     let parsed;
                     try {
                       parsed = JSON.parse(cleanedInput);
-                    } catch (parseError) {
+                    } catch (e) {
                       // Try one more approach - manually wrap in array if needed
                       if (
                         cleanedInput.trim().startsWith("{") &&
@@ -445,7 +449,7 @@ export default function NewResearchPage() {
                         const wrappedInput = `[${cleanedInput}]`;
                         parsed = JSON.parse(wrappedInput);
                       } else {
-                        throw parseError;
+                        throw e;
                       }
                     }
 
@@ -455,9 +459,11 @@ export default function NewResearchPage() {
                     }
 
                     // Format and update
-                    setJsonInput(JSON.stringify(parsed, null, 2));
+                    const formatted = JSON.stringify(parsed, null, 2);
+                    setJsonInput(formatted);
                     setError(""); // Clear any previous errors
-                  } catch (error) {
+                  } catch (e) {
+                    const error = e as Error;
                     setError(
                       `Could not format JSON: ${error.message}. Try using the example instead.`
                     );
