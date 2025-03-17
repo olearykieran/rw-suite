@@ -46,10 +46,14 @@ export interface EstimatePDFData {
   trades: EstimateTrade[];
   subtotal: string;
   generalConditions: string;
+  generalConditionsPercentage?: string;
   overhead: string;
+  overheadPercentage?: string;
   insurance: string;
+  insurancePercentage?: string;
   totalProjectCost: string;
   logoUrl?: string; // URL for your logo image
+  additionalClauses?: Array<{title: string; content: string}>;
 }
 
 /**
@@ -130,14 +134,29 @@ function buildEstimateTable(data: EstimatePDFData) {
     { text: data.generalConditions, style: "summaryValue", alignment: "right" },
   ]);
   body.push([
+    { text: "General Conditions (%)", colSpan: 2, style: "summaryLabel" },
+    {},
+    { text: data.generalConditionsPercentage, style: "summaryValue", alignment: "right" },
+  ]);
+  body.push([
     { text: "Overhead", colSpan: 2, style: "summaryLabel" },
     {},
     { text: data.overhead, style: "summaryValue", alignment: "right" },
   ]);
   body.push([
+    { text: "Overhead (%)", colSpan: 2, style: "summaryLabel" },
+    {},
+    { text: data.overheadPercentage, style: "summaryValue", alignment: "right" },
+  ]);
+  body.push([
     { text: "Insurance", colSpan: 2, style: "summaryLabel" },
     {},
     { text: data.insurance, style: "summaryValue", alignment: "right" },
+  ]);
+  body.push([
+    { text: "Insurance (%)", colSpan: 2, style: "summaryLabel" },
+    {},
+    { text: data.insurancePercentage, style: "summaryValue", alignment: "right" },
   ]);
   body.push([
     { text: "TOTAL PROJECT COST", colSpan: 2, style: "totalLabel" },

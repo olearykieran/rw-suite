@@ -17,13 +17,31 @@ function DashboardLayoutContent({ children }: { children: ReactNode }) {
   const [orgIds, setOrgIds] = useState<string[]>([]);
   const [orgCheckDone, setOrgCheckDone] = useState(false);
 
+  // Check if the current path is a research page
+  const isResearchPage = typeof window !== 'undefined' && 
+    window.location.pathname.includes('/research') &&
+    window.location.pathname.includes('/subprojects/');
+    
+  console.log("Dashboard layout rendering", { 
+    user, 
+    authLoading, 
+    isResearchPage, 
+    path: typeof window !== 'undefined' ? window.location.pathname : 'unknown'
+  });
+
   useEffect(() => {
+    // Skip authentication check for research pages
+    if (isResearchPage) {
+      console.log("Dashboard layout - bypassing auth for research page");
+      return;
+    }
+    
     if (!authLoading && !user) {
       router.replace("/public/auth/sign-in");
     } else if (!authLoading && user) {
       checkOrganizations(user.uid);
     }
-  }, [user, authLoading, router]);
+  }, [user, authLoading, router, isResearchPage]);
 
   async function checkOrganizations(uid: string) {
     try {
@@ -45,11 +63,11 @@ function DashboardLayoutContent({ children }: { children: ReactNode }) {
     }
   }
 
-  if (authLoading || !orgCheckDone) {
+  if (authLoading || (!orgCheckDone && !isResearchPage)) {
     return null;
   }
 
-  if (orgIds.length === 0) {
+  if (orgIds.length === 0 && !isResearchPage) {
     return (
       <div className="p-6">
         <p className="text-red-600 font-semibold">
@@ -58,6 +76,10 @@ function DashboardLayoutContent({ children }: { children: ReactNode }) {
         </p>
       </div>
     );
+  }
+
+  if (isResearchPage) {
+    return children;
   }
 
   return (
@@ -74,8 +96,8 @@ function DashboardLayoutContent({ children }: { children: ReactNode }) {
 }
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
+  // Wrap with both providers.
   return (
-    // Wrap with both providers.
     <LoadingBarProvider>
       <SelectedProjectProvider>
         <DashboardLayoutContent>{children}</DashboardLayoutContent>

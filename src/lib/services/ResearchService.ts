@@ -105,11 +105,23 @@ export async function fetchResearchEntries(
 
     console.log("Found entries:", snapshot.docs.length);
     return snapshot.docs.map(
-      (doc) =>
-        ({
+      (doc) => {
+        const data = doc.data();
+        return {
           id: doc.id,
-          ...doc.data(),
-        } as ResearchEntry)
+          title: data.title || "",
+          url: data.url || "",
+          type: data.type || "",
+          source: data.source || "",
+          date: data.date || "",
+          tags: data.tags || [],
+          summary: data.summary || "",
+          author: data.author,
+          notes: data.notes,
+          image: data.image,
+          ...data
+        } as ResearchEntry;
+      }
     );
   } catch (error) {
     console.error("Error fetching research entries:", error);

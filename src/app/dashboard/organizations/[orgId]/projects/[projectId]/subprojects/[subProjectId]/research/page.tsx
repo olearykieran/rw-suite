@@ -12,6 +12,7 @@ import { Card } from "@/components/ui/Card";
 import { GrayButton } from "@/components/ui/GrayButton";
 import { fetchResearchEntries } from "@/lib/services/ResearchService";
 import { ResearchEntry } from "@/lib/services/ResearchService";
+import { generatePublicResearchLink } from "@/lib/utils/publicLinks";
 
 /**
  * PreviewImage component
@@ -174,6 +175,7 @@ export default function ResearchListPage() {
   const [researchEntries, setResearchEntries] = useState<ResearchEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [shareSuccess, setShareSuccess] = useState(false);
 
   // Modal state for full summary
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -193,13 +195,49 @@ export default function ResearchListPage() {
   // Updated default view mode to "card"
   const [viewMode, setViewMode] = useState<"table" | "card">("card");
 
+  console.log("Research page rendering", { user, authLoading, orgId, projectId, subProjectId });
+
   // Fetch research entries on mount or when route parameters change
   useEffect(() => {
     async function loadData() {
       try {
+        console.log("Loading research data", { user, orgId, projectId, subProjectId });
         setLoading(true);
-        const entries = await fetchResearchEntries(orgId, projectId, subProjectId);
-        setResearchEntries(entries);
+        
+        // Use the public API if user is not authenticated
+        if (!user) {
+          console.log("Using public API to fetch research");
+          try {
+            const response = await fetch(
+              `/api/public/research?orgId=${orgId}&projectId=${projectId}&subProjectId=${subProjectId}`
+            );
+            
+            if (!response.ok) {
+              console.error("Public API response not OK", response.status, response.statusText);
+              const errorText = await response.text();
+              console.error("Error response:", errorText);
+              throw new Error(`Failed to fetch research entries: ${response.status} ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            console.log("Public API response", data);
+            setResearchEntries(data.entries || []);
+          } catch (fetchError) {
+            console.error("Fetch error:", fetchError);
+            setError("Failed to load research entries. Please try again later.");
+          }
+        } else {
+          // Use the authenticated service if user is logged in
+          console.log("Using authenticated service to fetch research");
+          try {
+            const entries = await fetchResearchEntries(orgId, projectId, subProjectId);
+            console.log("Authenticated service response", entries);
+            setResearchEntries(entries);
+          } catch (fetchError) {
+            console.error("Authenticated fetch error:", fetchError);
+            setError("Failed to load research entries. Please try again later.");
+          }
+        }
       } catch (err: any) {
         console.error("Error loading research entries:", err);
         setError("Failed to load research entries.");
@@ -208,7 +246,7 @@ export default function ResearchListPage() {
       }
     }
     loadData();
-  }, [orgId, projectId, subProjectId]);
+  }, [orgId, projectId, subProjectId, user]);
 
   // Utility to truncate long summaries
   const truncate = (text: string, maxLength: number): string =>
@@ -238,17 +276,36 @@ export default function ResearchListPage() {
     setCurrentPage(1); // Reset pagination when switching views
   };
 
+  // Handler for sharing the research page
+  const handleShareResearch = () => {
+    const publicLink = generatePublicResearchLink(orgId, projectId, subProjectId);
+    navigator.clipboard.writeText(publicLink).then(
+      () => {
+        setShareSuccess(true);
+        setTimeout(() => setShareSuccess(false), 3000);
+      },
+      (err) => {
+        console.error("Could not copy text: ", err);
+      }
+    );
+  };
+
   return (
     <PageContainer className="max-w-full">
       {/* Only show navigation buttons for authenticated users */}
       {user && (
         <div className="flex items-center justify-between">
           <GrayButton onClick={() => router.back()}>&larr; Back</GrayButton>
-          <Link
-            href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/research/new`}
-          >
-            <GrayButton>Add Research Entry</GrayButton>
-          </Link>
+          <div className="flex space-x-2">
+            <GrayButton onClick={handleShareResearch}>
+              {shareSuccess ? "✓ Link Copied!" : "Share Research"}
+            </GrayButton>
+            <Link
+              href={`/dashboard/organizations/${orgId}/projects/${projectId}/subprojects/${subProjectId}/research/new`}
+            >
+              <GrayButton>Add Research Entry</GrayButton>
+            </Link>
+          </div>
         </div>
       )}
 

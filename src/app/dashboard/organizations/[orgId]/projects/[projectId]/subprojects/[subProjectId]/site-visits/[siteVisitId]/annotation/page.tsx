@@ -88,7 +88,7 @@ export default function AnnotationPage() {
         const photo = entry.photos?.find((p: any) => p.url === photoUrl);
         if (photo && photo.annotations?.length > 0) {
           setAnnotations(photo.annotations);
-          if (canvasRef.current && imageLoaded) {
+          if (canvasRef.current && imageRef.current && imageLoaded) {
             const renderedWidth = imageRef.current.clientWidth;
             const renderedHeight = imageRef.current.clientHeight;
             const denormPaths = denormalizePaths(
@@ -140,13 +140,16 @@ export default function AnnotationPage() {
         id: uuidv4(),
         // We assume that the paths exported here are already adjusted for the current canvas.
         // To store them normalized, we convert them using the rendered dimensions.
-        paths: denormalizePathString(
-          // First, exportPaths returns a string if there's one path – adjust accordingly.
-          // If exportPaths returns an array of objects, you can adjust the logic.
-          paths[0].points,
-          imageRef.current.clientWidth,
-          imageRef.current.clientHeight
-        ),
+        paths: [{
+          points: denormalizePathString(
+            // First, exportPaths returns a string if there's one path – adjust accordingly.
+            // If exportPaths returns an array of objects, you can adjust the logic.
+            paths[0].points,
+            imageRef.current?.clientWidth || 1, // Default to 1 if undefined
+            imageRef.current?.clientHeight || 1 // Default to 1 if undefined
+          ),
+          type: "stroke"
+        }],
       };
 
       // Find and update the specific photo's annotations in the entry

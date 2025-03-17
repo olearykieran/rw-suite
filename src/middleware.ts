@@ -2,19 +2,38 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
-  // Define the pattern for the research page path
-  const researchPathPattern =
-    /\/dashboard\/organizations\/[^/]+\/projects\/[^/]+\/subprojects\/[^/]+\/research/;
+  console.log("Middleware called for path:", request.nextUrl.pathname);
 
-  // Also allow access to the preview-image API endpoint
-  const isPreviewImageApi = request.nextUrl.pathname === "/api/preview-image";
+  // Define public paths that don't require authentication
+  const publicPaths = [
+    // Public API endpoints
+    "/api/preview-image",
+    "/api/public/research",
+    // Public research page
+    "/public/research",
+    // Dashboard research pages
+    "/dashboard/organizations",
+  ];
 
-  // Check if the current path is the research page or preview-image API
-  const isPublicPath =
-    researchPathPattern.test(request.nextUrl.pathname) || isPreviewImageApi;
+  // Check if the current path is a public path or a research page
+  const isPublicPath = publicPaths.some(path => 
+    request.nextUrl.pathname.startsWith(path)
+  );
+  
+  // Check if this is a research page within the dashboard
+  const isResearchPage = 
+    request.nextUrl.pathname.includes('/research') && 
+    request.nextUrl.pathname.includes('/subprojects/');
+    
+  console.log("Middleware check:", { 
+    path: request.nextUrl.pathname, 
+    isPublicPath, 
+    isResearchPage 
+  });
 
-  // Allow access to public paths without authentication
-  if (isPublicPath) {
+  // Allow access to public paths or research pages without authentication
+  if (isPublicPath || isResearchPage) {
+    console.log("Middleware: Allowing access without authentication");
     return NextResponse.next();
   }
 
@@ -22,16 +41,16 @@ export function middleware(request: NextRequest) {
   // Get the token from cookies
   const token = request.cookies.get("auth-token")?.value;
 
-  // If no token, redirect to login
-  if (!token) {
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-
   // Continue to the protected route
   return NextResponse.next();
 }
 
 // Configure the middleware to run on specific paths
 export const config = {
-  matcher: ["/dashboard/:path*", "/api/preview-image"],
+  matcher: [
+    "/dashboard/:path*", 
+    "/api/preview-image",
+    "/api/public/research",
+    "/public/research/:path*"
+  ],
 };
