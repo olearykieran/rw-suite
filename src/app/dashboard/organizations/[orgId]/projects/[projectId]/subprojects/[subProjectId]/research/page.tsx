@@ -54,11 +54,11 @@ function PreviewImage({ url, entryImage }: PreviewImageProps) {
               const postId = match[2];
               console.log("Found Instagram postId:", postId);
 
-              // Direct proxy approach (simplified to avoid API call failures)
-              const directUrl = `/api/instagram-embed?proxyImage=${encodeURIComponent(
-                `https://instagram.com/p/${postId}/media/?size=l`
-              )}`;
-              setImageUrl(directUrl);
+              // For Instagram, fall back to Google favicon since the direct media URL won't work
+              // due to Instagram's security measures
+              const fallbackUrl = `https://www.google.com/s2/favicons?domain=instagram.com&sz=128`;
+              setImageUrl(fallbackUrl);
+
               setLoading(false);
               return;
             }
@@ -67,14 +67,22 @@ function PreviewImage({ url, entryImage }: PreviewImageProps) {
           }
         }
 
-        // For other URLs, try to fetch a preview
-        const res = await fetch(`/api/preview-image?url=${encodeURIComponent(url)}`);
+        // For Twitter/X URLs
+        if (url.includes("twitter.com") || url.includes("x.com")) {
+          const twitterIconUrl = `https://www.google.com/s2/favicons?domain=twitter.com&sz=128`;
+          setImageUrl(twitterIconUrl);
+          setLoading(false);
+          return;
+        }
 
-        if (!res.ok) {
-          // If the API returns an error, try to extract domain for a fallback image
-          try {
+        // For other URLs, try to fetch a preview using the API
+        try {
+          const res = await fetch(`/api/preview-image?url=${encodeURIComponent(url)}`);
+
+          if (!res.ok) {
+            // If the API returns an error, try to extract domain for a fallback image
             const domain = new URL(url).hostname;
-            // Use favicon as fallback
+            // Use favicon as fallback - this will work across domains
             const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
 
             // Test if favicon is available
@@ -89,21 +97,25 @@ function PreviewImage({ url, entryImage }: PreviewImageProps) {
             };
             img.src = faviconUrl;
             return;
-          } catch (e) {
-            // If favicon approach fails, set error state
-            console.error("Error creating fallback image:", e);
-            setError(true);
-            setImageUrl(null);
-            setLoading(false);
-            return;
           }
-        }
 
-        const data = await res.json();
-        if (data.imageUrl) {
-          setImageUrl(data.imageUrl);
-        } else {
-          setError(true);
+          const data = await res.json();
+          if (data.imageUrl) {
+            setImageUrl(data.imageUrl);
+          } else {
+            // Fallback to domain favicon
+            const domain = new URL(url).hostname;
+            setImageUrl(`https://www.google.com/s2/favicons?domain=${domain}&sz=128`);
+          }
+        } catch (e) {
+          // If API call fails, use domain favicon
+          try {
+            const domain = new URL(url).hostname;
+            setImageUrl(`https://www.google.com/s2/favicons?domain=${domain}&sz=128`);
+          } catch (urlError) {
+            console.error("Error parsing URL:", urlError);
+            setError(true);
+          }
         }
       } catch (err) {
         console.error("Error fetching preview image:", err);
@@ -885,33 +897,49 @@ export default function ResearchListPage() {
                           {/* Header with profile info */}
                           <div className="p-4 flex items-center space-x-3 border-b border-gray-700">
                             <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-pink-500">
-                              {entry.image ? (
-                                <img
-                                  src={entry.image}
-                                  alt={`${entry.author} profile`}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full bg-gradient-to-tr from-yellow-400 to-pink-600 flex items-center justify-center text-white text-xl font-bold">
-                                  {entry.author?.charAt(0) || "I"}
-                                </div>
-                              )}
+                              <div className="w-full h-full bg-gradient-to-tr from-yellow-400 to-pink-600 flex items-center justify-center text-white text-xl font-bold">
+                                {entry.author?.charAt(0) || "I"}
+                              </div>
                             </div>
                             <div className="font-semibold text-gray-200">
                               {entry.author}
                             </div>
                           </div>
 
-                          {/* Image - Instagram posts always have an image */}
-                          <div className="aspect-square overflow-hidden">
+                          {/* Image - Use fallback Instagram logo instead of trying to load actual images */}
+                          <div className="aspect-square overflow-hidden bg-gray-800 flex items-center justify-center">
                             {entry.image ? (
                               <img
                                 src={entry.image}
                                 alt={entry.title || "Instagram post"}
                                 className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  // If the image fails to load, replace with Instagram logo
+                                  const target = e.target as HTMLImageElement;
+                                  target.onerror = null; // Prevent infinite loop
+                                  target.src =
+                                    "https://www.instagram.com/static/images/ico/favicon-192.png/68d99ba29cc8.png";
+                                }}
                               />
                             ) : (
-                              <PreviewImage url={entry.url} entryImage={entry.image} />
+                              <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center">
+                                <img
+                                  src="https://www.instagram.com/static/images/ico/favicon-192.png/68d99ba29cc8.png"
+                                  alt="Instagram"
+                                  className="w-16 h-16 mb-4"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.onerror = null;
+                                    target.style.display = "none";
+                                  }}
+                                />
+                                <div className="text-gray-400 text-sm">
+                                  <p className="font-bold mb-2">Instagram Post</p>
+                                  <p>
+                                    {entry.title || "View on Instagram for full content"}
+                                  </p>
+                                </div>
+                              </div>
                             )}
                           </div>
 
