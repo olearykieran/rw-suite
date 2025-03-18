@@ -1,98 +1,116 @@
 // src/app/api/preview-image/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { JSDOM } from "jsdom";
-// Restore node-fetch import since we've installed a compatible version
-import fetch from "node-fetch";
+
+// Configure Edge runtime
+export const runtime = "edge";
 
 // Simple in-memory cache
 const cache: Record<string, { url: string; timestamp: number }> = {};
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 const FETCH_TIMEOUT = 10000; // 10 seconds timeout
 
-// Helper function to check if a domain is problematic
-const isProblematicDomain = (url: string): boolean => {
-  const problematicDomains = ["instagram.com", "facebook.com", "twitter.com", "x.com"];
-
+// Helper to extract image URL from HTML using regex
+function extractImageUrl(html: string, baseUrl: string): string | null {
   try {
-    const hostname = new URL(url).hostname;
-    return problematicDomains.some((domain) => hostname.includes(domain));
-  } catch {
-    return false;
-  }
-};
-
-async function findOGImage(html: string, baseUrl: string): Promise<string | null> {
-  try {
-    const dom = new JSDOM(html);
-    const doc = dom.window.document;
-
-    // Check Open Graph image
-    const ogImage = doc.querySelector('meta[property="og:image"]');
-    if (ogImage?.getAttribute("content")) {
-      const imageUrl = ogImage.getAttribute("content");
-      // Handle relative URLs
-      if (imageUrl && imageUrl.startsWith("/")) {
+    // Try to extract OpenGraph image
+    const ogImageMatch = html.match(
+      /<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["'][^>]*>/i
+    );
+    if (ogImageMatch && ogImageMatch[1]) {
+      const imageUrl = ogImageMatch[1];
+      if (imageUrl.startsWith("/")) {
         const url = new URL(baseUrl);
         return `${url.origin}${imageUrl}`;
       }
       return imageUrl;
     }
 
-    // Check Twitter image
-    const twitterImage = doc.querySelector('meta[name="twitter:image"]');
-    if (twitterImage?.getAttribute("content")) {
-      const imageUrl = twitterImage.getAttribute("content");
-      // Handle relative URLs
-      if (imageUrl && imageUrl.startsWith("/")) {
+    // Try to extract Twitter image
+    const twitterImageMatch = html.match(
+      /<meta[^>]*name=["']twitter:image["'][^>]*content=["']([^"']+)["'][^>]*>/i
+    );
+    if (twitterImageMatch && twitterImageMatch[1]) {
+      const imageUrl = twitterImageMatch[1];
+      if (imageUrl.startsWith("/")) {
         const url = new URL(baseUrl);
         return `${url.origin}${imageUrl}`;
       }
       return imageUrl;
     }
 
-    // Fallback to first image with reasonable dimensions
-    const images = Array.from(doc.querySelectorAll("img"));
-    for (const img of images) {
-      const src = img.getAttribute("src");
-      const width = img.getAttribute("width");
-      const height = img.getAttribute("height");
+    // Try to find first substantial img tag
+    const imgMatch = html.match(/<img[^>]*src=["']([^"']+)["'][^>]*>/gi);
+    if (imgMatch) {
+      for (const img of imgMatch) {
+        // Skip small images, icons, and logos
+        if (img.includes("icon") || img.includes("logo")) {
+          continue;
+        }
 
-      // Skip tiny images, icons, or images without src
-      if (
-        !src ||
-        (width && parseInt(width) < 100) ||
-        (height && parseInt(height) < 100) ||
-        src.includes("icon") ||
-        src.includes("logo")
-      ) {
-        continue;
+        const srcMatch = img.match(/src=["']([^"']+)["']/i);
+        if (srcMatch && srcMatch[1]) {
+          const src = srcMatch[1];
+          if (src.startsWith("/")) {
+            const url = new URL(baseUrl);
+            return `${url.origin}${src}`;
+          }
+          return src;
+        }
       }
-
-      // Handle relative URLs
-      if (src.startsWith("/")) {
-        const url = new URL(baseUrl);
-        return `${url.origin}${src}`;
-      }
-
-      return src;
     }
   } catch (error) {
-    console.error("Error parsing HTML:", error);
+    console.error(
+      `Error extracting image: ${error instanceof Error ? error.message : String(error)}`
+    );
   }
-
   return null;
 }
 
-// Helper function to fetch with timeout
-const fetchWithTimeout = async (url: string, options = {}, timeout = FETCH_TIMEOUT) => {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
+// Check if a domain should be excluded
+function isExcludedDomain(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname;
+    return ["instagram.com", "facebook.com", "twitter.com", "x.com"].some((domain) =>
+      hostname.includes(domain)
+    );
+  } catch {
+    return false;
+  }
+}
+
+export async function GET(req: NextRequest) {
+  console.log("Preview Image API called");
+
+  // Parse URL from the request
+  const url = new URL(req.url).searchParams.get("url");
+
+  if (!url) {
+    console.log("No URL provided");
+    return NextResponse.json({ error: "URL is required" }, { status: 400 });
+  }
+
+  console.log(`Fetching preview for: ${url}`);
+
+  // Check if the domain is excluded
+  if (isExcludedDomain(url)) {
+    console.log(`Domain excluded: ${url}`);
+    return NextResponse.json({ error: "Domain not supported" }, { status: 404 });
+  }
+
+  // Check cache
+  if (cache[url] && Date.now() - cache[url].timestamp < CACHE_DURATION) {
+    console.log(`Returning cached image for: ${url}`);
+    return NextResponse.json({ imageUrl: cache[url].url });
+  }
 
   try {
-    // Cast the signal to the expected type for node-fetch
+    // Create an AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+
+    // Fetch the page
     const response = await fetch(url, {
-      ...options,
-      signal: controller.signal as any,
+      signal: controller.signal,
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
@@ -100,71 +118,26 @@ const fetchWithTimeout = async (url: string, options = {}, timeout = FETCH_TIMEO
           "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
       },
     });
+
     clearTimeout(timeoutId);
-    return response;
-  } catch (error) {
-    clearTimeout(timeoutId);
-    throw error;
-  }
-};
-
-export async function GET(req: NextRequest) {
-  console.log("Preview Image API called");
-  const searchParams = new URL(req.url).searchParams;
-  const url = searchParams.get("url");
-  const isInstagram = searchParams.get("instagram") === "true";
-
-  if (!url) {
-    console.log("Preview Image API: No URL provided");
-    return NextResponse.json({ error: "URL is required" }, { status: 400 });
-  }
-
-  console.log("Preview Image API: Fetching for URL", url);
-
-  try {
-    // Handle Instagram separately if requested
-    if (isInstagram && url.includes("instagram.com")) {
-      console.log("Preview Image API: Instagram URL detected, not handling");
-      return NextResponse.json(
-        { error: "Instagram handled client-side" },
-        { status: 404 }
-      );
-    }
-
-    // Skip other problematic domains
-    if (isProblematicDomain(url)) {
-      console.log("Preview Image API: Problematic domain detected", url);
-      return NextResponse.json({ error: "Domain not supported" }, { status: 404 });
-    }
-
-    // Check cache first
-    const cached = cache[url];
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-      console.log("Preview Image API: Returning cached result", cached.url);
-      return NextResponse.json({ imageUrl: cached.url });
-    }
-
-    console.log("Preview Image API: Fetching URL", url);
-
-    // Fetch the URL with timeout
-    const response = await fetchWithTimeout(url);
 
     if (!response.ok) {
-      console.warn(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
+      console.error(`Failed to fetch URL: ${response.status} ${response.statusText}`);
       return NextResponse.json(
         { error: `Failed to fetch URL: ${response.status}` },
         { status: 404 }
       );
     }
 
+    // Get the HTML content
     const html = await response.text();
 
-    // Find image URL
-    console.log("Preview Image API: Finding OG image");
-    const imageUrl = await findOGImage(html, url);
+    // Extract the image URL using regex
+    const imageUrl = extractImageUrl(html, url);
 
     if (imageUrl) {
-      console.log("Preview Image API: Found image URL", imageUrl);
+      console.log(`Found image URL: ${imageUrl}`);
+
       // Update cache
       cache[url] = {
         url: imageUrl,
@@ -174,10 +147,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ imageUrl });
     }
 
-    console.log("Preview Image API: No image found");
+    console.log("No image found");
     return NextResponse.json({ error: "No image found" }, { status: 404 });
   } catch (error) {
-    console.error(`Error fetching preview for ${url}:`, error);
+    console.error(
+      `Error fetching preview: ${error instanceof Error ? error.message : String(error)}`
+    );
     return NextResponse.json({ error: "Failed to fetch preview" }, { status: 500 });
   }
 }
