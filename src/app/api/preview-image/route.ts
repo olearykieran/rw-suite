@@ -6,7 +6,19 @@ import fetch from "node-fetch";
 // Simple in-memory cache
 const cache: Record<string, { url: string; timestamp: number }> = {};
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
-const FETCH_TIMEOUT = 5000; // 5 seconds timeout
+const FETCH_TIMEOUT = 10000; // 10 seconds timeout
+
+// Helper function to check if a domain is problematic
+const isProblematicDomain = (url: string): boolean => {
+  const problematicDomains = ["instagram.com", "facebook.com", "twitter.com", "x.com"];
+
+  try {
+    const hostname = new URL(url).hostname;
+    return problematicDomains.some((domain) => hostname.includes(domain));
+  } catch {
+    return false;
+  }
+};
 
 async function findOGImage(html: string, baseUrl: string): Promise<string | null> {
   try {
@@ -82,6 +94,8 @@ const fetchWithTimeout = async (url: string, options = {}, timeout = FETCH_TIMEO
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
       },
     });
     clearTimeout(timeoutId);
@@ -94,12 +108,26 @@ const fetchWithTimeout = async (url: string, options = {}, timeout = FETCH_TIMEO
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url).searchParams.get("url");
+  const isInstagram = new URL(req.url).searchParams.get("instagram") === "true";
 
   if (!url) {
     return NextResponse.json({ error: "URL is required" }, { status: 400 });
   }
 
   try {
+    // Handle Instagram separately if requested
+    if (isInstagram && url.includes("instagram.com")) {
+      return NextResponse.json(
+        { error: "Instagram handled client-side" },
+        { status: 404 }
+      );
+    }
+
+    // Skip other problematic domains
+    if (isProblematicDomain(url)) {
+      return NextResponse.json({ error: "Domain not supported" }, { status: 404 });
+    }
+
     // Check cache first
     const cached = cache[url];
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
