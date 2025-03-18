@@ -1,12 +1,13 @@
 // src/app/api/instagram-embed/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import fetch from "node-fetch";
+import fetch from "node-fetch"; // Restore node-fetch
 
 // Simple in-memory cache
 const cache: Record<string, { data: any; timestamp: number }> = {};
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
 export async function GET(req: NextRequest) {
+  console.log("Instagram-embed API called");
   const url = new URL(req.url);
   const params = url.searchParams;
   const instagramUrl = params.get("url");
@@ -14,6 +15,7 @@ export async function GET(req: NextRequest) {
 
   // If proxyImage parameter is present, proxy the image
   if (proxyImage) {
+    console.log("Instagram-embed API: Proxying image", proxyImage);
     try {
       const response = await fetch(proxyImage, {
         headers: {
@@ -24,12 +26,18 @@ export async function GET(req: NextRequest) {
       });
 
       if (!response.ok) {
+        console.error(`Failed to fetch image: ${response.status} ${response.statusText}`);
         return NextResponse.json({ error: "Failed to fetch image" }, { status: 404 });
       }
 
       // Get the image data
       const imageBuffer = await response.arrayBuffer();
       const contentType = response.headers.get("content-type") || "image/jpeg";
+
+      console.log("Instagram-embed API: Successfully proxied image", {
+        contentType,
+        size: imageBuffer.byteLength,
+      });
 
       // Return the image with appropriate headers
       return new NextResponse(Buffer.from(imageBuffer), {
@@ -47,24 +55,29 @@ export async function GET(req: NextRequest) {
 
   // Handle Instagram URL info
   if (!instagramUrl) {
+    console.log("Instagram-embed API: No URL provided");
     return NextResponse.json({ error: "URL is required" }, { status: 400 });
   }
 
+  console.log("Instagram-embed API: Processing URL", instagramUrl);
   try {
     // Check cache first
     const cached = cache[instagramUrl];
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      console.log("Instagram-embed API: Returning cached result");
       return NextResponse.json(cached.data);
     }
 
     // Extract Instagram post ID
     const postId = extractInstagramPostId(instagramUrl);
     if (!postId) {
+      console.log("Instagram-embed API: Invalid Instagram URL");
       return NextResponse.json({ error: "Invalid Instagram URL" }, { status: 400 });
     }
 
     // Generate a thumbnail URL based on the post ID
     const thumbnailUrl = `https://instagram.com/p/${postId}/media/?size=l`;
+    console.log("Instagram-embed API: Generated thumbnail URL", thumbnailUrl);
 
     // Create a proxied URL that will go through our server
     const proxyUrl = `/api/instagram-embed?proxyImage=${encodeURIComponent(
@@ -84,6 +97,7 @@ export async function GET(req: NextRequest) {
       timestamp: Date.now(),
     };
 
+    console.log("Instagram-embed API: Returning response with proxy URL");
     return NextResponse.json(responseData);
   } catch (error) {
     console.error(`Error fetching Instagram embed for ${instagramUrl}:`, error);
@@ -91,6 +105,7 @@ export async function GET(req: NextRequest) {
     // Even if there's an error, try to return a direct URL as fallback
     const postId = extractInstagramPostId(instagramUrl);
     if (postId) {
+      console.log("Instagram-embed API: Using fallback approach with post ID", postId);
       const thumbnailUrl = `https://instagram.com/p/${postId}/media/?size=l`;
       const proxyUrl = `/api/instagram-embed?proxyImage=${encodeURIComponent(
         thumbnailUrl
