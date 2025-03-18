@@ -9,7 +9,7 @@ const cache: Record<string, { data: any; timestamp: number }> = {};
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
 export async function GET(req: NextRequest) {
-  console.log("Instagram-embed API called");
+  console.log("[EDGE] Instagram-embed API called");
   const url = new URL(req.url);
   const params = url.searchParams;
   const instagramUrl = params.get("url");
@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
 
   // Handle image proxy request
   if (proxyImage) {
-    console.log("Instagram-embed API: Proxying image", proxyImage);
+    console.log("[EDGE] Instagram-embed API: Proxying image", proxyImage);
     try {
       const response = await fetch(proxyImage, {
         headers: {
@@ -29,21 +29,28 @@ export async function GET(req: NextRequest) {
       });
 
       if (!response.ok) {
-        console.error(`Failed to fetch image: ${response.status} ${response.statusText}`);
-        return NextResponse.json({ error: "Failed to fetch image" }, { status: 404 });
+        console.error(
+          `[EDGE] Failed to fetch image: ${response.status} ${response.statusText}`
+        );
+        return new Response(JSON.stringify({ error: "Failed to fetch image" }), {
+          status: 404,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
       }
 
       // Get the image data as array buffer
       const imageBuffer = await response.arrayBuffer();
       const contentType = response.headers.get("content-type") || "image/jpeg";
 
-      console.log("Instagram-embed API: Successfully proxied image", {
+      console.log("[EDGE] Instagram-embed API: Successfully proxied image", {
         contentType,
         size: imageBuffer.byteLength,
       });
 
       // Return the image with appropriate headers
-      return new NextResponse(Buffer.from(imageBuffer), {
+      return new Response(imageBuffer, {
         headers: {
           "Content-Type": contentType,
           "Cache-Control": "public, max-age=86400",
@@ -52,37 +59,58 @@ export async function GET(req: NextRequest) {
       });
     } catch (error) {
       console.error(
-        `Error proxying image: ${error instanceof Error ? error.message : String(error)}`
+        `[EDGE] Error proxying image: ${
+          error instanceof Error ? error.message : String(error)
+        }`
       );
-      return NextResponse.json({ error: "Failed to proxy image" }, { status: 500 });
+      return new Response(JSON.stringify({ error: "Failed to proxy image" }), {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
     }
   }
 
   // Handle Instagram URL info request
   if (!instagramUrl) {
-    console.log("Instagram-embed API: No URL provided");
-    return NextResponse.json({ error: "URL is required" }, { status: 400 });
+    console.log("[EDGE] Instagram-embed API: No URL provided");
+    return new Response(JSON.stringify({ error: "URL is required" }), {
+      status: 400,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
   }
 
-  console.log("Instagram-embed API: Processing URL", instagramUrl);
+  console.log("[EDGE] Instagram-embed API: Processing URL", instagramUrl);
   try {
     // Check cache first
     const cached = cache[instagramUrl];
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-      console.log("Instagram-embed API: Returning cached result");
-      return NextResponse.json(cached.data);
+      console.log("[EDGE] Instagram-embed API: Returning cached result");
+      return new Response(JSON.stringify(cached.data), {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
     }
 
     // Extract Instagram post ID
     const postId = extractInstagramPostId(instagramUrl);
     if (!postId) {
-      console.log("Instagram-embed API: Invalid Instagram URL");
-      return NextResponse.json({ error: "Invalid Instagram URL" }, { status: 400 });
+      console.log("[EDGE] Instagram-embed API: Invalid Instagram URL");
+      return new Response(JSON.stringify({ error: "Invalid Instagram URL" }), {
+        status: 400,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
     }
 
     // Generate a thumbnail URL based on the post ID
     const thumbnailUrl = `https://instagram.com/p/${postId}/media/?size=l`;
-    console.log("Instagram-embed API: Generated thumbnail URL", thumbnailUrl);
+    console.log("[EDGE] Instagram-embed API: Generated thumbnail URL", thumbnailUrl);
 
     // Create a proxied URL that will go through our server
     const proxyUrl = `/api/instagram-embed?proxyImage=${encodeURIComponent(
@@ -102,11 +130,15 @@ export async function GET(req: NextRequest) {
       timestamp: Date.now(),
     };
 
-    console.log("Instagram-embed API: Returning response with proxy URL");
-    return NextResponse.json(responseData);
+    console.log("[EDGE] Instagram-embed API: Returning response with proxy URL");
+    return new Response(JSON.stringify(responseData), {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
   } catch (error) {
     console.error(
-      `Error fetching Instagram embed: ${
+      `[EDGE] Error fetching Instagram embed: ${
         error instanceof Error ? error.message : String(error)
       }`
     );
@@ -114,23 +146,35 @@ export async function GET(req: NextRequest) {
     // Even if there's an error, try to return a direct URL as fallback
     const postId = extractInstagramPostId(instagramUrl);
     if (postId) {
-      console.log("Instagram-embed API: Using fallback approach with post ID", postId);
+      console.log(
+        "[EDGE] Instagram-embed API: Using fallback approach with post ID",
+        postId
+      );
       const thumbnailUrl = `https://instagram.com/p/${postId}/media/?size=l`;
       const proxyUrl = `/api/instagram-embed?proxyImage=${encodeURIComponent(
         thumbnailUrl
       )}`;
 
-      return NextResponse.json({
-        thumbnail_url: proxyUrl,
-        provider_name: "Instagram",
-        post_id: postId,
-      });
+      return new Response(
+        JSON.stringify({
+          thumbnail_url: proxyUrl,
+          provider_name: "Instagram",
+          post_id: postId,
+        }),
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
     }
 
-    return NextResponse.json(
-      { error: "Failed to fetch Instagram embed" },
-      { status: 500 }
-    );
+    return new Response(JSON.stringify({ error: "Failed to fetch Instagram embed" }), {
+      status: 500,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
   }
 }
 

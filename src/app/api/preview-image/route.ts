@@ -1,5 +1,5 @@
 // src/app/api/preview-image/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 // Configure Edge runtime
 export const runtime = "edge";
@@ -60,7 +60,9 @@ function extractImageUrl(html: string, baseUrl: string): string | null {
     }
   } catch (error) {
     console.error(
-      `Error extracting image: ${error instanceof Error ? error.message : String(error)}`
+      `[EDGE] Error extracting image: ${
+        error instanceof Error ? error.message : String(error)
+      }`
     );
   }
   return null;
@@ -79,28 +81,42 @@ function isExcludedDomain(url: string): boolean {
 }
 
 export async function GET(req: NextRequest) {
-  console.log("Preview Image API called");
+  console.log("[EDGE] Preview Image API called");
 
   // Parse URL from the request
   const url = new URL(req.url).searchParams.get("url");
 
   if (!url) {
-    console.log("No URL provided");
-    return NextResponse.json({ error: "URL is required" }, { status: 400 });
+    console.log("[EDGE] No URL provided");
+    return new Response(JSON.stringify({ error: "URL is required" }), {
+      status: 400,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
   }
 
-  console.log(`Fetching preview for: ${url}`);
+  console.log(`[EDGE] Fetching preview for: ${url}`);
 
   // Check if the domain is excluded
   if (isExcludedDomain(url)) {
-    console.log(`Domain excluded: ${url}`);
-    return NextResponse.json({ error: "Domain not supported" }, { status: 404 });
+    console.log(`[EDGE] Domain excluded: ${url}`);
+    return new Response(JSON.stringify({ error: "Domain not supported" }), {
+      status: 404,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
   }
 
   // Check cache
   if (cache[url] && Date.now() - cache[url].timestamp < CACHE_DURATION) {
-    console.log(`Returning cached image for: ${url}`);
-    return NextResponse.json({ imageUrl: cache[url].url });
+    console.log(`[EDGE] Returning cached image for: ${url}`);
+    return new Response(JSON.stringify({ imageUrl: cache[url].url }), {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
   }
 
   try {
@@ -122,10 +138,17 @@ export async function GET(req: NextRequest) {
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      console.error(`Failed to fetch URL: ${response.status} ${response.statusText}`);
-      return NextResponse.json(
-        { error: `Failed to fetch URL: ${response.status}` },
-        { status: 404 }
+      console.error(
+        `[EDGE] Failed to fetch URL: ${response.status} ${response.statusText}`
+      );
+      return new Response(
+        JSON.stringify({ error: `Failed to fetch URL: ${response.status}` }),
+        {
+          status: 404,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
       );
     }
 
@@ -136,7 +159,7 @@ export async function GET(req: NextRequest) {
     const imageUrl = extractImageUrl(html, url);
 
     if (imageUrl) {
-      console.log(`Found image URL: ${imageUrl}`);
+      console.log(`[EDGE] Found image URL: ${imageUrl}`);
 
       // Update cache
       cache[url] = {
@@ -144,15 +167,31 @@ export async function GET(req: NextRequest) {
         timestamp: Date.now(),
       };
 
-      return NextResponse.json({ imageUrl });
+      return new Response(JSON.stringify({ imageUrl }), {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
     }
 
-    console.log("No image found");
-    return NextResponse.json({ error: "No image found" }, { status: 404 });
+    console.log("[EDGE] No image found");
+    return new Response(JSON.stringify({ error: "No image found" }), {
+      status: 404,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
   } catch (error) {
     console.error(
-      `Error fetching preview: ${error instanceof Error ? error.message : String(error)}`
+      `[EDGE] Error fetching preview: ${
+        error instanceof Error ? error.message : String(error)
+      }`
     );
-    return NextResponse.json({ error: "Failed to fetch preview" }, { status: 500 });
+    return new Response(JSON.stringify({ error: "Failed to fetch preview" }), {
+      status: 500,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
   }
 }

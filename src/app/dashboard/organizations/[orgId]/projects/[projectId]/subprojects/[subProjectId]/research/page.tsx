@@ -52,26 +52,9 @@ function PreviewImage({ url, entryImage }: PreviewImageProps) {
 
             if (match && match[2]) {
               const postId = match[2];
+              console.log("Found Instagram postId:", postId);
 
-              try {
-                // Use our Instagram embed proxy API
-                const proxyUrl = `/api/instagram-embed?url=${encodeURIComponent(url)}`;
-                const res = await fetch(proxyUrl);
-
-                if (res.ok) {
-                  const data = await res.json();
-                  if (data.thumbnail_url) {
-                    // The thumbnail_url is now a proxy URL that will avoid CORS issues
-                    setImageUrl(data.thumbnail_url);
-                    setLoading(false);
-                    return;
-                  }
-                }
-              } catch (proxyError) {
-                console.error("Error using Instagram proxy:", proxyError);
-              }
-
-              // Fallback to using our proxy directly if the API call fails
+              // Direct proxy approach (simplified to avoid API call failures)
               const directUrl = `/api/instagram-embed?proxyImage=${encodeURIComponent(
                 `https://instagram.com/p/${postId}/media/?size=l`
               )}`;
