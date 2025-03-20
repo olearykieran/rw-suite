@@ -15,6 +15,10 @@ export function middleware(request: NextRequest) {
     // Public pages
     "/public/research",
     "/public/ticket-sales-report",
+    // Authentication pages
+    "/public/auth/sign-in",
+    "/public/auth/sign-up",
+    "/public",
   ];
 
   // Check if the current path is a public API path
@@ -61,17 +65,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // For all other dashboard routes, check authentication
-  const token = request.cookies.get("auth-token")?.value;
-
-  // If no token is found and we're trying to access a protected route, redirect to sign-in
-  if (!token && request.nextUrl.pathname.startsWith("/dashboard")) {
-    console.log("Middleware: No token found, redirecting to sign-in");
-    const signInUrl = new URL("/public/auth/sign-in", request.url);
-    return NextResponse.redirect(signInUrl);
-  }
-
-  // Continue to the protected route
+  // For dashboard routes, let the client-side authentication handle it
+  // Firebase auth state is managed client-side, so we'll let the components handle auth checks
+  console.log("Middleware: Allowing access to protected route, client will handle auth");
   return NextResponse.next();
 }
 
@@ -82,5 +78,6 @@ export const config = {
     "/api/:path*",
     "/public/research/:path*",
     "/public/ticket-sales-report/:path*",
+    "/public/auth/:path*",
   ],
 };
