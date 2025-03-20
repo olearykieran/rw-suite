@@ -18,72 +18,91 @@ function DashboardLayoutContent({ children }: { children: ReactNode }) {
   const [orgCheckDone, setOrgCheckDone] = useState(false);
 
   // Check if the current path is a research page
-  const isResearchPage = typeof window !== 'undefined' && 
-    window.location.pathname.includes('/research') &&
-    window.location.pathname.includes('/subprojects/');
-    
-  console.log("Dashboard layout rendering", { 
-    user, 
-    authLoading, 
-    isResearchPage, 
-    path: typeof window !== 'undefined' ? window.location.pathname : 'unknown'
+  const isResearchPage =
+    typeof window !== "undefined" &&
+    window.location.pathname.includes("/research") &&
+    window.location.pathname.includes("/subprojects/");
+
+  // Check if the current path is a ticket-sales-report page
+  const isTicketSalesReportPage =
+    typeof window !== "undefined" &&
+    window.location.pathname.includes("/ticket-sales-report") &&
+    window.location.pathname.includes("/subprojects/");
+
+  // Check if the current path is an analytics page
+  const isAnalyticsPage =
+    typeof window !== "undefined" &&
+    window.location.pathname.includes("/analytics") &&
+    window.location.pathname.includes("/subprojects/");
+
+  console.log("Dashboard layout rendering", {
+    user,
+    authLoading,
+    isResearchPage,
+    isTicketSalesReportPage,
+    isAnalyticsPage,
+    path: typeof window !== "undefined" ? window.location.pathname : "unknown",
   });
 
   useEffect(() => {
-    // Skip authentication check for research pages
-    if (isResearchPage) {
-      console.log("Dashboard layout - bypassing auth for research page");
+    // Skip authentication check for public pages
+    if (isResearchPage || isTicketSalesReportPage || isAnalyticsPage) {
+      console.log("Dashboard layout - bypassing auth for public access page");
       return;
     }
-    
+
     if (!authLoading && !user) {
       router.replace("/public/auth/sign-in");
     } else if (!authLoading && user) {
       checkOrganizations(user.uid);
     }
-  }, [user, authLoading, router, isResearchPage]);
+  }, [
+    user,
+    authLoading,
+    router,
+    isResearchPage,
+    isTicketSalesReportPage,
+    isAnalyticsPage,
+  ]);
 
+  // Check if the user is part of any organizations
   async function checkOrganizations(uid: string) {
+    // Only check organizations once per session
+    if (orgCheckDone) return;
+
     try {
-      const orgColl = collection(firestore, "organizations");
-      const orgSnap = await getDocs(orgColl);
-      const myOrgs: string[] = [];
-      for (const orgDoc of orgSnap.docs) {
-        const membersColl = collection(orgDoc.ref, "members");
-        const membersSnap = await getDocs(membersColl);
-        if (membersSnap.docs.find((d) => d.id === uid)) {
-          myOrgs.push(orgDoc.id);
-        }
-      }
-      setOrgIds(myOrgs);
-    } catch (error) {
-      console.error("Error fetching organizations:", error);
-    } finally {
+      const userOrgsRef = collection(firestore, `users/${uid}/organizations`);
+      const snapshot = await getDocs(userOrgsRef);
+      const ids = snapshot.docs.map((doc) => doc.id);
+      setOrgIds(ids);
       setOrgCheckDone(true);
+
+      // If no organizations exist, redirect to create one
+      if (ids.length === 0) {
+        router.push("/dashboard/organizations/new");
+      }
+    } catch (error) {
+      console.error("Error checking organizations:", error);
     }
   }
 
-  if (authLoading || (!orgCheckDone && !isResearchPage)) {
-    return null;
-  }
-
-  if (orgIds.length === 0 && !isResearchPage) {
+  // Loading UI
+  if (authLoading) {
     return (
-      <div className="p-6">
-        <p className="text-red-600 font-semibold">
-          You are not a member of any organization. Please sign up or ask your admin for
-          an invite.
-        </p>
+      <div className="fixed inset-0 flex items-center justify-center bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     );
   }
 
-  if (isResearchPage) {
-    return children;
+  // When the user is signed out, and it's not a public access page, don't render anything
+  if (!user && !isResearchPage && !isTicketSalesReportPage && !isAnalyticsPage) {
+    return null;
   }
 
+  // For signed-in users, show the full dashboard layout
   return (
-    <div className="flex h-screen w-full overflow-hidden">
+    <div className="flex h-screen w-full overflow-hidden dark:bg-gray-900">
       <SidebarNav />
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopHeader />
@@ -95,8 +114,11 @@ function DashboardLayoutContent({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * The main Dashboard layout that wraps all dashboard pages.
+ * It provides authentication, UI structure, and context providers.
+ */
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  // Wrap with both providers.
   return (
     <LoadingBarProvider>
       <SelectedProjectProvider>
