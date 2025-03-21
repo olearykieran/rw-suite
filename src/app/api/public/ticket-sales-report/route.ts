@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { firestore } from "@/lib/firebaseConfig";
 import { collection, getDocs, query, where } from "firebase/firestore";
+import { getTicketSalesReport } from "@/lib/services/TicketSalesReportService";
 
 /**
  * Public API endpoint to fetch ticket sales report data without authentication
@@ -35,79 +36,33 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Define the path to ticket sales data
-    const collRef = collection(
-      firestore,
-      "organizations",
-      orgId,
-      "projects",
-      projectId,
-      "subprojects",
-      subProjectId,
-      "ticketSales"
+    // Use the combined data sources service
+    const result = await getTicketSalesReport(
+      startDate!,
+      endDate!,
+      location && location !== "All" ? location : null
     );
-
-    // Build query based on provided filters
-    let queryRef = query(collRef);
-
-    // Add date range filter
-    queryRef = query(
-      queryRef,
-      where("date", ">=", startDate),
-      where("date", "<=", endDate)
-    );
-
-    // Add location filter if provided and not "All"
-    if (location && location !== "All") {
-      queryRef = query(queryRef, where("location", "==", location));
-    }
-
-    const snapshot = await getDocs(queryRef);
-    console.log("Ticket sales query result", {
-      empty: snapshot.empty,
-      count: snapshot.docs.length,
-    });
-
-    const data = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-
-    // Calculate totals
-    const totalSales = data.reduce((sum, item: any) => sum + (item.sold_tickets || 0), 0);
-    const totalRevenue = data.reduce((sum, item: any) => sum + (item.revenue || 0), 0);
-
-    // Calculate projected yearly revenue
-    // This is a simple projection based on the daily average during the selected period
-    const dayCount = Math.max(1, calculateDaysBetween(startDate, endDate));
-    const dailyAverage = totalRevenue / dayCount;
-    const projectedYearlyRevenue = dailyAverage * 365;
 
     console.log("Returning ticket sales data", {
-      count: data.length,
-      totalSales,
-      totalRevenue,
-      projectedYearlyRevenue,
+      count: result.data.length,
+      totalSales: result.totalSales,
+      totalRevenue: result.totalRevenue,
+      projectedYearlyRevenue: result.projectedYearlyRevenue,
+      hasTimeslotData: result.data.some(
+        (item: DailySalesData) => item.timeslots && item.timeslots.length > 0
+      ),
     });
 
     return NextResponse.json({
-      data,
-      totalSales,
-      totalRevenue,
-      projectedYearlyRevenue,
+      data: result.data,
+      totalSales: result.totalSales,
+      totalRevenue: result.totalRevenue,
+      projectedYearlyRevenue: result.projectedYearlyRevenue,
     });
-  } catch (error) {
-    console.error("Error fetching ticket sales data:", error);
-    // Log more detailed error information
-    if (error instanceof Error) {
-      console.error("Error details:", {
-        message: error.message,
-        stack: error.stack,
-        name: error.name,
-      });
-    }
+  } catch (error: any) {
+    console.error("Error in public ticket sales report API:", error);
     return NextResponse.json(
-      { error: "Failed to fetch ticket sales data" },
+      { error: error.message || "Internal server error" },
       { status: 500 }
     );
   }
@@ -122,4 +77,21 @@ function calculateDaysBetween(startDate: string, endDate: string): number {
   const diffTime = Math.abs(end.getTime() - start.getTime());
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   return diffDays + 1; // Include both start and end dates
+}
+
+// Updated data interface to include timeslots
+interface TimeslotData {
+  timeslot: string;
+  total_tickets: number;
+  sold_tickets: number;
+  revenue: number;
+}
+
+interface DailySalesData {
+  date: string;
+  location: string;
+  total_tickets: number;
+  sold_tickets: number;
+  revenue: number;
+  timeslots?: TimeslotData[];
 }

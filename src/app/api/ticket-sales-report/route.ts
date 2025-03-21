@@ -1,9 +1,23 @@
 // src/app/api/ticket-sales-report/route.ts
 import { NextResponse } from "next/server";
-import {
-  fetchTicketSalesReport,
-  calculateProjectedYearlyRevenue,
-} from "@/lib/services/TicketSalesReportService";
+import { getTicketSalesReport } from "@/lib/services/TicketSalesReportService";
+
+// Updated data interface to include timeslots
+interface TimeslotData {
+  timeslot: string;
+  total_tickets: number;
+  sold_tickets: number;
+  revenue: number;
+}
+
+interface DailySalesData {
+  date: string;
+  location: string;
+  total_tickets: number;
+  sold_tickets: number;
+  revenue: number;
+  timeslots?: TimeslotData[];
+}
 
 export async function GET(request: Request) {
   try {
@@ -19,28 +33,27 @@ export async function GET(request: Request) {
       );
     }
 
-    // Fetch ticket sales report data from our service
-    const salesData = await fetchTicketSalesReport(
+    // Fetch ticket sales report data from our service with combined data sources
+    const result = await getTicketSalesReport(
       startDate,
       endDate,
-      location && location !== "All" ? location : undefined
+      location && location !== "All" ? location : null
     );
 
-    // Calculate total sales for the period
-    const totalSales = salesData.reduce((acc, row) => acc + Number(row.sold_tickets), 0);
-
-    // Calculate total revenue for the period
-    const totalRevenue = salesData.reduce((acc, row) => acc + Number(row.revenue), 0);
-
-    // Calculate projected yearly revenue
-    const projectedYearlyRevenue = calculateProjectedYearlyRevenue(salesData);
+    // Log data structure for debugging
+    console.log(
+      "API response contains timeslot data:",
+      result.data.some(
+        (item: DailySalesData) => item.timeslots && item.timeslots.length > 0
+      )
+    );
 
     // Return the report data and calculated totals
     return NextResponse.json({
-      data: salesData,
-      totalSales,
-      totalRevenue,
-      projectedYearlyRevenue,
+      data: result.data,
+      totalSales: result.totalSales,
+      totalRevenue: result.totalRevenue,
+      projectedYearlyRevenue: result.projectedYearlyRevenue,
     });
   } catch (error: any) {
     console.error("Error in /api/ticket-sales-report:", error);
