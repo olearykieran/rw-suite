@@ -1,12 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { v4 as uuidv4 } from "uuid";
-
-// @ts-ignore
-const html2pdf = require("html2pdf.js");
 
 // Define interfaces for invoice items
 interface InvoiceItem {
@@ -110,6 +107,16 @@ const InvoicePage = () => {
     companyEmail: "",
     companyPhone: "",
   });
+
+  // Add state for html2pdf
+  const [html2pdf, setHtml2pdf] = useState<any>(null);
+
+  // Load html2pdf dynamically on client side
+  useEffect(() => {
+    import("html2pdf.js").then((module) => {
+      setHtml2pdf(() => module.default);
+    });
+  }, []);
 
   // Input handlers
   const handleInputChange = (
@@ -230,8 +237,13 @@ const InvoicePage = () => {
     }
   };
 
-  // Generate PDF function
-  const generatePDF = () => {
+  // Modify the generatePDF function
+  const generatePDF = async () => {
+    if (!html2pdf) {
+      console.log("PDF generator is loading...");
+      return;
+    }
+
     // Create the invoice HTML template
     const invoiceTemplate = document.createElement("div");
     invoiceTemplate.innerHTML = `
