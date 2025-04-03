@@ -138,6 +138,12 @@ export default function SubProjectOverview() {
       label: "Analytics",
       description: "View analytics data.",
     },
+    {
+      route: "invoices",
+      collectionName: "invoices",
+      label: "Invoices",
+      description: "Generate and manage professional invoices.",
+    },
   ];
 
   // Fetch data for the detailed sub‑project view.

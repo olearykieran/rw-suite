@@ -50,6 +50,11 @@ export default function SidebarNav() {
       icon: <DocumentIcon className="h-5 w-5" />,
     },
     {
+      name: "Invoices",
+      href: "/invoices",
+      icon: <DocumentTextIcon className="h-5 w-5" />,
+    },
+    {
       name: "Settings",
       href: "/dashboard/settings",
       icon: <Cog6ToothIcon className="h-5 w-5" />,

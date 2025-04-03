@@ -6,6 +6,7 @@ import {
   BuildingOffice2Icon,
   Cog6ToothIcon,
   UserIcon,
+  DocumentTextIcon,
 } from "@heroicons/react/24/outline";
 import { usePathname } from "next/navigation";
 import { useOrgId } from "@/hooks/useOrgId";
@@ -38,6 +39,11 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
       // Using effectiveOrgId to build the route
       href: `/dashboard/organizations/${effectiveOrgId}/contractors`,
       icon: <UserIcon className="h-5 w-5" />,
+    },
+    {
+      name: "Invoices",
+      href: "/invoices",
+      icon: <DocumentTextIcon className="h-5 w-5" />,
     },
     {
       name: "Settings",
