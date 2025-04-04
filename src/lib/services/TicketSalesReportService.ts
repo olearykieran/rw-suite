@@ -115,13 +115,32 @@ export async function getTicketSalesReport(
           SELECT
             "date",
             location,
-            SUM(total_tickets) as total_tickets,
-            SUM(sold_tickets) as sold_tickets,
             SUM(
               CASE
-                WHEN EXTRACT(DOW FROM "date"::date) IN (0, 6) THEN sold_tickets * 75
-                WHEN timeslot ~ '([5-9]|1[0-2]) PM' THEN sold_tickets * 70
-                ELSE sold_tickets * 60
+                WHEN LOWER(status) = 'waitlist' THEN 40
+                ELSE total_tickets
+              END
+            ) as total_tickets,
+            SUM(
+              CASE
+                WHEN LOWER(status) = 'waitlist' THEN 40
+                ELSE (total_tickets - spots_filled)
+              END
+            ) as sold_tickets,
+            SUM(
+              CASE
+                WHEN LOWER(status) = 'waitlist' THEN 40 * 
+                  CASE
+                    WHEN EXTRACT(DOW FROM "date"::date) IN (0, 6) THEN 75
+                    WHEN timeslot ~ '([5-9]|1[0-2]) PM' THEN 70
+                    ELSE 60
+                  END
+                ELSE
+                  CASE
+                    WHEN EXTRACT(DOW FROM "date"::date) IN (0, 6) THEN (total_tickets - spots_filled) * 75
+                    WHEN timeslot ~ '([5-9]|1[0-2]) PM' THEN (total_tickets - spots_filled) * 70
+                    ELSE (total_tickets - spots_filled) * 60
+                  END
               END
             ) as revenue
           FROM ticket_sales_view
@@ -157,18 +176,21 @@ export async function getTicketSalesReport(
             class_date::date as "date",
             'Othership' as location,
             class_time as timeslot,
-            capacity as total_tickets,
+            CASE
+              WHEN LOWER(status) = 'waitlist' THEN 40
+              ELSE capacity
+            END as total_tickets,
             CASE
               WHEN status = 'class cancelled' THEN 0
               WHEN status = 'class full' THEN capacity
-              WHEN status = 'waitlist' THEN 0
-              ELSE spots_filled
+              WHEN LOWER(status) = 'waitlist' THEN 40
+              ELSE (capacity - spots_filled)
             END as sold_tickets,
             CASE
               WHEN status = 'class cancelled' THEN 0
               WHEN status = 'class full' THEN capacity * 64
-              WHEN status = 'waitlist' THEN 0
-              ELSE spots_filled * 64
+              WHEN LOWER(status) = 'waitlist' THEN 40 * 64
+              ELSE (capacity - spots_filled) * 64
             END as revenue
           FROM classes
           WHERE class_date::date BETWEEN $1::date AND $2::date

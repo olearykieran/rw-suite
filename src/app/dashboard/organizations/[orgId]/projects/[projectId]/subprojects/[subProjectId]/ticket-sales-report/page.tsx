@@ -261,7 +261,7 @@ export default function TicketSalesReportPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
             <Card className="p-4 shadow-lg rounded-lg">
               <h2 className="text-xl font-bold mb-2">Total Ticket Sales</h2>
-              <p className="text-3xl font-bold">{totalSales.toLocaleString()}</p>
+              <p className="text-3xl font-bold">{(totalSales || 0).toLocaleString()}</p>
             </Card>
             <Card className="p-4 shadow-lg rounded-lg">
               <h2 className="text-xl font-bold mb-2">Total Revenue</h2>
